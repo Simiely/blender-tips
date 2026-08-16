@@ -109,3 +109,21 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因:RGBA PNG 的 alpha 通道为 0(场景无背景/透明)
 - 解决:查看时切 RGB;不需要透明则输出颜色模式改 RGB,或渲染属性 Film 关 Transparent
 - 预防:出图前明确要透明底还是实底,对应设置颜色模式
+
+## 问题:空的合成器节点组导致"无法渲染/不输出"
+
+**TL;DR**:5.2 的 use_nodes 恒 True;compositing_node_group 存在但树空 = "幽灵状态",渲染结果不保存。
+
+- 问题:删光合成器节点后,渲染不再输出文件;新工程(无节点组)却能正常输出
+- 根因:实测确认 —— 新场景 use_nodes=True 但 compositing_node_group 不存在 → 渲染按 render.filepath 正常输出;有节点组但树被清空 → 合成器激活但无输出节点 → 结果无处写
+- 解决:移除空节点组(GUI:Outliner → Blender File → Node Groups → 删"合成器节点";脚本:`scene.compositing_node_group=None` + `node_groups.remove`)
+- 预防:use_nodes 在 5.x 无法关闭(废弃);"关合成器"的正确操作是移除节点组,不是设 use_nodes=False
+
+## 问题:File Output 与渲染属性双份输出(文件名/大小不同)
+
+**TL;DR**:File Output 节点与 render.filepath 同目录时各输出一份;位深不同导致大小差约 2.7 倍。
+
+- 问题:输出目录出现 frame_0001.png(8-bit,3.6MB)与 frame_0001Image.png(16-bit,9.9MB)两份
+- 根因:File Output 节点(文件名 = file_name+槽名+帧号)与渲染属性(render.filepath)同时生效;File Output 槽可 16-bit
+- 解决:只留一条输出 —— 删 File Output 节点(保渲染属性)或清空渲染属性路径(保 File Output)
+- 预防:配置输出前明确"合成器节点输出"还是"渲染属性输出",避免双份
