@@ -64,3 +64,48 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因:Blender 段插值线性化必然在段交界产生尖角;C4D 的切线控制更细
 - 解决:中间帧保持 BEZIER/AUTO;两头帧 handle 改 FREE 并手动拖到与线段平行
 - 预防:涉及"线性+平滑混合"需求优先 Free handle 方案,别先改 interpolation
+
+## 问题:远程脚本修改合成器节点树导致 Blender 崩溃
+
+**TL;DR**:Blender 5.x 的 File Output 节点有已知崩溃 bug,远程脚本(主线程 timer)新建/操作该节点会直接崩溃(无崩溃日志)。
+
+- 问题:通过远程桥在合成器节点树新建 `CompositorNodeOutputFile`、操作 `file_output_items` 时,Blender 进程直接消失
+- 根因:Blender Artists 社区确认 —— Blender 5.x 的 file output 节点(带 vec1 输入)存在崩溃 bug,5.1 Alpha 修复;官方 devtalk 也讨论过 File Output 节点在 5.2 的行为问题
+- 解决:该环节放弃脚本,改 GUI 手动添加/配置 File Output 节点
+- 预防:远程桥只做只读探查;合成器节点树的写操作(新建/删除/槽操作)一律 GUI 手动
+
+## 问题:Blender 5.2 渲染后查看器不显示结果(透明/需手动切)
+
+**TL;DR**:5.2 移除 `CompositorNodeComposite`,合成器开启时渲染结果不再自动显示在图像查看器。
+
+- 问题:F12 渲染后,图像查看器显示透明/空白,要手动选择 Viewer 等才能看到
+- 根因:4.x 靠 Composite 节点把结果送进 Render Result;5.2 该节点被移除(官方 API 文档 404、bpy.types 无此类)
+- 解决:方式 A 加 Viewer 节点预览;方式 B 取消 Use Nodes 直接渲染(结果自动显示)
+- 预防:开启合成器=必须自己安排预览节点或接受查看器无自动显示
+
+## 问题:File Output 输出是 EXR 而不是 PNG
+
+**TL;DR**:节点 Media Type 默认 Multi-Layer EXR,槽需勾 Override Node Format 才能用 PNG。
+
+- 问题:明明槽里选了 PNG,输出却是 .exr
+- 根因:节点级 format 在 Multi-Layer EXR 模式锁定 OPEN_EXR_MULTILAYER(设置 PNG 报 enum 错);槽 override_node_format=False → 用节点级格式
+- 解决:Media Type 改 Image;或槽勾 Override Node Format 选 PNG
+- 预防:File Output 节点优先检查 Media Type,再检查槽的 Override
+
+## 问题:F12 渲染后输出文件夹是空的
+
+**TL;DR**:F12 单帧渲染不写序列;File Output 只写当前帧,完整序列要 Ctrl+F12。
+
+- 问题:输出目录空,以为没渲染
+- 根因:Blender 渲染属性(F12 单帧)不保存文件;File Output 节点在 F12 时也只写当前帧(文件名带当前帧号)
+- 解决:渲染动画用 Ctrl+F12(Render Animation);F12 仅预览单帧
+- 预防:区分 F12 预览与 Ctrl+F12 出序列
+
+## 问题:输出的 PNG 打开是透明的
+
+**TL;DR**:PNG 带 alpha 且 alpha=0(透明背景),查看器按 RGBA 显示棋盘格。
+
+- 问题:渲染出的 PNG 打开显示透明/棋盘格
+- 根因:RGBA PNG 的 alpha 通道为 0(场景无背景/透明)
+- 解决:查看时切 RGB;不需要透明则输出颜色模式改 RGB,或渲染属性 Film 关 Transparent
+- 预防:出图前明确要透明底还是实底,对应设置颜色模式
