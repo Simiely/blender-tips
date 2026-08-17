@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-08-17(commit `537bb4b5`)查看渲染用时详细版 v0.2.3
+> 📌 **文档基线**:2026-08-17(commit 待回填)远程控制脚本包 v0.3.0
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -25,7 +25,7 @@
 
 ## 常用命令
 
-- 远程执行:`python send.py <code.py>`(桥在 blender_control/)
+- 远程执行:`python send.py <code.py>`(桥脚本在 `scripts/blender-remote-control/`,跨机器可复用;README 含完整说明)
 - 验证桥:`netstat -ano | grep 9877`
 - 手动改 handle:Graph Editor 选中关键帧按 V
 
