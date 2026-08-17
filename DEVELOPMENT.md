@@ -127,3 +127,12 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因:File Output 节点(文件名 = file_name+槽名+帧号)与渲染属性(render.filepath)同时生效;File Output 槽可 16-bit
 - 解决:只留一条输出 —— 删 File Output 节点(保渲染属性)或清空渲染属性路径(保 File Output)
 - 预防:配置输出前明确"合成器节点输出"还是"渲染属性输出",避免双份
+
+## 问题:0 灯光场景渲染白膜平淡/无轮廓
+
+**TL;DR**:CAD 导入场景通常没有灯光对象,白膜渲染全靠世界光;World 节点树里 Sky Texture 未连接 Background 时,世界只是默认灰。
+
+- 问题:50186 对象 CAD 大场景,0 个灯光对象,直接渲染白膜效果平淡
+- 根因:Blender 无灯光对象时唯一光源是 World;节点树里存在 TEX_SKY 节点但 Background.Color 未连线(孤立节点),世界按默认灰照亮 → 无天空光影轮廓
+- 解决:检查并补连 `TEX_SKY.outputs[0] → Background.inputs[0]`;白膜材质用 Principled 纯白(Base Color 0.6 防过亮, Roughness 1.0, Metallic 0)
+- 预防:白膜前先探查 world 节点连接(sky/bg 是否存在、Color 是否 linked);0 灯光场景默认走天空光,不够再加 Sun
