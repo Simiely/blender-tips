@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## v0.4.0 · 2026-08-17
+
+- `docs/技巧速查.md` §9 新增:渲染白膜(材质覆盖,非破坏性)——View Layer `material_override` + 白膜材质 + 天空光补连;索引表补全 §7/§8/§9
+- `DEVELOPMENT.md` 新增 1 篇问题记录:0 灯光场景白膜渲染靠天空光 / Sky Texture 未连接 Background
+- 来源:CAD 大场景(50186 对象)白膜渲染实战(材质覆盖 + Cycles GPU + 天空纹理;Base Color 0.6 防过亮)
+
 ## v0.1.0 · 2026-08-16
 
 - 初始版本:按 knowledge-base 单项目规范创建四件套(README/AGENTS/DEVELOPMENT/CHANGELOG)
