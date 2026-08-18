@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-08-17(commit 9b11ee0)白膜渲染材质覆盖 v0.4.0
+> 📌 **文档基线**:2026-08-18(commit `待回填`)时间轴前移/小数帧/标记实战 v0.5.0
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -11,7 +11,10 @@
 ## 关键坑(代码里看不出的)
 
 - `bpy.context` 只能**主线程**访问 → 远程执行必须用 `bpy.app.timers` 调度
-- **Blender 5.2 Slotted Action**:`action.fcurves` 不存在!读/建曲线用 `action.fcurve_ensure_for_datablock(obj, path, index=i)`(index 必须关键字传参)
+- **Blender 5.2 Slotted Action**:`action.fcurves` 不存在!读/建曲线用 `action.fcurve_ensure_for_datablock(obj, path, index=i)`(index 必须关键字传参);**读取已存在曲线**:`action.layers → layer.strips → strip.channelbags → cb.fcurves → fc.keyframe_points`(channelbag 有 slot_handle 区分 OB对象/CA相机数据)
+- **同一次 exec 内改完立即验证会读到未刷新缓存值** → 修改与验证必须分两次请求,以新请求为准
+- **探查脚本禁止 `round(kp.co[0])` 统计帧号**(banker's rounding 掩盖 .5 帧,如 361.5→362);用精确值 + `abs(f-round(f))>1e-6` 筛小数帧
+- **Blender 没有"反转关键帧"菜单**!反转 = 关键帧菜单 → 镜像(`Ctrl-M`)→ 沿时间轴关于当前帧(播放头放中间帧)或沿时间轴关于时间 0
 - 直接改 IDProperty(如 `obj['vis']=[0]`)后驱动不重算 → 必须 `obj.update_tag()` + `bpy.context.view_layer.update()`
 - 关键帧**末帧插值不影响任何可见段**(段由段首帧决定);要"结尾直线"改**倒数第二帧**为 LINEAR
 - C4D 式"中间平滑+两头线性":**两头 Free handle 手动对齐线段**,中间保持平滑;改 LINEAR 会产生折角
