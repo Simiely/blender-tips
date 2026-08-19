@@ -208,3 +208,19 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因:ColorRamp 默认 LINEAR,但**手动拖动色标时插值类型可能被切到 EASE**(缓动,过渡在两端加速减速 → 视觉上"抖");且过渡区中间若留色标,插值被钉住形成台阶
 - 解决:`cr.color_ramp.interpolation = 'LINEAR'`;删掉两平台之间的色标,让过渡由两侧平台色标线性决定
 - 预防:任何 ColorRamp 做完后检查 interpolation;循环渐变按"平台(同色连标)+ 过渡(无中间色标)+ 首尾同色"布局(见 docs §16)
+
+## 问题:Object 坐标不跟随空物体旋转 + 材质节点 driver 路径
+
+**TL;DR**:Texture Coordinate 的 Object 输出只跟随平移;材质节点 driver/keyframe 路径必须用 inputs[N] 数字索引。
+
+- 问题1:旋转控制空物体 90°,条纹毫无变化——Blender 的 Object 坐标仅用空物体原点做平移参考,旋转/缩放不影响采样坐标
+- 解决1:条纹旋转用材质节点内偏移(节点 ADD + driver/keyframe),不要转空物体;空物体只用于平移类控制
+- 问题2:材质 driver `nodes["UOffset"].inputs["Location"].default_value` 报 not found(5.2 slotted action 路径解析 bug)
+- 解决2:路径改用数字索引 `inputs[1]`(与 keyframe 经验一致,见 §16);对象级 driver(rotation/location)不受影响
+- 预防:涉及材质节点动画一律用 inputs[N];旋转类动画走节点偏移;文档 §17
+
+## 问题:理发店滚筒条纹底部"裁剪"
+
+- 问题:圆柱底部条纹被截断/扭曲——v 归一化后圆柱底部超出 0~1 为负值,普通 MODULO 负结果被钳制
+- 解决:用 FLOORED_MODULO(数学取模,负数返回非负)替代 MODULO → 条纹上下/环绕无缝循环
+- 预防:任何循环坐标/值用 FLOORED_MODULO;MODULO 在 Blender 对负数按 C 风格(带符号)
