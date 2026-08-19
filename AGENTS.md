@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-08-19(commit 1c2685d)打组/轴心位置保持 v0.7.0
+> 📌 **文档基线**:2026-08-19(commit `待回填`)循环渐变色 v0.8.0
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -19,6 +19,7 @@
 - **send.py 大任务(全量遍历 5 万+ 对象)>120s 会报超时,但桥实际执行完** → 超时后重跑同脚本验证(幂等脚本);写操作先备份
 - **重复网格合并指纹必须含材质+UV**(几何相同≠可合并);合并前抽检真实顶点坐标;合并后同组对象共享数据,编辑一个全部同步
 - **parent 赋值后手动设 mpi**:`child.parent = empty` 在 5.x 不自动更新 matrix_parent_inverse → 世界位置 = 父位置+局部(翻倍)!必须 `child.matrix_parent_inverse = empty.matrix_world.inverted()`;空对象先定位到目标位置再挂载;设置 location 后 view_layer.update() 刷新
+- **循环渐变 ColorRamp**:等分数=颜色数×4;同色连标=平台,删过渡中点=线性过渡,首尾同色=无缝循环;插值必须 LINEAR(EASE 会抖);滚动用 Mapping Location 关键帧,勿移动空对象
 - 直接改 IDProperty(如 `obj['vis']=[0]`)后驱动不重算 → 必须 `obj.update_tag()` + `bpy.context.view_layer.update()`
 - 关键帧**末帧插值不影响任何可见段**(段由段首帧决定);要"结尾直线"改**倒数第二帧**为 LINEAR
 - C4D 式"中间平滑+两头线性":**两头 Free handle 手动对齐线段**,中间保持平滑;改 LINEAR 会产生折角

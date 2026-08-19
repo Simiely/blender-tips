@@ -199,3 +199,12 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因:Blender 5.x 中 parent 赋值**不自动更新 matrix_parent_inverse**;世界 = parent.world @ mpi @ local,mpi=Identity 时 = parent.world @ local;空对象与物体距离越远越明显
 - 解决:挂载后手动 `child.matrix_parent_inverse = parent.matrix_world.inverted()`;世界位置立即恢复,局部坐标变为相对父级的小数
 - 预防:远程 parent 一律手动设 mpi;**空对象先定位到目标位置再挂载**;设置 location 后 `bpy.context.view_layer.update()` 刷新;同 exec 内读取 matrix_world 是缓存值,用新请求验证
+
+## 问题:ColorRamp 渐变"抖"(EASE 插值 + 过渡区多余色标)
+
+**TL;DR**:循环渐变色显示不平滑 = 两个原因叠加:插值类型被改成 EASE(非线性)+ 过渡区中间残留色标(打断线性)。
+
+- 问题:黑白渐变波播放时过渡区"抖",不是平滑线性;用户手动调色标后出现
+- 根因:ColorRamp 默认 LINEAR,但**手动拖动色标时插值类型可能被切到 EASE**(缓动,过渡在两端加速减速 → 视觉上"抖");且过渡区中间若留色标,插值被钉住形成台阶
+- 解决:`cr.color_ramp.interpolation = 'LINEAR'`;删掉两平台之间的色标,让过渡由两侧平台色标线性决定
+- 预防:任何 ColorRamp 做完后检查 interpolation;循环渐变按"平台(同色连标)+ 过渡(无中间色标)+ 首尾同色"布局(见 docs §16)
