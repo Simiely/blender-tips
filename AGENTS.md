@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-08-20(commit 01a9539)材质与驱动规范 v1.0.0
+> 📌 **文档基线**:2026-08-21(commit 待回填)3ds Max 导入场景清理与轴心修复 v1.1.0
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -27,6 +27,9 @@
 - **5.2 合成器**:`scene.node_tree` → `scene.compositing_node_group`;**Composite 节点已移除**(渲染结果不自动显示,用 Viewer 或移除节点组);File Output 的 Media Type 默认 Multi-Layer EXR(要 PNG 必须改 Image 或槽勾 Override Node Format)
 - **use_nodes 在 5.x 恒 True 无法关闭**;"关合成器"= 移除 compositing_node_group(空节点组=幽灵状态,渲染不输出)
 - **远程脚本不要写合成器节点树**(新建/删除 File Output、槽操作会触发 5.x 已知崩溃 bug)→ 合成器写操作一律 GUI 手动,远程只读探查
+- **3ds Max 导入对象改轴心必须"先 Apply 再设原点"**:导入对象全带非单位缩放/旋转(部分负缩放),直接 `origin_set` 位置跳变 → 先 `bpy.ops.object.transform_apply(rotation=True, scale=True)` 再 `origin_set`;multi-user 网格(data.users>1)先 `obj.data = obj.data.copy()`;有动画对象跳过(详见 docs/3dsmax导入场景清理与轴心修复.md §3)
+- **5.2 API 变化**:`obj.apply_transform()` 不存在(用 ops `transform_apply`);`action.fcurve_find`/`ActionSlot.fcurves` 不存在(用 `fcurve_ensure_for_datablock` 判空);`bpy.context.undo` 移除;`obj.lock_get()` 不存在(用 `hide_select`);`bpy.data.user_map()` 返回 set 不可切片
+- **清动画先静态化**:`animation_data_clear()` 是 API 不进 undo 栈、action remove 不可撤回 → 清前先记录 matrix_world 恢复 matrix_basis,相机动画(对象级 + camera data 级)先确认保留名单
 
 ## 约定
 
