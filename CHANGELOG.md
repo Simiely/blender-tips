@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## v1.1.0 · 2026-08-21
+
+- 新增 `docs/3dsmax导入场景清理与轴心修复.md`:3ds Max 导入场景完整清理工作流——缺失数据诊断(五查,fbm 贴图路径失效)/ 空物体清理(孤立 + MaxHandle 元数据残留)/ **轴心安全修复(先 transform_apply 烘焙旋转缩放再 origin_set,multi-user 网格先 copy,负缩放翻车教训)** / 动画清理(静态化防跳位,保留相机对象 + camera data 动画) / 5.2 API 坑速记(apply_transform→ops、fcurve_find 不存在、user_map 返回 set、undo 栈限制)
+- `README.md` 索引新增 #18 入口
+- `AGENTS.md` 更新文档基线 + 补充关键坑(轴心安全流程 / 5.2 API 变化 / 清动画先静态化)
+- 来源:260820x03.blend 实战(11,961 对象 3ds Max 导入,缺贴图警告 + 4165 空物体 + 轴心偏移 + 4083 动画对象)
+
 ## v1.0.0 · 2026-08-20
 
 - 新增 `docs/材质与驱动规范.md`:灯光材质系统**完整操作手册**——材质命名规范(灯组前缀独立块) / 圆柱投影公式 / 按位置适配(TexCoord+VNorm 必改) / 驱动速度控制(对象级+材质节点级) / 三大坑(Object坐标不旋转, inputs[N], FLOORED_MODULO) / 三分法灰度 / 打组挂载规范 / 快速复用清单
