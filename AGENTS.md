@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-08-21(commit 待回填)3ds Max 导入场景清理与轴心修复 v1.1.0
+> 📌 **文档基线**:2026-08-21(commit 待回填)驱动式上下浮动噪声系统 v1.2.0
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -30,6 +30,12 @@
 - **3ds Max 导入对象改轴心必须"先 Apply 再设原点"**:导入对象全带非单位缩放/旋转(部分负缩放),直接 `origin_set` 位置跳变 → 先 `bpy.ops.object.transform_apply(rotation=True, scale=True)` 再 `origin_set`;multi-user 网格(data.users>1)先 `obj.data = obj.data.copy()`;有动画对象跳过(详见 docs/3dsmax导入场景清理与轴心修复.md §3)
 - **5.2 API 变化**:`obj.apply_transform()` 不存在(用 ops `transform_apply`);`action.fcurve_find`/`ActionSlot.fcurves` 不存在(用 `fcurve_ensure_for_datablock` 判空);`bpy.context.undo` 移除;`obj.lock_get()` 不存在(用 `hide_select`);`bpy.data.user_map()` 返回 set 不可切片
 - **清动画先静态化**:`animation_data_clear()` 是 API 不进 undo 栈、action remove 不可撤回 → 清前先记录 matrix_world 恢复 matrix_basis,相机动画(对象级 + camera data 级)先确认保留名单
+- **Blender 5.2 驱动变量无 `SELF` 类型**:旧写法 `vf.type='SELF'` 报非法类型 → 用 `d.use_self=True`,表达式里 `self` 即可引用当前物体(用于读 `self['bob_base_z']` 等自身属性)
+- **自定义属性显示名就是键名**:想中文 UI 直接把键设成中文(`obj['最大上移']=1.0`);`id_properties_ui(k).update(name=...)` **不接受** `name` 参数,改显示名只能改键本身(逻辑读键也得同步改)
+- **改名控制物体 / 替换驱动函数后旧驱动"陈旧"**:depsgraph 不把旧驱动标记为需重算,求值直接返回基准值(看似不动);给每个 Z 驱动调一次 `d.update()` 刷新(不动 seed/基准,花样保留)
+- **驱动依赖的命名空间函数(如 bob)不随 .blend 保存**:`bpy.app.driver_namespace` 是运行期全局,重开文件函数丢失 → 驱动变红;必须用文本块 `bob_driver.py` 勾 Register 持久化,或手动 Run Script 一次
+- **基准位置要保留**:给物体挂驱动时只在首次记录 `bob_base_z`(当前静止 Z),重建若已存在则跳过,避免把"被驱动当前值"误当基准导致跳原点
+- **驱动里读帧用 SINGLE_PROP 指向 scene.frame_current**(不依赖内置 `frame` 变量,5.x 驱动命名空间默认无 `frame` 键,更稳)
 
 ## 约定
 
