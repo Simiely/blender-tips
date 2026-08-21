@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## v1.4.1 · 2026-08-21
+
+- `scripts/driver-restore/restore_drivers.py` 增强:恢复命名空间函数后,**强制重新赋值驱动表达式**触发驱动重新编译
+  - 修复:只 exec 文本块注册函数不够——depsgraph 缓存旧失败状态(`driver.is_valid=False`,求值失败返回 0 → 物体掉到 Z=0 错位);必须重赋值同值表达式强制重算
+  - 机制:`EXPR_MAP` 声明 文本块名→函数名,扫描全场景 SCRIPTED 驱动,表达式含该函数的即重赋值
+- `AGENTS.md` 补关键坑:恢复函数后必须强制驱动重编译(否则 is_valid 仍 False、物体停 0 位)
+- 来源:9877 工程重开后 bob/spin 函数丢失导致主装置01-05 全部错位(Z 掉 0),按此流程修复
+
 ## v1.4.0 · 2026-08-21
 
 - 新增 `scripts/make-independent/` 可复用脚本包:**集合内对象数据独立化**

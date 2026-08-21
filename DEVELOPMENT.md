@@ -306,3 +306,12 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因:导入/复制产生的 linked duplicate,对象与数据块是"多对一"引用关系
 - 解决:遍历集合内 MESH,`if o.data.users>1: o.data = o.data.copy()`;材质可选独立;幂等可重跑
 - 预防:排查共享用 `users>1`(勿看数据块名);只处理目标集合,集合外共享不受影响(详见 docs/集合内对象数据独立化.md)
+
+## 问题:恢复驱动命名空间函数后,驱动仍 is_valid=False,物体停在 Z=0 错位
+
+**TL;DR**:重开 .blend 后 exec 文本块把 bob/spin_speed 重新注册进命名空间,但驱动仍不求值(物体掉 Z=0);必须对每条 SCRIPTED 驱动**重新赋值同值表达式**(`d.expression = d.expression`)强制重新编译才恢复。
+
+- 问题:9877 工程重开后 bob/spin 函数丢失(5.2 文本块不自动执行),主装置01-05 全部物体 Z 掉到 0 错位。exec 文本块后 `driver.is_valid` 仍 False,物体不动
+- 根因:函数注册只是把符号放回命名空间;depsgraph 对驱动的失败状态有缓存,不会自动重算。驱动求值失败时 Blender 返回 0(不是保持基础值)→ 物体全落 Z=0
+- 解决:恢复函数后,遍历全场景 SCRIPTED 驱动,若表达式含恢复的函数名,执行 `d.expression = d.expression`(同值重赋值触发重新编译),再 view_layer.update()
+- 预防:restore_drivers.py 已内置该步骤(EXPR_MAP 声明 文本块→函数 映射);任何"恢复驱动函数"脚本都要带强制重编译,否则看似恢复实则物体停 0 位
