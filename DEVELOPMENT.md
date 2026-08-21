@@ -333,3 +333,13 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因:send.py 写死 `PORT=9877`,没解析命令行端口参数
 - 解决:send.py 加 `-p/--port` 参数解析(默认仍 9877);顺带把超时从 120s 提到 300s(playblast 等长任务)
 - 预防:AGENTS.md 声称的能力必须与 send.py 代码一致;多 Blender 工作流统一用 `python send.py -p PORT script.py`
+
+## 问题:5.2 天空纹理太阳参数是节点属性,且节点驱动挂在 node_tree.animation_data
+
+**TL;DR**:TEX_SKY 的 sun_elevation 等是节点属性(非输入 socket),挂驱动用 `sky.driver_add('sun_elevation')`;但 ShaderNodeTexSky 没有 animation_data,驱动实际存在节点树 `sky.id_data` 上。
+
+- 问题:给天空纹理的太阳高度做驱动,脚本里 `sky.animation_data` 报 `AttributeError`(ShaderNodeTexSky 无此属性)
+- 根因1:5.2 天空纹理 inputs 只有 Vector,太阳参数全是节点属性(`sun_elevation`/`sun_rotation`/`sun_intensity`/`sun_size`),不是 socket
+- 根因2:节点驱动的 FCurve 挂在节点树的 animation_data(路径 `nodes["天空纹理"].sun_elevation`),节点自身没有 animation_data
+- 解决:挂驱动用 `sky.driver_add('sun_elevation')`(返回 FCurve 存于 nt.animation_data);移除/排查遍历 `nt.animation_data.drivers` 匹配 data_path
+- 预防:任何"给材质/世界节点属性挂驱动"的脚本,先确认目标是节点属性还是 socket;驱动一律在 `node.id_data.animation_data` 上找

@@ -42,6 +42,8 @@
 - **恢复命名空间函数后必须强制驱动重新编译**:只 exec 文本块注册函数**不够**——depsgraph 仍缓存旧失败状态(`driver.is_valid=False`,求值失败返回 0 → 物体全部掉到 Z=0 错位)。必须对引用该函数的每条 SCRIPTED 驱动**重新赋值同值表达式**(`d.expression = d.expression`)强制重算。restore_drivers.py 已内置此步骤
 - **桥接 exec 时 `__name__` 是 `builtins` 不是 `__main__`**:远程执行的脚本若写 `if __name__=='__main__': main()` 会**静默不执行**(桥端只回 `OK` 无输出);脚本应直接调用 `main()`(Scripting 工作区 Run Script 同样如此)。仓库所有经桥执行的脚本(build_bob_drivers/build_spin_drivers/restore_drivers)均已去掉守卫
 - **场景相机按帧切换通常靠时间轴标记绑定(Bind Camera to Markers),不是 action 动画**:playblast/录屏脚本**不要写死 `s.camera=某相机`**,否则覆盖标记绑定、丢机位切换;直接 `render.opengl(view_context=False)` 即跟随标记自动换机位(详见 docs/视口预览录制录屏式.md)
+- **5.2 天空纹理(TEX_SKY)的太阳参数是节点属性,不是输入 socket**:inputs 里只有 Vector,`sun_elevation`/`sun_rotation`/`sun_intensity`/`sun_size` 全是节点属性,`sky.sun_elevation` 直接访问;挂驱动用 `sky.driver_add('sun_elevation')`
+- **节点驱动存在 node_tree.animation_data 上,不是节点上**:`ShaderNodeTexSky` 无 animation_data 属性,驱动挂在 `sky.id_data`(节点树),路径 `nodes["天空纹理"].sun_elevation`;移除/排查驱动遍历 `nt.animation_data.drivers`(详见 docs/天空太阳高度驱动.md)
 - **判断数据块共享用 `users > 1`,别只看数据块名**:`Mesh.537` 等序号名不代表独立,可能被多对象同时引用;遍历 `col.objects` 只处理目标集合内对象,集合外共享同数据块的对象不受影响(详见 docs/集合内对象数据独立化.md)
 
 ## 约定

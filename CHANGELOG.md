@@ -1,5 +1,15 @@
 # CHANGELOG.md
 
+## v1.5.0 · 2026-08-21
+
+- 新增 `scripts/driver-sky/` 可复用脚本包:**天空太阳高度数字驱动**
+  - `build_sky_sun_driver.py`(建「天空控制」空物体 + `太阳高度` 滑块(度),给 `sun_elevation` 挂 SCRIPTED 驱动 度→弧度;幂等可重跑)
+  - `README.md`(原理 / 用法 / 坑)
+- 新增 `docs/天空太阳高度驱动.md`:5.2 天空纹理参数是节点属性(非 socket) / 节点驱动在 node_tree.animation_data / 打关键帧做太阳升降
+- `README.md` 索引新增 #23 / `docs/技巧速查.md` 补 #23
+- `AGENTS.md` 补 2 条关键坑(5.2 TEX_SKY 属性驱动 / 节点驱动存 node_tree.animation_data)
+- 来源:9877 工程天空纹理(天空控制.太阳高度 滑块, 悬停按 I 打关键帧)
+
 ## v1.4.2 · 2026-08-21
 
 - **修正 send.py 不支持端口参数**:`scripts/blender-remote-control/send.py` 新增 `-p/--port`(多 Blender 并存连接非默认端口;AGENTS.md 早已声称支持但代码缺失,现已补上);超时从 120s 提到 300s(长任务如 playblast 更稳)
