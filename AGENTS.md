@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-08-21(commit 待填)restore_drivers 强制重编译增强 v1.4.1
+> 📌 **文档基线**:2026-08-21(commit 4926228)restore_drivers 强制重编译增强 v1.4.1
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
 
 ## 技术栈
