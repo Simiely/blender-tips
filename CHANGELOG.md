@@ -1,5 +1,23 @@
 # CHANGELOG.md
 
+## v1.3.0 · 2026-08-21
+
+- 新增 `scripts/driver-spin/` 可复用脚本包:**驱动式 Z 轴匀速旋转系统**
+  - `spin_driver.py`(核心函数 `spin_speed()`,实时读 `旋转速度` 滑块,注册进驱动命名空间;勾 Register 持久化)
+  - `build_spin_drivers.py`(通用构建器:建 `旋转控制` 面板 + 给指定目标挂 Z 旋转驱动,可独立设正/反向;幂等可重复运行)
+  - `README.md`(原理 / 文件清单 / 使用步骤 / 踩坑 / 调参)
+- 新增 `scripts/playblast/` 可复用脚本包:**视口预览录制(录屏式,非全渲染)**
+  - `playblast_export.py`(`render.opengl` 从场景相机抓视口画面导出 mp4;顶部可调输出路径/分辨率;含 5.2 输出配置顺序坑)
+  - `README.md`
+- 新增 `scripts/driver-restore/restore_drivers.py`:重开 .blend 后一键重跑 `bob_driver.py` / `spin_driver.py` 文本块,恢复驱动依赖的命名空间函数(解决 5.2 无 use_register 导致驱动变红)
+- 新增 `docs/驱动式Z轴匀速旋转系统.md`(原理 / 与 bob 对比 / 做法 / 6 条实战坑 / 验证)
+- 新增 `docs/视口预览录制录屏式.md`(原理 / 用法 / 5 条实战坑 / 调试)
+- `README.md` 索引新增 #20(旋转)/ #21(录屏)入口
+- `docs/技巧速查.md` 索引补 #20 / #21
+- `AGENTS.md` 补关键坑(Z 轴旋转用 rotation_euler[2] / 5.2 视口录制 media_type 顺序 / spin 命名空间函数持久化)
+- `DEVELOPMENT.md` 新增 2 篇问题记录:视口录制输出配置顺序 / Z 轴旋转用 rotation_euler + 基准角复位
+- 来源:活力之丘点位模型 主装置实战(空物体.006 正向 / 007 反向匀速转 + 相机视角预览导出)
+
 ## v1.2.0 · 2026-08-21
 
 - 新增 `scripts/driver-bob/` 可复用脚本包:一组独立网格物体的**丝滑阻尼感上下浮动驱动系统**

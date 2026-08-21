@@ -36,6 +36,9 @@
 - **驱动依赖的命名空间函数(如 bob)不随 .blend 保存**:`bpy.app.driver_namespace` 是运行期全局,重开文件函数丢失 → 驱动变红;必须用文本块 `bob_driver.py` 勾 Register 持久化,或手动 Run Script 一次
 - **基准位置要保留**:给物体挂驱动时只在首次记录 `bob_base_z`(当前静止 Z),重建若已存在则跳过,避免把"被驱动当前值"误当基准导致跳原点
 - **驱动里读帧用 SINGLE_PROP 指向 scene.frame_current**(不依赖内置 `frame` 变量,5.x 驱动命名空间默认无 `frame` 键,更稳)
+- **Z 轴旋转驱动用 `rotation_euler[2]`,不是 `rotation`/`rotation_quaternion`**:直接给四元数 `rotation` 挂驱动路径会被当四元数读,结果错乱;务必 `driver_add('rotation_euler', 2)`;构建时把基准角 `rotation_euler.z` 复位为 0,否则会从被污染角度(如残留 100°)累加
+- **Blender 5.2 视口录制(opengl/FFMPEG)输出配置顺序**:必须先 `image_settings.media_type='VIDEO'`,**再** `image_settings.file_format='FFMPEG'`;顺序反了直接报 `'FFMPEG' not found in enum`(VIDEO 之前该枚举项未就绪)
+- **驱动命名空间函数持久化(spin 同 bob)**:`spin_speed()` 也不随 .blend 保存;用 `spin_driver.py` 文本块 + Register,或用 `scripts/driver-restore/restore_drivers.py` 一键重跑 bob/spin 文本块恢复,避免重开文件驱动变红
 
 ## 约定
 

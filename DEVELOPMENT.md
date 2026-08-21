@@ -269,3 +269,22 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因:有驱动时 `obj.location.z` 返回的是驱动求值结果,不是原始静止位置
 - 解决:记录基准前先判断 `if 'bob_base_z' not in o: o['bob_base_z'] = o.location.z`,只在无基准时写(首次);已有则保留
 - 预防:任何"基于当前位置记基准"的脚本,都要先判存在再写,保证幂等重建不污染
+
+## 问题:Blender 5.2 视口录制(opengl + FFMPEG)输出配置顺序
+
+**TL;DR**:配置视频输出必须先 `image_settings.media_type='VIDEO'`,再 `file_format='FFMPEG'`;顺序反了报枚举找不到。
+
+- 问题:`bpy.ops.render.opengl` 想导出 mp4,脚本先设 `file_format='FFMPEG'` 再设 `media_type='VIDEO'`(或只设 file_format),报 `'FFMPEG' not found in enum` / 配置无效,输出全空
+- 根因:Blender 5.2 把渲染输出拆成 media_type(IMAGE/VIDEO/MULTILAYER)与 file_format 两层;在 media_type 还不是 VIDEO 时,file_format 枚举里还没有 FFMPEG 项
+- 解决:严格顺序——`isx.media_type='VIDEO'` → `isx.file_format='FFMPEG'` → 再设 `ffmpeg.format/codec`
+- 预防:任何"视口录屏/视频输出"脚本,把 media_type 写在 file_format 之前;录屏用 `render.opengl(animation=True, view_context=False)`(False=从场景相机出画面)
+
+## 问题:Z 轴匀速旋转驱动用 rotation_euler 而非 rotation / 基准角被污染
+
+**TL;DR**:想让物体绕 Z 轴匀速转,驱动必须挂在 `rotation_euler[2]`;挂之前把基准角复位为 0,否则从被污染角度累加。
+
+- 问题1:直接 `driver_add('rotation', 2)` 或读 `rotation`(四元数)做 Z 旋转,角度结果错乱、不直观
+- 解决1:统一用欧拉角 Z 分量 `driver_add('rotation_euler', 2)`,`rotation_mode='XYZ'`,表达式 `0 + fr * spin_speed() * DEG2RAD * sign`
+- 问题2:目标物体此前被驱动污染过 Z 角(实测残留 100°),重挂驱动时若不复位,角度从 100° 起累加 → 起始姿态错
+- 解决2:挂驱动前显式 `o.rotation_euler.z = 0.0`(原始基准即 0°);幂等重建:先移除旧 Z 驱动再重建
+- 预防:任何"复位基准"的旋转脚本,挂驱动前强制写 0,不要依赖"当前值";速度用 `SINGLE_PROP` 读 `scene.frame_current`,保证每帧重算、调速即时生效
