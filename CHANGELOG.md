@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## v1.7.0 · 2026-08-21
+
+- 新增 `docs/输出路径与序列帧输出规范.md`:**输出序列帧路径规范**——相对路径 `//`(工程目录)+ `output/<批次>/` + `#` 帧号占位命名;正确设置顺序 `media_type='IMAGE' → file_format='PNG' → filepath`;`use_file_extension` 自动扩展名;`bpy.path.abspath()` 复核落盘路径
+- `README.md` 索引新增 #26 入口
+- `AGENTS.md` 补关键坑:media_type 先于 file_format 决定枚举域(镜像 5.2 视口录制 VIDEO 顺序)+ 相对路径规范
+- 来源:9877 工程 260821x05 修复主装置,输出改为相对路径 `//output/260821x01/260821x01####.png` 并实测 PNG 序列可行
+
 ## v1.6.1 · 2026-08-21
 
 - 新增 `scripts/driver-lights/light_driver.py`、`scripts/glow-scroll-material/scroll_driver.py`:**命名空间函数文本块模板**(勾 Register + Auto Run → 重开文件自动恢复)
