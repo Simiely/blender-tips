@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## v1.6.1 · 2026-08-21
+
+- 新增 `scripts/driver-lights/light_driver.py`、`scripts/glow-scroll-material/scroll_driver.py`:**命名空间函数文本块模板**(勾 Register + Auto Run → 重开文件自动恢复)
+- `scripts/driver-restore/restore_drivers.py` EXPR_MAP 补充 light_off / scroll_speed(一键恢复含新函数)
+- **实测确认 Register 自动恢复 100% 生效**:light_off/scroll_speed 文本块勾 Register + Auto Run → 重启后函数自动进命名空间、全部驱动 is_valid=True(843 驱动 INVALID 0),无需手动操作
+- `AGENTS.md` 更新"恢复后必须强制重编译"适用范围(仅运行中 exec 注册场景;正常重启 Register 自动恢复连带驱动)
+- 来源:9877 工程重启验证(打开自动就对)
+
 ## v1.6.0 · 2026-08-21
 
 - 新增 `scripts/driver-lights/` 可复用脚本包:**运动网格灯光方案**

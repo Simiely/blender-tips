@@ -24,13 +24,15 @@ import bpy
 # 自定义: 改下面的 TEXT_BLOCKS 列表,增删要恢复的文本块名(默认含 bob + spin)
 # =============================================================================
 
-TEXT_BLOCKS = ['bob_driver.py', 'spin_driver.py']
+TEXT_BLOCKS = ['bob_driver.py', 'spin_driver.py', 'light_driver.py', 'scroll_driver.py']
 
 # 命名空间函数名 → 驱动表达式要重新赋值的映射
 # 键是文本块名, 值是该文本块注册的函数名(表达式里调用它)
 EXPR_MAP = {
     'bob_driver.py': 'bob',
     'spin_driver.py': 'spin_speed',
+    'light_driver.py': 'light_off',
+    'scroll_driver.py': 'scroll_speed',
 }
 
 

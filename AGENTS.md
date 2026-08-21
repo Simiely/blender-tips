@@ -39,7 +39,8 @@
 - **Z 轴旋转驱动用 `rotation_euler[2]`,不是 `rotation`/`rotation_quaternion`**:直接给四元数 `rotation` 挂驱动路径会被当四元数读,结果错乱;务必 `driver_add('rotation_euler', 2)`;构建时把基准角 `rotation_euler.z` 复位为 0,否则会从被污染角度(如残留 100°)累加
 - **Blender 5.2 视口录制(opengl/FFMPEG)输出配置顺序**:必须先 `image_settings.media_type='VIDEO'`,**再** `image_settings.file_format='FFMPEG'`;顺序反了直接报 `'FFMPEG' not found in enum`(VIDEO 之前该枚举项未就绪)
 - **驱动命名空间函数持久化(spin 同 bob)**:`spin_speed()` 也不随 .blend 保存;首选**文本块勾 Register(use_module=True)+ Auto Run**(重启自动恢复);或 `scripts/driver-restore/restore_drivers.py` 一键恢复(已内置强制重编译),避免重开文件驱动变红
-- **恢复命名空间函数后必须强制驱动重新编译**:只 exec 文本块注册函数**不够**——depsgraph 仍缓存旧失败状态(`driver.is_valid=False`,求值失败返回 0 → 物体全部掉到 Z=0 错位)。必须对引用该函数的每条 SCRIPTED 驱动**重新赋值同值表达式**(`d.expression = d.expression`)强制重算。restore_drivers.py 已内置此步骤
+- **Register 自动恢复已实测 100% 生效**:light_off/scroll_speed 文本块勾 Register + Auto Run → 重启后函数自动进命名空间、**全部驱动 is_valid=True 自动恢复**(843 驱动实测 INVALID 0),无需手动操作。文本块模板见 scripts/driver-lights/light_driver.py 与 scripts/glow-scroll-material/scroll_driver.py
+- **恢复命名空间函数后必须强制驱动重新编译**:只 exec 文本块注册函数**不够**——depsgraph 仍缓存旧失败状态(`driver.is_valid=False`,求值失败返回 0 → 物体全部掉到 Z=0 错位)。必须对引用该函数的每条 SCRIPTED 驱动**重新赋值同值表达式**(`d.expression = d.expression`)强制重算。restore_drivers.py 已内置此步骤(注: 正常重启路径 Register 自动执行会连驱动一起恢复,无需手动重编译;此坑仅出现在"运行中 exec 注册"场景)
 - **桥接 exec 时 `__name__` 是 `builtins` 不是 `__main__`**:远程执行的脚本若写 `if __name__=='__main__': main()` 会**静默不执行**(桥端只回 `OK` 无输出);脚本应直接调用 `main()`(Scripting 工作区 Run Script 同样如此)。仓库所有经桥执行的脚本(build_bob_drivers/build_spin_drivers/restore_drivers)均已去掉守卫
 - **场景相机按帧切换通常靠时间轴标记绑定(Bind Camera to Markers),不是 action 动画**:playblast/录屏脚本**不要写死 `s.camera=某相机`**,否则覆盖标记绑定、丢机位切换;直接 `render.opengl(view_context=False)` 即跟随标记自动换机位(详见 docs/视口预览录制录屏式.md)
 - **5.2 天空纹理(TEX_SKY)的太阳参数是节点属性,不是输入 socket**:inputs 里只有 Vector,`sun_elevation`/`sun_rotation`/`sun_intensity`/`sun_size` 全是节点属性,`sky.sun_elevation` 直接访问;挂驱动用 `sky.driver_add('sun_elevation')`

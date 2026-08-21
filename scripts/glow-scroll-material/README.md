@@ -47,3 +47,12 @@ python send.py build_glow_scroll_material.py    # 或 Scripting 工作区 Run Sc
 - **Bridge exec 时 `__name__` 是 `builtins`**：脚本直接调用 `main()`，不用 `__main__` 守卫。
 - 运行后 **Ctrl+S** 保存；`scroll_speed` 是命名空间函数，重开文件后驱动可能报红，
   用 restore_drivers.py 或手动 Run Script 恢复。
+
+## 持久化（打开自动生效）
+
+`scroll_speed` 是命名空间函数（驱动表达式里调用它）。让重开文件自动恢复：
+1. 把 `scroll_driver.py`（本目录）内容作为文本块放进 .blend，勾 **Register**（`use_module=True`）
+2. 偏好设置开启 **Auto Run Python Scripts**
+3. Ctrl+S 保存 → 重启后函数自动注册、驱动自动恢复（实测 843 驱动 INVALID 0）
+
+或用 `scripts/driver-restore/restore_drivers.py` 一键恢复（已含 scroll_driver.py）。

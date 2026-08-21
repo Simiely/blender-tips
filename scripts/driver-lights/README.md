@@ -58,3 +58,12 @@ python send.py build_light_system.py    # 或 Scripting 工作区 Run Script
 - **脚本改偏移属性不触发驱动重算**（depsgraph 缓存），但 **UI 手动改/打关键帧正常**。
 - **驱动单向**：A 跟随 B 和 B 跟随 A 互指会循环报错，所以设计成"向上灯为主、向下灯跟随"。
 - 运行后 **Ctrl+S** 保存。
+
+## 持久化（打开自动生效）
+
+`light_off` 是命名空间函数（驱动表达式里调用它）。让重开文件自动恢复：
+1. 把 `light_driver.py`（本目录）内容作为文本块放进 .blend，勾 **Register**（`use_module=True`）
+2. 偏好设置开启 **Auto Run Python Scripts**
+3. Ctrl+S 保存 → 重启后函数自动注册、驱动自动恢复（实测 843 驱动 INVALID 0）
+
+或用 `scripts/driver-restore/restore_drivers.py` 一键恢复（已含 light_driver.py）。
