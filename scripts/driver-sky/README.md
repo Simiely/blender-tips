@@ -22,9 +22,23 @@
 3. 给天空纹理 `sun_rotation` / `sun_elevation` 挂 SCRIPTED 驱动,表达式
    `sky_sun_angle()` / `sky_sun_elev()`(挂驱动写法见 `docs/天空太阳高度驱动.md`)。
 
-## 排查
+## 排查(重启后断开优先看这个)
 
-- 命名空间函数是否注册:`'sky_sun_angle' in bpy.app.driver_namespace` 为 True。
-- 驱动是否有效:遍历 `nt.animation_data.drivers`,匹配含 `sun_elevation` / `sun_rotation`
-  的条目,看 `driver.is_valid` 与 `driver.expression`。
-- 详情报障碍见 `docs/天空太阳高度驱动.md`。
+> **重启后最常见的断开原因不是 Auto Run 没开,而是 .blend 内嵌的 `sky_driver.py`
+> 文本块是旧版**——只注册了 `sky_sun_angle`,没有 `sky_sun_elev`(旧版脚本不含高度函数)。
+> 结果:重启后角度驱动正常、高度驱动红(invalid)。
+
+建议按此顺序检查:
+
+1. **文本块内容是不是当前版**:dump `bpy.data.texts['sky_driver.py'].as_string()`,
+   确认同时含 `def sky_sun_angle` 和 `def sky_sun_elev`。缺高度函数 → 用仓库
+   `sky_driver.py`(当前权威版)覆盖该文本块,保持 Register 勾选,再 `Ctrl+S`。
+2. 命名空间是否注册:`'sky_sun_angle','sky_sun_elev' in bpy.app.driver_namespace` 都应为 True。
+3. 驱动是否有效:遍历 `nt.animation_data.drivers`,匹配含 `sun_elevation` / `sun_rotation`
+   的条目,看 `driver.is_valid` 与 `driver.expression`。
+4. Auto Run 是否开启:偏好设置 **Auto Run Python Scripts** `(use_scripts_auto_execute)`。
+
+> 判定标准(官方):文本块勾 Register 即"载入时自动执行",但受 Auto Run / Trusted Source
+> 控制(见 Blender 手册 Scripting & Security)。若被忽略会弹 Allow Execution / Ignore 对话框。
+
+详情报障碍见 `docs/天空太阳高度驱动.md`。

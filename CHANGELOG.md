@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## v1.8.2 · 2026-08-22
+
+- 实战修复「重启后天空控制断开」:**根因 = .blend 内嵌的 `sky_driver.py` 文本块是旧版**,只注册 `sky_sun_angle`、缺 `sky_sun_elev` → 高度驱动红(Auto Run 正常)。用仓库权威版覆盖文本块 + 保持 Register + 强刷驱动 + Ctrl+S 后,高度/角度均 1:1 恢复
+- `scripts/driver-sky/README.md` 排查新增「重启后断开优先看这个」:先核对文本块是否含两个函数,再查命名空间/驱动有效性/Auto Run
+- `AGENTS.md` 补坑:重启断开多为内嵌文本块旧版;Scripted 驱动 5.2 无 `d.update()`,强刷用 `d.expression=d.expression`(try/except 兜底)
+
 ## v1.8.1 · 2026-08-22
 
 - `docs/天空太阳高度驱动.md` 重构优先序:**命名空间函数版提到最前(默认方案)**,原「数字驱动版」降级为「旧做法,有已知坑」附后;标题改为「天空太阳控制驱动」
