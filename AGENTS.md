@@ -49,6 +49,7 @@
 - **新建空物体后必须 `view_layer.update()` 再读 `matrix_world`**:否则读到单位矩阵 → `matrix_parent_inverse` 设成 identity → 子对象世界坐标 = 父位置+自身位置(翻倍偏移跑出集合)。任何"parent + 手动 matrix_parent_inverse"的脚本都要先 update
 - **5.2 `DriverTarget` 无 `array_index` 属性**:SINGLE_PROP 读数组分量(如 location[0])用 `data_path='location[0]'` 带下标,不是设 `target.array_index`(会报 AttributeError)
 - **驱动单向,不能 A↔B 互指**:循环依赖直接报错。旋转/位置联动只能"一主一从":主灯自由,从灯挂驱动读主灯 + 固定差(如向上灯为主,向下灯 = 向上 + (−π,0,0))(详见 docs/运动网格灯光方案.md)
+- **SINGLE_PROP 读自定义属性"脚本内改值不重算"(depsgraph 缓存,可能读到 0),UI 手动改正常;旧构建脚本(如 build_sky_sun_driver.py)会把 sun_elevation 驱动不断写回常量(如 `.1`=5.73°)导致高度无反应**:要脚本/UI 改值都立即生效,用**命名空间函数实时读 bpy**(如 `sky_sun_angle()` 读 天空控制["太阳角度"]),别用旧重构脚本重建(详见 docs/天空太阳高度驱动.md)
 - **输出序列帧路径规范**:路径用相对 `//`(=工程文件目录)+ `output/<批次>/` + 文件名 `#` 帧占位(如 `260821x01####` → `260821x010001.png`,帧号插扩展名前);设图像格式**先 `media_type='IMAGE'` 再 `file_format='PNG'`**(镜像本表"5.2 视口录制 VIDEO 顺序",media_type 决定枚举域,顺序反了报 `PNG not found in enum`);用 `bpy.path.abspath()` 复核落盘路径;F12 不写盘先查合成器空节点组 ghost 状态(详见 docs/输出路径与序列帧输出规范.md)
 
 ## 约定

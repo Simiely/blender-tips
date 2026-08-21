@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## v1.8.0 · 2026-08-22
+
+- 新增 `scripts/driver-sky/sky_driver.py`:命名空间函数版天空驱动(`sky_sun_angle` / `sky_sun_elev`),实时读属性,脚本/UI 改值均立即生效
+- `docs/天空太阳高度驱动.md` 补充「命名空间函数版(推荐)」小节:含太阳旋转 `sun_rotation`;并记录坑——旧 `build_sky_sun_driver.py` 会把 `sun_elevation` 驱动写回常量导致高度无反应
+- `AGENTS.md` 补坑:SINGLE_PROP 读自定义属性脚本内改值不重算、旧重构脚本覆盖驱动 → 用命名空间函数实时读
+- `README.md` / `docs/技巧速查.md` #23 更新为「天空太阳控制驱动」
+- 来源:9877 工程 260821x05,天空控制 自定义属性(太阳角度/太阳高度)驱动天空纹理
+
 ## v1.7.0 · 2026-08-21
 
 - 新增 `docs/输出路径与序列帧输出规范.md`:**输出序列帧路径规范**——相对路径 `//`(工程目录)+ `output/<批次>/` + `#` 帧号占位命名;正确设置顺序 `media_type='IMAGE' → file_format='PNG' → filepath`;`use_file_extension` 自动扩展名;`bpy.path.abspath()` 复核落盘路径
