@@ -3,6 +3,11 @@
 > 本目录是天空太阳驱动方案的**唯一权威脚本**。驱动天空纹理的
 > 太阳高度 `sun_elevation` / 太阳角度 `sun_rotation`,统一走命名空间函数版。
 
+**核心逻辑(重启自愈的官方机制)**:驱动表达式引用命名空间函数;函数**源码作为
+`sky_driver.py` 文本块随 .blend 保存**;但运行期的 `driver_namespace` 映射不落盘——靠
+文本块勾 **Register**(载入自动执行,受 **Auto Run Python Scripts** 控制)在打开文件时
+重注册。所以自愈前提 = 文本块是**当前双函数版** + Register + Auto Run 三项。
+
 ## ⚠️ 只用这一个脚本,别用旧的
 
 - ✅ **`sky_driver.py`**(推荐,必装):命名空间函数版,注册 `sky_sun_angle()` /

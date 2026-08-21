@@ -33,12 +33,12 @@
 - **Blender 5.2 驱动变量无 `SELF` 类型**:旧写法 `vf.type='SELF'` 报非法类型 → 用 `d.use_self=True`,表达式里 `self` 即可引用当前物体(用于读 `self['bob_base_z']` 等自身属性)
 - **自定义属性显示名就是键名**:想中文 UI 直接把键设成中文(`obj['最大上移']=1.0`);`id_properties_ui(k).update(name=...)` **不接受** `name` 参数,改显示名只能改键本身(逻辑读键也得同步改)
 - **改名控制物体 / 替换驱动函数后旧驱动"陈旧"**:depsgraph 不把旧驱动标记为需重算,求值直接返回基准值(看似不动);给每个 Z 驱动调一次 `d.update()` 刷新(不动 seed/基准,花样保留)
-- **驱动依赖的命名空间函数(如 bob)不随 .blend 保存**:`bpy.app.driver_namespace` 是运行期全局,重开文件函数丢失 → 驱动变红、物体掉 Z=0。**一劳永逸方案(5.2 实测有效)**:文本块勾 Register(=`use_module=True`, UI 的 Register 复选框;`use_register` 是旧 API 名,5.2 已无此属性)+ 偏好设置开 Auto Run Python Scripts → 重开文件自动执行注册函数,无需手动恢复
+- **驱动引用的命名空间函数:源码存于文本块、随 .blend 保存;但运行期的 `bpy.app.driver_namespace` 映射不落盘**(API 只存"把哪些文本块标 Register",运行后再把函数填进 namespace)→ 重开文件若没人重新注册,驱动变红、物体掉 Z=0。**正解(官方机制,5.2 实测)**:文本块勾 Register(=`use_module=True`, UI 的 Register 复选框;`use_register` 是 5.2 已不用的旧 API 名)+ 偏好设置开 Auto Run Python Scripts → 载入时该文本块**自动执行**把函数重新填进 namespace,无需手动恢复。判断依据:Blender 手册 Scripting & Security("Registered Text-Blocks ... will load on start",受 Auto Run / Trusted Source 控制)
 - **基准位置要保留**:给物体挂驱动时只在首次记录 `bob_base_z`(当前静止 Z),重建若已存在则跳过,避免把"被驱动当前值"误当基准导致跳原点
 - **驱动里读帧用 SINGLE_PROP 指向 scene.frame_current**(不依赖内置 `frame` 变量,5.x 驱动命名空间默认无 `frame` 键,更稳)
 - **Z 轴旋转驱动用 `rotation_euler[2]`,不是 `rotation`/`rotation_quaternion`**:直接给四元数 `rotation` 挂驱动路径会被当四元数读,结果错乱;务必 `driver_add('rotation_euler', 2)`;构建时把基准角 `rotation_euler.z` 复位为 0,否则会从被污染角度(如残留 100°)累加
 - **Blender 5.2 视口录制(opengl/FFMPEG)输出配置顺序**:必须先 `image_settings.media_type='VIDEO'`,**再** `image_settings.file_format='FFMPEG'`;顺序反了直接报 `'FFMPEG' not found in enum`(VIDEO 之前该枚举项未就绪)
-- **驱动命名空间函数持久化(spin 同 bob)**:`spin_speed()` 也不随 .blend 保存;首选**文本块勾 Register(use_module=True)+ Auto Run**(重启自动恢复);或 `scripts/driver-restore/restore_drivers.py` 一键恢复(已内置强制重编译),避免重开文件驱动变红
+- **驱动命名空间函数持久化(spin 同 bob)**:运行期 `driver_namespace` 映射不落盘,靠 **Register 文本块(源码随文件保存)载入时自动重注册**自愈;或 `scripts/driver-restore/restore_drivers.py` 一键恢复(内置强制重编译),避免重开文件驱动变红
 - **Register 自动恢复已实测 100% 生效**:light_off/scroll_speed 文本块勾 Register + Auto Run → 重启后函数自动进命名空间、**全部驱动 is_valid=True 自动恢复**(843 驱动实测 INVALID 0),无需手动操作。文本块模板见 scripts/driver-lights/light_driver.py 与 scripts/glow-scroll-material/scroll_driver.py
 - **恢复命名空间函数后必须强制驱动重新编译**:只 exec 文本块注册函数**不够**——depsgraph 仍缓存旧失败状态(`driver.is_valid=False`,求值失败返回 0 → 物体全部掉到 Z=0 错位)。必须对引用该函数的每条 SCRIPTED 驱动**重新赋值同值表达式**(`d.expression = d.expression`)强制重算。restore_drivers.py 已内置此步骤(注: 正常重启路径 Register 自动执行会连驱动一起恢复,无需手动重编译;此坑仅出现在"运行中 exec 注册"场景)
 - **桥接 exec 时 `__name__` 是 `builtins` 不是 `__main__`**:远程执行的脚本若写 `if __name__=='__main__': main()` 会**静默不执行**(桥端只回 `OK` 无输出);脚本应直接调用 `main()`(Scripting 工作区 Run Script 同样如此)。仓库所有经桥执行的脚本(build_bob_drivers/build_spin_drivers/restore_drivers)均已去掉守卫

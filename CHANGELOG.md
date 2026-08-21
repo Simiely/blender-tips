@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## v1.8.3 · 2026-08-22
+
+- 用户重启实测通过:天空太阳控制重启后自愈,不再断开
+- **修正不准确说法**:命名空间函数**源码随 .blend 保存**(文本块 Register),不落盘的只是运行期 `driver_namespace` 映射—靠 Register 文本块载入重注册;依据 Blender 手册 Scripting & Security(Registered Text-Blocks will load on start,受 Auto Run / Trusted Source 控制)
+- `docs/天空太阳高度驱动.md` 新增「核心逻辑与要点(官方机制, 重启自愈)」:三前置 = 文本块当前双函数版 + Register + Auto Run
+- `scripts/driver-sky/README.md` 顶部加核心逻辑说明
+- `AGENTS.md` 修正 bob/spin 命名空间函数持久化两处措辞(源码落盘,映射不落盘)
+
 ## v1.8.2 · 2026-08-22
 
 - 实战修复「重启后天空控制断开」:**根因 = .blend 内嵌的 `sky_driver.py` 文本块是旧版**,只注册 `sky_sun_angle`、缺 `sky_sun_elev` → 高度驱动红(Auto Run 正常)。用仓库权威版覆盖文本块 + 保持 Register + 强刷驱动 + Ctrl+S 后,高度/角度均 1:1 恢复
