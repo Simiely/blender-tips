@@ -1,5 +1,17 @@
 # CHANGELOG.md
 
+## v1.4.0 · 2026-08-21
+
+- 新增 `scripts/make-independent/` 可复用脚本包:**集合内对象数据独立化**
+  - `make_independent.py`(遍历指定集合 MESH 对象,`users>1` 的共享网格数据块 `copy()` 成独立副本;材质独立可选;幂等可重跑;无 `__main__` 守卫——桥接 exec `__name__` 为 builtins)
+  - `README.md`(场景 / 用法 / 效果示例 / 幂等安全 / 注意)
+- 新增 `docs/集合内对象数据独立化.md`:原理(对象与数据块多对一)+ 排查方法 + 做法 + 4 条实战坑
+- `README.md` 索引新增 #22(数据独立化)入口
+- `docs/技巧速查.md` 索引补 #22
+- `AGENTS.md` 补关键坑(桥接 exec `__name__`=builtins / 判断共享用 `users>1` 勿看数据块名)
+- `DEVELOPMENT.md` 新增 2 篇问题记录:`__main__` 守卫静默不执行 / linked duplicate 共享数据块联动
+- 来源:新工程「补充」集合 43 网格只共享 21 数据块(组7912/7913_GeomAdjust 共引 Mesh.537),独立化后 43/43 各自独立,可安全复制出去
+
 ## v1.3.0 · 2026-08-21
 
 - 新增 `scripts/driver-spin/` 可复用脚本包:**驱动式 Z 轴匀速旋转系统**

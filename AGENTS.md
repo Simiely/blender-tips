@@ -39,6 +39,8 @@
 - **Z 轴旋转驱动用 `rotation_euler[2]`,不是 `rotation`/`rotation_quaternion`**:直接给四元数 `rotation` 挂驱动路径会被当四元数读,结果错乱;务必 `driver_add('rotation_euler', 2)`;构建时把基准角 `rotation_euler.z` 复位为 0,否则会从被污染角度(如残留 100°)累加
 - **Blender 5.2 视口录制(opengl/FFMPEG)输出配置顺序**:必须先 `image_settings.media_type='VIDEO'`,**再** `image_settings.file_format='FFMPEG'`;顺序反了直接报 `'FFMPEG' not found in enum`(VIDEO 之前该枚举项未就绪)
 - **驱动命名空间函数持久化(spin 同 bob)**:`spin_speed()` 也不随 .blend 保存;用 `spin_driver.py` 文本块 + Register,或用 `scripts/driver-restore/restore_drivers.py` 一键重跑 bob/spin 文本块恢复,避免重开文件驱动变红
+- **桥接 exec 时 `__name__` 是 `builtins` 不是 `__main__`**:远程执行的脚本若写 `if __name__=='__main__': main()` 会**静默不执行**(桥端只回 `OK` 无输出);脚本应直接调用 `main()`(Scripting 工作区 Run Script 同样如此)
+- **判断数据块共享用 `users > 1`,别只看数据块名**:`Mesh.537` 等序号名不代表独立,可能被多对象同时引用;遍历 `col.objects` 只处理目标集合内对象,集合外共享同数据块的对象不受影响(详见 docs/集合内对象数据独立化.md)
 
 ## 约定
 
