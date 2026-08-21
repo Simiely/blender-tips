@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## v1.8.1 · 2026-08-22
+
+- `docs/天空太阳高度驱动.md` 重构优先序:**命名空间函数版提到最前(默认方案)**,原「数字驱动版」降级为「旧做法,有已知坑」附后;标题改为「天空太阳控制驱动」
+- 新增 `scripts/driver-sky/README.md`:**权威脚本目录说明**——`sky_driver.py` 为唯一推荐脚本,旧 `build_sky_sun_driver.py` 标记禁用(会写回常量覆盖 sun 驱动)
+- `AGENTS.md` 精简 SINGLE_PROP / sun 驱动那条坑说明,附推荐脚本路径
+
 ## v1.8.0 · 2026-08-22
 
 - 新增 `scripts/driver-sky/sky_driver.py`:命名空间函数版天空驱动(`sky_sun_angle` / `sky_sun_elev`),实时读属性,脚本/UI 改值均立即生效
