@@ -1,5 +1,19 @@
 # CHANGELOG.md
 
+## v1.6.0 · 2026-08-21
+
+- 新增 `scripts/driver-lights/` 可复用脚本包:**运动网格灯光方案**
+  - `build_light_system.py`(给驱动浮动网格轴心加向上/向下双 AREA 灯,分组+跟随驱动+偏移属性+旋转绑定,一键全套,幂等)
+  - `README.md`(参数表 / 手动微调 / 5 条实战坑)
+- 新增 `scripts/glow-scroll-material/` 可复用脚本包:**渐变发光滚动材质**
+  - `build_glow_scroll_material.py`(竖图渐变自发光 + Mapping 放大2倍只显示一半 + Location Y 驱动竖直滚动 + 速度滑块)
+  - `README.md`
+- 新增 `docs/运动网格灯光方案.md` / `docs/渐变发光滚动材质.md`
+- `README.md` / `docs/技巧速查.md` 索引新增 #24 / #25
+- `AGENTS.md` 补 3 条关键坑(新建空物体需先 update 再读 matrix_world / 5.2 DriverTarget 无 array_index / 驱动单向主从)
+- `DEVELOPMENT.md` 新增 3 篇问题记录(翻倍偏移 / array_index / 循环依赖)
+- 来源:9877 工程 5 个主装置 168 灯灯光方案 + 渐变发光滚动材质实战
+
 ## v1.5.0 · 2026-08-21
 
 - 新增 `scripts/driver-sky/` 可复用脚本包:**天空太阳高度数字驱动**

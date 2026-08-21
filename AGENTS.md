@@ -45,6 +45,9 @@
 - **5.2 天空纹理(TEX_SKY)的太阳参数是节点属性,不是输入 socket**:inputs 里只有 Vector,`sun_elevation`/`sun_rotation`/`sun_intensity`/`sun_size` 全是节点属性,`sky.sun_elevation` 直接访问;挂驱动用 `sky.driver_add('sun_elevation')`
 - **节点驱动存在 node_tree.animation_data 上,不是节点上**:`ShaderNodeTexSky` 无 animation_data 属性,驱动挂在 `sky.id_data`(节点树),路径 `nodes["天空纹理"].sun_elevation`;移除/排查驱动遍历 `nt.animation_data.drivers`(详见 docs/天空太阳高度驱动.md)
 - **判断数据块共享用 `users > 1`,别只看数据块名**:`Mesh.537` 等序号名不代表独立,可能被多对象同时引用;遍历 `col.objects` 只处理目标集合内对象,集合外共享同数据块的对象不受影响(详见 docs/集合内对象数据独立化.md)
+- **新建空物体后必须 `view_layer.update()` 再读 `matrix_world`**:否则读到单位矩阵 → `matrix_parent_inverse` 设成 identity → 子对象世界坐标 = 父位置+自身位置(翻倍偏移跑出集合)。任何"parent + 手动 matrix_parent_inverse"的脚本都要先 update
+- **5.2 `DriverTarget` 无 `array_index` 属性**:SINGLE_PROP 读数组分量(如 location[0])用 `data_path='location[0]'` 带下标,不是设 `target.array_index`(会报 AttributeError)
+- **驱动单向,不能 A↔B 互指**:循环依赖直接报错。旋转/位置联动只能"一主一从":主灯自由,从灯挂驱动读主灯 + 固定差(如向上灯为主,向下灯 = 向上 + (−π,0,0))(详见 docs/运动网格灯光方案.md)
 
 ## 约定
 

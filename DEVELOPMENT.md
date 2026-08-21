@@ -343,3 +343,30 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因2:节点驱动的 FCurve 挂在节点树的 animation_data(路径 `nodes["天空纹理"].sun_elevation`),节点自身没有 animation_data
 - 解决:挂驱动用 `sky.driver_add('sun_elevation')`(返回 FCurve 存于 nt.animation_data);移除/排查遍历 `nt.animation_data.drivers` 匹配 data_path
 - 预防:任何"给材质/世界节点属性挂驱动"的脚本,先确认目标是节点属性还是 socket;驱动一律在 `node.id_data.animation_data` 上找
+
+## 问题:新建轴心空物体后立即读 matrix_world 是单位矩阵,matrix_parent_inverse 变 identity
+
+**TL;DR**:创建空物体后马上读 `matrix_world` 是单位矩阵 → `matrix_parent_inverse = matrix_world.inverted()` 变成 identity → 子对象世界坐标 = 父位置 + 自身位置(翻倍偏移);必须先 `view_layer.update()` 再读。
+
+- 问题:批量给 168 个灯 parent 到组轴心空物体,灯世界坐标全部 = 轴心位置 + 网格位置(翻倍),跑出集合外
+- 根因:轴心空物体刚 `objects.new()` + 设 location,未刷新 depsgraph 时 `matrix_world` 是单位矩阵,`inverted()` 也是 identity → parent 变换没抵消
+- 解决:所有轴心空物体创建并设好位置后,先 `bpy.context.view_layer.update()`,再读 `matrix_world` 设 `matrix_parent_inverse`
+- 预防:任何"建空物体 + parent + 手动 matrix_parent_inverse"的脚本,把 update() 放在读 matrix_world 之前(详见 docs/运动网格灯光方案.md)
+
+## 问题:Blender 5.2 DriverTarget 没有 array_index 属性
+
+**TL;DR**:SINGLE_PROP 驱动变量要读数组的某个分量(如 location 的 X),不能设 `target.array_index`(5.2 无此属性,报 AttributeError);改在 `data_path` 里带下标 `'location[0]'`。
+
+- 问题:`v.targets[0].array_index = 0` 报 `AttributeError: 'DriverTarget' object has no attribute 'array_index'`
+- 根因:Blender 5.2 移除了 DriverTarget.array_index,数组分量索引并入 data_path
+- 解决:`v.targets[0].data_path = 'location[0]'`(或 `'rotation_euler[2]'` 等)
+- 预防:任何挂"读对象数组属性分量"驱动的脚本,data_path 直接带下标(详见 docs/运动网格灯光方案.md)
+
+## 问题:驱动循环依赖——两个物体不能互指跟随
+
+**TL;DR**:A 跟随 B 和 B 跟随 A 的驱动互指会形成循环依赖,Blender 直接报错;联动只能"一主一从"。
+
+- 问题:想让向上灯和向下灯"互相跟随"旋转(转哪个另一个都动),两边都挂驱动互指 → 驱动循环报错
+- 根因:Blender 驱动求值是有向无环图,循环引用无法求值
+- 解决:设计为单向——向上灯为主(无驱动,自由转),向下灯挂驱动 = 向上灯 + (−π,0,0);要换主从就反转(把驱动从从灯移到主灯)
+- 预防:任何双物体联动需求,先确定主从;若真要"转哪个都行",改用共享控制空物体(两灯都驱动跟随它)(详见 docs/运动网格灯光方案.md)
