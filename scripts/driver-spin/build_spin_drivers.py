@@ -110,5 +110,5 @@ def main():
         print('提示: TARGETS 里的对象名均未找到,请核对名称(可在 Outline 复制精确名)')
 
 
-if __name__ == '__main__':
-    main()
+# 直接调用 main()(注意: 桥接环境 exec 时 __name__ 为 'builtins', 不能用 __main__ 守卫)
+main()

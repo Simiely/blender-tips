@@ -3,15 +3,19 @@ import bpy
 # =============================================================================
 # restore_drivers.py —— 重开 .blend 后,一键恢复驱动依赖的命名空间函数
 #
-# 问题: Blender 5.2 重开文件时,文本块**不会**自动执行(use_register 已移除),
-#       依赖 bob() / spin_speed() 的驱动会报红 / 失效(函数只活在进程内存),
-#       求值失败 → Blender 返回 0 → 物体掉到 Z=0(错位)。
+# 问题: Blender 5.2 重开文件时,文本块**不会**自动执行(旧版 use_register 属性
+#       已移除),依赖 bob() / spin_speed() 的驱动会报红 / 失效(函数只活在
+#       进程内存),求值失败 → Blender 返回 0 → 物体掉到 Z=0(错位)。
 #
 # 解决(两步,缺一不可):
 #   1) 把列出的文本块重新 exec 一遍,重新注册到 driver_namespace;
 #   2) **重新赋值驱动表达式(同值),强制驱动重新编译** —— 只恢复函数不够,
 #      depsgraph 仍缓存旧失败状态(driver.is_valid=False, 物体停在 0),
 #      必须重赋值表达式触发重算。
+#
+# 一劳永逸方案(推荐): 文本块勾 Register(use_module=True) + 偏好设置开启
+#   Auto Run Python Scripts → 重开文件自动执行注册函数,无需手动恢复。
+#   (5.2 实测有效; use_module 即 UI 的 Register 复选框, use_register 是旧 API 名)
 #
 # 用法:
 #   python send.py restore_drivers.py
@@ -88,5 +92,5 @@ def main():
     print('RESTORE_DONE' if not missing else f'RESTORE_INCOMPLETE 缺失={missing}')
 
 
-if __name__ == '__main__':
-    main()
+# 直接调用 main()(注意: 桥接环境 exec 时 __name__ 为 'builtins', 不能用 __main__ 守卫)
+main()

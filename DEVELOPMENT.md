@@ -315,3 +315,21 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 - 根因:函数注册只是把符号放回命名空间;depsgraph 对驱动的失败状态有缓存,不会自动重算。驱动求值失败时 Blender 返回 0(不是保持基础值)→ 物体全落 Z=0
 - 解决:恢复函数后,遍历全场景 SCRIPTED 驱动,若表达式含恢复的函数名,执行 `d.expression = d.expression`(同值重赋值触发重新编译),再 view_layer.update()
 - 预防:restore_drivers.py 已内置该步骤(EXPR_MAP 声明 文本块→函数 映射);任何"恢复驱动函数"脚本都要带强制重编译,否则看似恢复实则物体停 0 位
+
+## 问题:场景相机按帧切换是标记绑定(Bind Camera to Markers),写死 s.camera 会丢机位
+
+**TL;DR**:相机切换常用时间轴标记绑定实现(非 action 动画);录屏脚本若写死 `s.camera=某相机` 会覆盖标记绑定,整段锁死一个机位;直接 `render.opengl(view_context=False)` 即自动跟随标记切换。
+
+- 问题:playblast 录屏前在工程里写死 `s.camera=摄像机006`,导出整段视频都是中景机位,丢了开头/结尾的广角机位
+- 根因:工程相机切换靠 9 个时间轴标记绑定(如 F1→摄像机001 … F1043→摄像机009),`scene.camera` 在各帧被标记驱动;直接赋值 s.camera 覆盖了这个绑定
+- 解决:录屏脚本不写死相机,`bpy.ops.render.opengl(animation=True, view_context=False)` 自动跟随标记切换机位;排查用 `scene.timeline_markers` 看 `m.camera`
+- 预防:任何"相机动画"相关脚本,先确认相机切换机制(标记绑定 vs action 动画)再动 s.camera
+
+## 问题:send.py 不支持端口参数,多 Blender 并存连不上
+
+**TL;DR**:仓库 send.py 硬编码 9877,AGENTS.md 却声称"第二参数指定端口";多 Blender 并存(如 9877+9897)时无法用仓库客户端连第二实例。
+
+- 问题:新开工程在 9897,仓库 send.py 只能连 9877,AGENTS.md 文档与代码不符
+- 根因:send.py 写死 `PORT=9877`,没解析命令行端口参数
+- 解决:send.py 加 `-p/--port` 参数解析(默认仍 9877);顺带把超时从 120s 提到 300s(playblast 等长任务)
+- 预防:AGENTS.md 声称的能力必须与 send.py 代码一致;多 Blender 工作流统一用 `python send.py -p PORT script.py`

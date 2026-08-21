@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## v1.4.2 · 2026-08-21
+
+- **修正 send.py 不支持端口参数**:`scripts/blender-remote-control/send.py` 新增 `-p/--port`(多 Blender 并存连接非默认端口;AGENTS.md 早已声称支持但代码缺失,现已补上);超时从 120s 提到 300s(长任务如 playblast 更稳)
+- **去掉经桥执行脚本的 `__main__` 守卫**:`build_bob_drivers.py` / `build_spin_drivers.py` / `restore_drivers.py` 改为直接调用 `main()`——桥接 exec 时 `__name__='builtins'`,守卫会让脚本静默不执行(只回 OK 无输出)
+- **修正 AGENTS.md 过时结论**:5.2 文本块 Register 持久化**实测有效**——`use_module=True`(UI 的 Register 复选框)+ Auto Run Python Scripts → 重开文件自动恢复命名空间函数,无需手动 Run Script(`use_register` 是旧 API 名已移除,但 use_module 仍在)
+- **docs/视口预览录制录屏式.md 补坑**:场景相机按帧切换 = 时间轴标记绑定(Bind Camera to Markers),**不要写死 `s.camera`** 否则覆盖标记绑定丢机位切换
+- 来源:9877 工程重开验证(Register 自动恢复成功)+ 录屏 v2/v3 实战(写死相机丢机位切换的坑)
+
 ## v1.4.1 · 2026-08-21
 
 - `scripts/driver-restore/restore_drivers.py` 增强:恢复命名空间函数后,**强制重新赋值驱动表达式**触发驱动重新编译

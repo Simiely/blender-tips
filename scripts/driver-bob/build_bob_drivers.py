@@ -151,5 +151,5 @@ def main():
     print('ALL_DONE 总运动网格=', total)
 
 
-if __name__ == '__main__':
-    main()
+# 直接调用 main()(注意: 桥接环境 exec 时 __name__ 为 'builtins', 不能用 __main__ 守卫)
+main()

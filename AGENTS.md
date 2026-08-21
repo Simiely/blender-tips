@@ -33,14 +33,15 @@
 - **Blender 5.2 驱动变量无 `SELF` 类型**:旧写法 `vf.type='SELF'` 报非法类型 → 用 `d.use_self=True`,表达式里 `self` 即可引用当前物体(用于读 `self['bob_base_z']` 等自身属性)
 - **自定义属性显示名就是键名**:想中文 UI 直接把键设成中文(`obj['最大上移']=1.0`);`id_properties_ui(k).update(name=...)` **不接受** `name` 参数,改显示名只能改键本身(逻辑读键也得同步改)
 - **改名控制物体 / 替换驱动函数后旧驱动"陈旧"**:depsgraph 不把旧驱动标记为需重算,求值直接返回基准值(看似不动);给每个 Z 驱动调一次 `d.update()` 刷新(不动 seed/基准,花样保留)
-- **驱动依赖的命名空间函数(如 bob)不随 .blend 保存**:`bpy.app.driver_namespace` 是运行期全局,重开文件函数丢失 → 驱动变红;必须用文本块 `bob_driver.py` 勾 Register 持久化,或手动 Run Script 一次
+- **驱动依赖的命名空间函数(如 bob)不随 .blend 保存**:`bpy.app.driver_namespace` 是运行期全局,重开文件函数丢失 → 驱动变红、物体掉 Z=0。**一劳永逸方案(5.2 实测有效)**:文本块勾 Register(=`use_module=True`, UI 的 Register 复选框;`use_register` 是旧 API 名,5.2 已无此属性)+ 偏好设置开 Auto Run Python Scripts → 重开文件自动执行注册函数,无需手动恢复
 - **基准位置要保留**:给物体挂驱动时只在首次记录 `bob_base_z`(当前静止 Z),重建若已存在则跳过,避免把"被驱动当前值"误当基准导致跳原点
 - **驱动里读帧用 SINGLE_PROP 指向 scene.frame_current**(不依赖内置 `frame` 变量,5.x 驱动命名空间默认无 `frame` 键,更稳)
 - **Z 轴旋转驱动用 `rotation_euler[2]`,不是 `rotation`/`rotation_quaternion`**:直接给四元数 `rotation` 挂驱动路径会被当四元数读,结果错乱;务必 `driver_add('rotation_euler', 2)`;构建时把基准角 `rotation_euler.z` 复位为 0,否则会从被污染角度(如残留 100°)累加
 - **Blender 5.2 视口录制(opengl/FFMPEG)输出配置顺序**:必须先 `image_settings.media_type='VIDEO'`,**再** `image_settings.file_format='FFMPEG'`;顺序反了直接报 `'FFMPEG' not found in enum`(VIDEO 之前该枚举项未就绪)
-- **驱动命名空间函数持久化(spin 同 bob)**:`spin_speed()` 也不随 .blend 保存;用 `spin_driver.py` 文本块 + Register,或用 `scripts/driver-restore/restore_drivers.py` 一键重跑 bob/spin 文本块恢复,避免重开文件驱动变红
+- **驱动命名空间函数持久化(spin 同 bob)**:`spin_speed()` 也不随 .blend 保存;首选**文本块勾 Register(use_module=True)+ Auto Run**(重启自动恢复);或 `scripts/driver-restore/restore_drivers.py` 一键恢复(已内置强制重编译),避免重开文件驱动变红
 - **恢复命名空间函数后必须强制驱动重新编译**:只 exec 文本块注册函数**不够**——depsgraph 仍缓存旧失败状态(`driver.is_valid=False`,求值失败返回 0 → 物体全部掉到 Z=0 错位)。必须对引用该函数的每条 SCRIPTED 驱动**重新赋值同值表达式**(`d.expression = d.expression`)强制重算。restore_drivers.py 已内置此步骤
-- **桥接 exec 时 `__name__` 是 `builtins` 不是 `__main__`**:远程执行的脚本若写 `if __name__=='__main__': main()` 会**静默不执行**(桥端只回 `OK` 无输出);脚本应直接调用 `main()`(Scripting 工作区 Run Script 同样如此)
+- **桥接 exec 时 `__name__` 是 `builtins` 不是 `__main__`**:远程执行的脚本若写 `if __name__=='__main__': main()` 会**静默不执行**(桥端只回 `OK` 无输出);脚本应直接调用 `main()`(Scripting 工作区 Run Script 同样如此)。仓库所有经桥执行的脚本(build_bob_drivers/build_spin_drivers/restore_drivers)均已去掉守卫
+- **场景相机按帧切换通常靠时间轴标记绑定(Bind Camera to Markers),不是 action 动画**:playblast/录屏脚本**不要写死 `s.camera=某相机`**,否则覆盖标记绑定、丢机位切换;直接 `render.opengl(view_context=False)` 即跟随标记自动换机位(详见 docs/视口预览录制录屏式.md)
 - **判断数据块共享用 `users > 1`,别只看数据块名**:`Mesh.537` 等序号名不代表独立,可能被多对象同时引用;遍历 `col.objects` 只处理目标集合内对象,集合外共享同数据块的对象不受影响(详见 docs/集合内对象数据独立化.md)
 
 ## 约定
