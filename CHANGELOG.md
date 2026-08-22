@@ -1,5 +1,14 @@
 # CHANGELOG.md
 
+## v1.9.0 · 2026-08-23
+
+- 新增 `scripts/speed-light/` 可复用脚本包:**速度驱动灯光亮度**通用方案
+  - `speed_light_driver.py`(核心:注册 `speed_energy(target, frame)`,按目标 Z 高度分档配系数/上限,前向差分求速,clamp 安全范围)
+  - `build_speed_light_drivers.py`(给灯的 energy 挂 SCRIPTED 驱动,幂等)
+  - `README.md`(方案要点 / 参数表 / 踩坑)
+- 新增 `docs/速度驱动灯光亮度.md`;`README.md` / `docs/技巧速查.md` 索引新增 #27
+- 实战来源:主装置 01~05 灯光亮度随柱子 Z 轴运动速度变化(上移 6+3400v / 下移 6−2·3400|v|,短柱 0~20、长柱 0~100,灯位置固定于轴心)
+
 ## v1.8.3 · 2026-08-22
 
 - 用户重启实测通过:天空太阳控制重启后自愈,不再断开
