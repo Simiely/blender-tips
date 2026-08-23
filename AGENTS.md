@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-08-23(v1.10.0,commit 见 CHANGELOG)修正命名空间函数持久化说法 v1.8.3
+> 📌 **文档基线**:2026-08-23(v1.11.0,commit 见 CHANGELOG)修正命名空间函数持久化说法 v1.8.3
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -23,6 +23,7 @@
 - **Object 坐标只跟随平移,不跟随旋转**:转空物体不会让纹理旋转!旋转类动画用材质节点内偏移(ADD + driver);循环取模用 FLOORED_MODULO(负数正确,普通 MODULO 负值裁剪);材质节点 driver/keyframe 路径必须 inputs[N] 数字索引(名称形式报 not found)
 - 直接改 IDProperty(如 `obj['vis']=[0]`)后驱动不重算 → 必须 `obj.update_tag()` + `bpy.context.view_layer.update()`
 - **材质节点驱动引用自定义属性,改属性值不自动重算**;实时刷新落地:UI 面板(Panel.draw)里检测属性变化后 `ctl.update_tag()` + `view_layer.update()`;面板/函数注册用 Register 文本块(use_module=True)+ Auto Run 随 .blend 自愈(见 docs/材质参数统一控制器与实时面板.md,脚本 scripts/ring-control-panel/;`frame` 在 5.2 SCRIPTED 驱动表达式里可用)`
+- **5.2 给 Value 节点输出打关键帧不生效**:对 `outputs[0].default_value` `keyframe_insert` 后 fcurve 求值对,但 Slotted Action 下评估值恒定(原始/评估都=默认)→ UI 看开关一直是 1。**时间开关参数要用驱动**:命名空间函数读 `scene.frame_current`,SCRIPTED 驱动 `grad_window(fr)`,函数写 Register 文本块持久化;验证必须 `deps.id_eval_get(mat)` 读评估值;读关键帧走 `action.layers[].strips[].channelbag.fcurves`(见 docs/帧窗口驱动时间开关.md,脚本 scripts/frame-window-time-switch/)`
 - 关键帧**末帧插值不影响任何可见段**(段由段首帧决定);要"结尾直线"改**倒数第二帧**为 LINEAR
 - C4D 式"中间平滑+两头线性":**两头 Free handle 手动对齐线段**,中间保持平滑;改 LINEAR 会产生折角
 - **5.2 合成器**:`scene.node_tree` → `scene.compositing_node_group`;**Composite 节点已移除**(渲染结果不自动显示,用 Viewer 或移除节点组);File Output 的 Media Type 默认 Multi-Layer EXR(要 PNG 必须改 Image 或槽勾 Override Node Format)

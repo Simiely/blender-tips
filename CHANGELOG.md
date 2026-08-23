@@ -1,5 +1,14 @@
 # CHANGELOG.md
 
+## v1.11.0 · 2026-08-23
+
+- 新增 `scripts/frame-window-time-switch/` 可复用脚本包:**帧窗口驱动时间开关**
+  - 核心:命名空间函数 `grad_window(fr)`(帧 `[lo,hi]` 内=1,外=0)+ SCRIPTED 驱动(`fr` 读 `scene.frame_current`)挂到 Value 节点输出;
+  - `build_frame_window_switch.py` 一键:注册+持久化 Register 文本块(`grad_window_driver.py`)→ 挂驱动并强制重编译 → 用 depsgraph 评估值逐帧验证;
+  - 记录并复述关键坑(Blender 5.2 实测):**Value 节点用 `keyframe_insert` 打动画在 Slotted Action 下不生效(原始与评估值恒为默认)**;验证必须读 `deps.id_eval_get(mat)` 评估值而非原始 socket;5.2 Action 为 Slotted,`action.fcurves`/`slots[].fcurves` 均不存在,读关键帧走 `layers[].strips[].channelbag.fcurves`
+- 新增 `docs/帧窗口驱动时间开关.md`;`README.md` 索引新增 #29
+- 实战来源:发光材质_005 / 发光灯 两材质渐变开关按 517–657 帧窗口开启、区间外纯色;用户换机后因开错文件疑为失效,实为方案有效
+
 ## v1.10.0 · 2026-08-23
 
 - 新增 `scripts/ring-control-panel/` 可复用脚本包:**材质参数统一控制器 + 实时面板**
