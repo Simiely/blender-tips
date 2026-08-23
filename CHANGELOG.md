@@ -1,5 +1,15 @@
 # CHANGELOG.md
 
+## v1.10.0 · 2026-08-23
+
+- 新增 `scripts/ring-control-panel/` 可复用脚本包:**材质参数统一控制器 + 实时面板**
+  - `ring_control_panel.py`(核心:3D 视口贴近栏实时面板,draw 里检测自定义属性变化 → `update_tag()` + `view_layer.update()`,拖滑块即时重算材质驱动;作为 Register 文本块可随 .blend 持久化)
+  - `build_ring_controls.py`(一键:建控制空物体 + 重建材质为 XZ 径向同心圆扩展灯管线 + 注入 Register 面板文本块)
+  - `README.md`(方案要点 / 复用配置 / 踩坑)
+- 新增 `docs/材质参数统一控制器与实时面板.md`;**多材质共用同一圆心 + 一套参数**;`README.md` 索引新增 #28
+- 记录并复述关键坑:**Blender 5.2 自定义属性改动不自动触发材质驱动重算**,须 `ctl.update_tag()` + `view_layer.update()`(ABLE §24 已有,本文档给"面板实时刷新"落地)
+- 实战来源:主装置_发光材质 / 发光材质_005 / 发光灯 三块面板共用 主装置_圆环控制 控制器(圆心=控制空物体,speed=0.05,density=1,gain=25,solid=20,gradient_on 开关),Register 面板随工程自恢复
+
 ## v1.9.0 · 2026-08-23
 
 - 新增 `scripts/speed-light/` 可复用脚本包:**速度驱动灯光亮度**通用方案
