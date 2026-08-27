@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-08-23(v1.11.0,commit 见 CHANGELOG)修正命名空间函数持久化说法 v1.8.3
+> 📌 **文档基线**:2026-08-27(commit `a3c8e1a`)新增 #30 应用缩放scale归1 v1.12.0
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -55,6 +55,8 @@
 - **重启后天空驱动断开,多半是 .blend 内嵌的 sky_driver.py 文本块是旧版**(只含 `sky_sun_angle`,缺 `sky_sun_elev`)→ Auto Run 正常但高度驱动仍红:用仓库权威版覆盖该文本块,保持 Register,重注册并强刷驱动后 Ctrl+S(`d.expression=d.expression` 强制 Sun 驱动重编,Scripted 5.2 无 `d.update()` 需 try/except 兜底)
 - **输出序列帧路径规范**:路径用相对 `//`(=工程文件目录)+ `output/<批次>/` + 文件名 `#` 帧占位(如 `260821x01####` → `260821x010001.png`,帧号插扩展名前);设图像格式**先 `media_type='IMAGE'` 再 `file_format='PNG'`**(镜像本表"5.2 视口录制 VIDEO 顺序",media_type 决定枚举域,顺序反了报 `PNG not found in enum`);用 `bpy.path.abspath()` 复核落盘路径;F12 不写盘先查合成器空节点组 ghost 状态(详见 docs/输出路径与序列帧输出规范.md)
 
+- **应用缩放(scale归1)前先核实"几何本体自然尺寸"**:顶点已被放大而 scale 仍大(如局部±0.39 但 scale=37.9)→ 世界=几何×scale 双重叠加,应用后"越改越大"(实测 C-DT 569 应 15)。识别:对比同装置件量级、`dims≈几何范围×scale` 自洽性;批量前重梳理清单(仅静态 MESH)并排除可疑巨件再动手
+- **应用缩放附加坑**:多用户网格(`data.users>1`)先 `copy()` 独立;负缩放(镜像)法向由 depsgraph 自动重算(5.2 已移除 `mesh.calc_normals`);对 scale≈40 的对象应用后局部坐标同倍数放大、局部空间操作精度下降;改/验分两次请求,先备份(记录原 scale 可逆还原)
 ## 约定
 
 - 文档用中文;技巧按"场景 → 做法 → 坑"组织;一坑一篇进 DEVELOPMENT.md
