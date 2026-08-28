@@ -41,6 +41,7 @@
 | 29 | 帧窗口驱动时间开关 | 让节点参数按帧区间开/关(如渐变效果 517–657 有效),命名空间函数 + SCRIPTED 驱动读 frame;避开 5.2 Value 节点关键帧在 Slotted Action 下不生效的坑,[独立文档](docs/帧窗口驱动时间开关.md) / [脚本包](scripts/frame-window-time-switch/) |
 | 30 | 修改缩放(scale归1)保持大小 | 顶点烘焙×scale + scale=1,世界位 `T·R·(S·v)` 不变;坑:几何预放大叠加 / multi-user / 负缩放 | [https://github.com/Simiely/blender-tips/blob/main/docs/应用缩放Scale归1.md](https://github.com/Simiely/blender-tips/blob/main/docs/应用缩放Scale归1.md) |
 | 30 | 修改缩放(scale归1)保持大小 | 顶点烘焙×scale + scale=1,世界位 `T·R·(S·v)` 不变;坑:几何预放大叠加 / multi-user / 负缩放 | [https://github.com/Simiely/blender-tips/blob/main/docs/应用缩放Scale归1.md](https://github.com/Simiely/blender-tips/blob/main/docs/应用缩放Scale归1.md) |
+| 30 | 粒子系统礼花喷射方案 | 粒子系统 + 碰撞杀死 + 湍流场实现持续向上喷射金色纸片 | [文档](docs/粒子系统礼花喷射方案.md) / [脚本包](scripts/firework-confetti/) |
 
 ## 文档
 
