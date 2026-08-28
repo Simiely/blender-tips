@@ -39,7 +39,7 @@
 | 27 | 速度驱动灯光亮度 | 灯亮度随目标Z轴运动速度增强/衰减,前向差分求速+按高度分档,[独立文档](docs/速度驱动灯光亮度.md) / [脚本包](scripts/speed-light/) |
 | 28 | 材质参数统一控制器与实时面板 | 多材质共用一圆心+一套参数(同心圆扩展灯),控制空物体驱动 + Register 文本块实时面板,重开自恢复,[独立文档](docs/材质参数统一控制器与实时面板.md) / [脚本包](scripts/ring-control-panel/) |
 | 29 | 帧窗口驱动时间开关 | 让节点参数按帧区间开/关(如渐变效果 517–657 有效),命名空间函数 + SCRIPTED 驱动读 frame;避开 5.2 Value 节点关键帧在 Slotted Action 下不生效的坑,[独立文档](docs/帧窗口驱动时间开关.md) / [脚本包](scripts/frame-window-time-switch/) |
-| 30 | 粒子系统礼花喷射方案 | 粒子系统 + 碰撞杀死 + 湍流场实现持续向上喷射金色纸片 | https://github.com/Simiely/blender-tips/blob/main/docs/粒子系统礼花喷射方案.md |
+| 30 | 粒子系统礼花喷射方案 | 粒子系统 + 碰撞杀死 + 湍流场实现持续向上喷射金色纸片,[独立文档](docs/粒子系统礼花喷射方案.md) / [脚本包](scripts/firework-confetti/) |
 
 ## 文档
 
