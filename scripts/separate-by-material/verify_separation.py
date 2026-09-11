@@ -31,7 +31,7 @@ STATUS_JSON = "D:/workbuddy/_blender_sep/status.json"   # 可留空 "" 跳过
 PART_NAMES = []            # 留空 = 自动发现（优先读 STATUS_JSON，其次按名字前缀）
 
 TOL_MAT = 1.0e-6           # 矩阵元素差阈值
-TOL_BBOX = 1.0e-4          # 世界包围盒阈值（float32 精度量级）
+TOL_BBOX = 1.0e-4          # 世界包围盒阈值 —— 仅用于旧格式基线的降级提示；第 7 节已改用局部坐标判据
 # ==============================================================================
 
 
@@ -40,6 +40,7 @@ D = None
 PASS = []
 FAIL = []
 NOTE = []
+WARN = []
 
 
 def ok(msg):
@@ -50,6 +51,12 @@ def ok(msg):
 def bad(msg):
     FAIL.append(msg)
     print(f"  ❌ {msg}")
+
+
+def warn(msg):
+    """预期之内、但确实改变了数据/需要知悉 —— 不计入 FAIL"""
+    WARN.append(msg)
+    print(f"  ⚠️  {msg}")
 
 
 def note(msg):
@@ -66,6 +73,30 @@ def bbox_of(mw, bound_box):
     lo = [min(p[i] for p in pts) for i in range(3)]
     hi = [max(p[i] for p in pts) for i in range(3)]
     return lo, hi
+
+
+def local_extent_of(me):
+    """局部坐标真实范围（逐顶点 min/max）。与帧无关，且不依赖「局部 AABB 变换」这种松上界。"""
+    n = len(me.vertices)
+    if n == 0:
+        return None
+    try:
+        import numpy as np
+        a = np.empty(n * 3, dtype=np.float32)
+        me.vertices.foreach_get("co", a)
+        a = a.reshape(-1, 3)
+        return [a.min(axis=0).tolist(), a.max(axis=0).tolist()]
+    except Exception:
+        lo = [1e30, 1e30, 1e30]
+        hi = [-1e30, -1e30, -1e30]
+        for v in me.vertices:
+            c = v.co
+            for i in range(3):
+                if c[i] < lo[i]:
+                    lo[i] = c[i]
+                if c[i] > hi[i]:
+                    hi[i] = c[i]
+        return [lo, hi]
 
 
 def discover_parts():
@@ -111,17 +142,33 @@ def main():
     objs = [D.objects[n] for n in parts]
 
     # ---------------------------------------------------------------- 1) 存在性
+    #
+    # ⚠️ 判据必须是「**有面的**材质槽数」而不是「材质槽总数」。
+    #    源码依据（editors/mesh/editmesh_tools.cc · mesh_separate_material）：
+    #    它只遍历**面的** mat_nr，从不遍历材质槽 ⇒ 空槽（有材质但零面）
+    #    既不产生新对象，也不会被原对象保留；各自的部件数量只会等于「有面的槽数」。
+    #    若拿槽总数当判据，凡有空槽的对象都会被误报为「部件数不符」。
     print("=== 1) 部件清单 ===")
-    exp_n = len(b["slots"])
+    used_idx = sorted(int(k) for k in b["face_by_mat"])
+    exp_n = len(used_idx)
+    all_idx = [s["i"] for s in b["slots"]]
+    empty_idx = [i for i in all_idx if i not in used_idx]
     if len(objs) == exp_n:
-        ok(f"部件数 {len(objs)} == 基线材质槽数 {exp_n}")
+        ok(f"部件数 {len(objs)} == 基线「有面的」材质槽数 {exp_n}"
+           f"  (有面槽={used_idx} / 全部槽={all_idx})")
     else:
-        bad(f"部件数 {len(objs)} != 基线材质槽数 {exp_n}")
+        bad(f"部件数 {len(objs)} != 基线「有面的」材质槽数 {exp_n}"
+            f"  (有面槽={used_idx} / 全部槽={all_idx})")
+    if empty_idx:
+        note(f"基线里有 {len(empty_idx)} 个「空材质槽」(有材质但零面) index={empty_idx} —— "
+             f"按源码它们不产生对象，且会在拆分时被清掉，属预期，不是异常")
+    for s in b["slots"]:
+        if s["i"] in empty_idx:
+            print(f"    (空槽 {s['i']}: 材质={s['material']!r} — 拆分后不再被任何部件引用)")
     for o in objs:
         mats = [s.material.name if s.material else None for s in o.material_slots]
         print(f"    {o.name:<26} data={o.data.name:<26} polys={len(o.data.polygons):>9}"
               f"  verts={len(o.data.vertices):>9}  slots={mats}")
-
     # ---------------------------------------------------------------- 2) 几何守恒
     print()
     print("=== 2) 几何守恒 ===")
@@ -252,28 +299,59 @@ def main():
         print()
         print("=== 6) 锐边逐组核对：跳过（基线未记录 sharp_by_mat）===")
 
-    # ---------------------------------------------------- 7) 世界包围盒并集
+    # ------------------------------------------- 7) 几何范围守恒（局部坐标，权威判据）
+    #
+    # ⚠️ 为什么用「局部坐标真实范围」而不是「世界包围盒」？
+    #   旧做法两侧口径不对等：
+    #     基线侧 = obj.bound_box（局部 AABB）→ 乘 matrix_world，得到的是**松上界**；
+    #     拆分后 = 各部件局部 AABB 变换后取并集，每个部件跨度更小 ⇒ 上界更紧。
+    #   两者不是同一个量，几何上并集必然 ⊆ 原上界，于是会报出「漂移」——
+    #   这不是数据变化，是**判据本身不对等**。
+    #   正确判据：两侧都用「逐顶点局部坐标的 min/max」，算法一致、与帧无关，应精确相等。
     print()
-    print("=== 7) 世界包围盒（并集应与基线重合）===")
-    lo_b = [min(p[i] for p in b["world_bbox"]) for i in range(3)]
-    hi_b = [max(p[i] for p in b["world_bbox"]) for i in range(3)]
-    los, his = [], []
-    for o in objs:
-        lo, hi = bbox_of(o.matrix_world, o.bound_box)
-        los.append(lo)
-        his.append(hi)
-    if los:
-        lo_n = [min(x[i] for x in los) for i in range(3)]
-        hi_n = [max(x[i] for x in his) for i in range(3)]
-        d_lo = max(abs(lo_n[i] - lo_b[i]) for i in range(3))
-        d_hi = max(abs(hi_n[i] - hi_b[i]) for i in range(3))
-        d = max(d_lo, d_hi)
-        print(f"    基线 min={[round(v, 5) for v in lo_b]} max={[round(v, 5) for v in hi_b]}")
-        print(f"    现在 min={[round(v, 5) for v in lo_n]} max={[round(v, 5) for v in hi_n]}")
+    print("=== 7) 几何范围守恒（局部坐标逐顶点真实范围）===")
+    b_ext = b.get("local_extent")
+    if b_ext:
+        lo_e = [1e30, 1e30, 1e30]
+        hi_e = [-1e30, -1e30, -1e30]
+        for o in objs:
+            e = local_extent_of(o.data)
+            if e is None:
+                continue
+            for i in range(3):
+                lo_e[i] = min(lo_e[i], e[0][i])
+                hi_e[i] = max(hi_e[i], e[1][i])
+        print(f"    基线 局部 min={[round(v, 6) for v in b_ext[0]]} max={[round(v, 6) for v in b_ext[1]]}")
+        print(f"    现在 局部 min={[round(v, 6) for v in lo_e]} max={[round(v, 6) for v in hi_e]}")
+        d = max(max(abs(lo_e[i] - b_ext[0][i]), abs(hi_e[i] - b_ext[1][i])) for i in range(3))
         if d < TOL_BBOX:
-            ok(f"包围盒并集零漂移  max|Δ|={d:.3e}（阈值 {TOL_BBOX:g}）")
+            ok(f"局部坐标范围零漂移  max|Δ|={d:.3e}（阈值 {TOL_BBOX:g}）—— 几何精确守恒")
         else:
-            bad(f"包围盒漂移 max|Δ|={d:.3e}（阈值 {TOL_BBOX:g}）")
+            bad(f"局部坐标范围漂移 max|Δ|={d:.3e}（阈值 {TOL_BBOX:g}）—— 几何可能被改动")
+    else:
+        note("基线未记录 local_extent（旧版基线）→ 跳过局部范围判据；"
+             "如需该项判定，请用当前版本脚本重新录制基线")
+
+    # 世界包围盒：仅作参考输出，**不参与判定**（见上方口径说明）
+    print()
+    print("=== 7b) 世界包围盒（仅供参考，不参与判定）===")
+    try:
+        lo_b = [min(p[i] for p in b["world_bbox"]) for i in range(3)]
+        hi_b = [max(p[i] for p in b["world_bbox"]) for i in range(3)]
+        los, his = [], []
+        for o in objs:
+            lo, hi = bbox_of(o.matrix_world, o.bound_box)
+            los.append(lo)
+            his.append(hi)
+        if los:
+            lo_n = [min(x[i] for x in los) for i in range(3)]
+            hi_n = [max(x[i] for x in his) for i in range(3)]
+            print(f"    基线 min={[round(v, 5) for v in lo_b]} max={[round(v, 5) for v in hi_b]}")
+            print(f"    现在 min={[round(v, 5) for v in lo_n]} max={[round(v, 5) for v in hi_n]}")
+            note("两侧口径不等价（基线=局部AABB变换的松上界；现在=各部件更紧界的并集），"
+                 "故本项只打印不判定；几何守恒以第 7 节局部坐标判据为准")
+    except Exception as e:
+        note(f"世界包围盒参考输出跳过（{type(e).__name__}: {e}）")
 
     # ---------------------------------------------------- 8) 集合归属
     print()
@@ -287,19 +365,48 @@ def main():
     # ---------------------------------------------------- 9) 材质数据块
     print()
     print("=== 9) 材质数据块引用计数 ===")
+    #    分级判据（v1.15.2）：
+    #      · 「有面的」槽里的材质丢失 / users=0  ⇒ ❌ 真问题
+    #      · 「空槽」里的材质 users=0 但仍存在  ⇒ ⚠️ 未存盘时的中间态（存盘后会丢）
+    #      · 「空槽」里的材质已不存在          ⇒ ⚠️ 预期内的滞后效应，但**确实丢了数据**
+    #        机制（实测三级分辨）：拆分算子**不删**材质，只把它变成 users=0；
+    #        Blender 落盘时丢弃未被引用的数据块 ⇒ 重新打开文件后该材质消失。
+    #        所以空槽里「只被本对象引用」的材质，拆分 + 存盘后即永久丢失。
+    #        要保留：拆分前 `use_fake_user=True`（见 separator 的 KEEP_EMPTY_SLOT_MATERIALS）。
+    lost_used, lost_empty, orphan_empty = [], [], []
     for s in b["slots"]:
         nm = s["material"]
         m = D.materials.get(nm) if nm else None
         usr = m.users if m else None
         fake = m.use_fake_user if m else None
-        msg = (f"{str(nm)[:44]:<46} 基线 users={s['mat_users']}"
+        is_empty = s["i"] in empty_idx
+        tag = "空槽" if is_empty else "有面槽"
+        msg = (f"[{tag} {s['i']}] {str(nm)[:40]:<42} 基线 users={s['mat_users']}"
                f" -> 现在 users={usr}  fake={fake}")
         if m is None:
-            bad(msg + "  ← 材质丢失")
+            if is_empty:
+                lost_empty.append(msg)
+            else:
+                lost_used.append(msg + "  ← 材质丢失")
         elif usr and usr >= 1:
             ok(msg)
         else:
-            bad(msg + "  ← users=0，材质变成孤儿")
+            if is_empty:
+                orphan_empty.append(msg)
+            else:
+                lost_used.append(msg + "  ← users=0，材质变成孤儿")
+    for m_ in lost_used:
+        bad(m_)
+    for m_ in lost_empty:
+        warn(m_ + "  ← 数据块已不存在（拆分+存盘后按孤儿丢弃）")
+    for m_ in orphan_empty:
+        warn(m_ + "  ← 当前 users=0（尚未存盘；存盘后会按孤儿丢弃）")
+    if empty_idx:
+        note("空槽材质处置说明：拆分算子不会删它们，只让 users 归零；"
+             "**Blender 存盘时会丢弃未被引用的数据块**，故重新打开文件后它们会消失。"
+             "若该材质只被本对象引用，等于「拆分 + Ctrl+S = 永久丢失」。"
+             "空槽索引=" + str(empty_idx) + "；要保留请在拆分前打 use_fake_user"
+             "（separator 的 KEEP_EMPTY_SLOT_MATERIALS = True）")
 
     # ---------------------------------------------------- 10) 动画/修改器/形态键
     print()
@@ -352,6 +459,10 @@ def main():
             print(f"   - {m}")
     else:
         print(f"✅ 判定：全部通过 —— {len(PASS)} 项检查全绿")
+    if WARN:
+        print(f"⚠️  需知悉 {len(WARN)} 条（预期内，但确实变了数据）：")
+        for m in WARN:
+            print(f"   - {m}")
     if NOTE:
         print(f"ℹ️  提示 {len(NOTE)} 条：")
         for m in NOTE:

@@ -21,8 +21,22 @@
   `hasattr(bpy.ops.mesh, "separate_by_material")` 会**假阳性返回 True**，
   但真正调 `get_rna_type()` 会 KeyError。判 bpy.ops 算子存在性必须用 get_rna_type()。
 * By Material = 「按**材质槽**、对**整个网格**生效、**与当前选择无关**」。
-* 原对象保留**最后一个**材质槽的几何；其余槽各生成一个新对象，
-  名字按槽顺序为 `原名.001` / `.002` / `.003` …，每个新网格只保留自己那一个材质槽。
+* **原对象保留哪一组几何 —— 规则是「面序中首次出现位置最晚的那一组」**
+  （**不是**「最后一个材质槽」，v1.15.2 修正）。源码依据：
+  `source/blender/editors/mesh/editmesh_tools.cc` · `mesh_separate_material`
+  逐轮取当前第一个面的 `mat_nr`，若该材质已覆盖全部剩余面
+  （`tot == bm_old->totface`）则留在原对象并 `break`，否则把这组切走；
+  ⇒ 「最后剩下的那组」即「首现位置最晚」的那组。
+  推论：**原对象的名字与它拿到的材质常常对不上**，这是既有行为、不是 bug。
+  其余各组各生成一个新对象，名字按槽顺序为 `原名.001` / `.002` / `.003` …，
+  每个新网格只保留自己那一个材质槽。
+* **空材质槽（有材质但零面）**：源码只遍历**面的** `mat_nr`，从不遍历材质槽
+  ⇒ 空槽**不产生对象**、也不被保留；`mesh_separate_material_assign_mat_nr`
+  把数据块 resize 到 1 个槽 ⇒ 空槽被自动清除。**部件数 = 「有面的」槽数**。
+  ⚠️ **风险**：空槽里的材质会变成 `users=0` 的孤儿。拆分算子**不删**它（内存里还在），
+  但**存盘时 Blender 会丢弃未被引用的数据块** —— 实测重新打开文件后该材质已不存在。
+  若该材质只被本对象引用，拆分 + Ctrl+S 后即**永久丢失**。
+  → 需要保留就把 `KEEP_EMPTY_SLOT_MATERIALS = True`（给它们打 `use_fake_user`）。
 
 --------------------------------------------------------------------------------
 ⚠️ 桥的时序约束（长耗时算子必读）
@@ -57,6 +71,10 @@ STATUS_JSON = "D:/workbuddy/_blender_sep/status.json"    # 执行状态实时落
 
 RENAME_BY_MATERIAL = False        # True = 拆完按材质名重命名「新部件」（原对象名不动）
 RENAME_MAXLEN = 40                # 重命名时名字截断长度
+
+KEEP_EMPTY_SLOT_MATERIALS = False  # True = 给「空材质槽」里的材质打 use_fake_user，防止存盘时被当孤儿丢弃
+                                   # （空槽材质在拆分后 users=0；Blender 存盘会丢弃未引用的数据块，
+                                   #   实测重新打开文件后该材质已不存在 → 只被本对象引用时即永久丢失）
 
 RECORD_SHARP_BY_MAT = True        # True = 额外统计"每个材质组内的锐边数"
                                   # （判断属性层消失有无信息损失的决定性证据；
@@ -130,6 +148,35 @@ def _sharp_by_mat(me, mats):
     return out
 
 
+def _local_extent(me):
+    """局部坐标逐顶点真实范围 [[minx,miny,minz],[maxx,maxy,maxz]]。
+
+    用途：作为「几何守恒」的权威判据。比 `obj.bound_box` 变换后的世界包围盒可靠 ——
+    后者是**松上界**（局部 AABB 旋转后必然膨胀），拆分后各部件界更紧，
+    两者口径不对等，会报出假「漂移」。本指标与帧无关、两侧算法一致，应精确相等。
+    """
+    n = len(me.vertices)
+    if n == 0:
+        return None
+    try:
+        import numpy as np
+        a = np.empty(n * 3, dtype=np.float32)
+        me.vertices.foreach_get("co", a)
+        a = a.reshape(-1, 3)
+        return [a.min(axis=0).tolist(), a.max(axis=0).tolist()]
+    except Exception:
+        lo = [1e30, 1e30, 1e30]
+        hi = [-1e30, -1e30, -1e30]
+        for v in me.vertices:
+            c = v.co
+            for i in range(3):
+                if c[i] < lo[i]:
+                    lo[i] = c[i]
+                if c[i] > hi[i]:
+                    hi[i] = c[i]
+        return [lo, hi]
+
+
 def make_baseline(obj, extra=None):
     """只读快照。"""
     import bpy
@@ -185,6 +232,11 @@ def make_baseline(obj, extra=None):
             for i, s in enumerate(obj.material_slots)
         ],
         "face_by_mat": {str(k): v for k, v in sorted(cnt.items())},
+        # 有面的槽 / 空槽（有材质但零面）。空槽不产生对象，拆分时被清掉。
+        "used_slot_indices": sorted(cnt),
+        "empty_slot_indices": [i for i in range(len(obj.material_slots)) if i not in cnt],
+        # 几何守恒的权威判据（局部坐标逐顶点真实范围）
+        "local_extent": _local_extent(me),
         "uv_layers": [l.name for l in me.uv_layers],
         "attributes": [
             {"name": a.name, "domain": a.domain, "type": a.data_type}
@@ -351,10 +403,24 @@ def run_separate(stamp, t0):
 
     n_slots = len(o.material_slots)
     used = sorted(set(p.material_index for p in o.data.polygons))
+    # 空材质槽 = 有材质、但不被任何面引用（源码从不遍历材质槽 ⇒ 不产生对象、且会被自动清除）
+    empty_slots = [i for i in range(n_slots)
+                   if o.material_slots[i].material and i not in used]
+    empty_mats = [o.material_slots[i].material.name for i in empty_slots]
     stamp(t0, "precheck",
           material_slots=n_slots,
           slots_with_material=sum(1 for s in o.material_slots if s.material),
-          slots_used_by_faces=len(used), used_indices=used)
+          slots_used_by_faces=len(used), used_indices=used,
+          empty_slot_indices=empty_slots, empty_slot_materials=empty_mats,
+          expected_parts=len(used))
+    if empty_slots:
+        stamp(t0, "warn_empty_slots",
+              indices=empty_slots, materials=empty_mats,
+              note="空槽不产生对象、且会被自动清除（正常）。但这些槽里的材质拆分后 users=0；"
+                   "Blender 存盘会丢弃未引用的数据块 —— 实测重新打开文件后该材质已不存在。"
+                   "若某材质只被本对象引用，拆分 + Ctrl+S 后即永久丢失。"
+                   "要保留请设 KEEP_EMPTY_SLOT_MATERIALS = True（给它们打 use_fake_user），"
+                   "或拆分前先手工清空/移走这些槽。")
     if n_slots < 2:
         stamp(t0, "abort", reason=f"只有 {n_slots} 个材质槽，无需拆分")
         return
@@ -362,6 +428,16 @@ def run_separate(stamp, t0):
         stamp(t0, "abort",
               reason=f"所有面都指向同一个材质槽 index={used[0]}，拆了也只有一个部件")
         return
+
+    # ------------------------------------------------ 空槽材质保命（可选）
+    if empty_slots and KEEP_EMPTY_SLOT_MATERIALS:
+        kept = []
+        for i in empty_slots:
+            m = o.material_slots[i].material
+            m.use_fake_user = True
+            kept.append({"slot": i, "material": m.name, "users": m.users})
+        stamp(t0, "empty_slot_materials_kept", kept=kept,
+              note="已给空槽材质打 use_fake_user=True → 存盘不会被当孤儿丢弃")
 
     # ------------------------------------------------ 拆分前基线（只读）
     saved_frame = C.scene.frame_current
