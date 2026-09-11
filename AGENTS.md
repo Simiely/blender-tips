@@ -60,6 +60,12 @@
 - **⚠️ `obj.parent` 赋值会静默重置 `matrix_parent_inverse` 为单位矩阵**:必须**先设 `parent`、后设 `matrix_parent_inverse`**,写反了 MPI 被清成 identity(症状: 对象飞到别处、MPI 平移回读 `(0,0,0)`)。隔离实验逐项验证: `parent_type` 赋值 / `animation_data_clear()` / 写 loc·rot·scale / `frame_set()` 都**不**重置,**只有 parent 赋值重置**(详见 docs/动画转移到父级空对象.md §坑1,脚本 scripts/anim-transfer-to-empty/)
 - **动画转移到父级空对象(动态转移)的通用解是 `MPI = B(F)⁻¹`(局部 basis 的逆),不是 `M(F)⁻¹`(世界矩阵的逆)**:只有参考帧处"局部==世界"(`mpi_old @ parent.world(F) == I`,如 F 帧父级 Z 旋转为 0)时两者才相等;自测构造 `M(F)` 与 `B(F)` 相差 6.35 单位的场景,用 `B(F)⁻¹` 得 0 偏差、用 `M(F)⁻¹` 会挪偏 6.35 单位。**推荐做法是再插一个无动画基点空对象、三段全用单位 MPI+单位 basis** → `M'(t) = D.world(t) @ I @ I`,乘单位矩阵精确,实测对原始基线偏差 **0.000e+00**,且本体本地变换彻底归零(打开 N 面板一眼可见动态全在上游,不会再误 K 本体)
 - **验收角度偏差别用 `2*acos(qa.dot(qb))`**:`dot≈1` 时 acos 病态放大,实测把 **3.8e-06** 的矩阵差虚报成 **0.0396°**(放大 100+ 倍),会误判成"有真实漂移"。改用旋转矩阵**元素最大差**,或良态式 `2*asin(sqrt(x²+y²+z²))`;注意 `mathutils.Quaternion` **没有 `.vector` 属性**(用 `.x/.y/.z`)。验证量级参考: float32 eps = 1.19e-07,场景坐标量级 ~25 单位时位置偏差应在 ~1e-6
+- **`location` 的坐标系是「父空间基底」(`parent.matrix_world @ matrix_parent_inverse`),既不是世界空间也不是对象自身空间**:`matrix_basis = T(location) @ R @ S` 平移在最左端 ⇒ 对象自身 `rotation` / `delta_rotation` 都**改变不了**位移方向。实测(父级绕 X 转 90°、子级自转 90°)K `location[2]` 的位移方向与自身 Z 偏 **90.0000°**。**`delta_location` 与 `location` 同坐标系**(不是"对象局部位移"),`delta_rotation` 也不把 `location` 带转(详见 docs/轴向位移-自身轴与世界轴.md,脚本 scripts/axis-space-motion/)
+- **让位移沿【自身轴】/【世界轴】的统一心法**:想让位移沿哪个坐标系,就把"承载位移那一层"的**父空间**做成那个坐标系 —— 沿自身轴: `朝向层(放旋转) → 位移层(自身旋转恒 0,只 K location[2])`;沿世界轴: 中间插一层"抵消旋转"的**世界对齐层**。两种都**只需 K `location`,不做换算**;上层旋转即使是动画也逐帧精确(实测 0.000000°)
+- **父级/上层朝向是动画时,"换算 + 只 K 两端"会走偏**(实测偏 **7.07 单位**,两帧之间只做父空间直线插值)⇒ 必须**逐帧 bake**,或用**世界空间约束**: 新建无父级空对象(世界空间)K 好动画 + 目标挂 `Copy Location`(`owner_space='WORLD'`,`target_space='WORLD'`,`use_offset=True`)—— 实测父级单轴/复合旋转均 **0.000000**,最通用
+- **⚠️ 存 `matrix_world` 必须 `.copy()`**:`evaluated_get(dg).matrix_world` 返回的是**活引用**,不拷贝直接存进列表,循环结束后**所有样本都会变成最后一帧的值**(实测三帧采样全打印末帧,导致诊断脚本输出"自身Z vs 世界Z = 0.0000°"的**假结论**);`to_3x3()` / `to_translation()` 返回新对象,天然安全
+- **验收"沿轴"别用"逐帧步进方向 vs 轴方向"**:目标轴随时间旋转时(如"沿自身轴"而自身轴在公转),位移向量本身就在转、基准轨迹也在动,该指标**必然误报**(实测真实偏差仅 8.1e-06 单位却报出 **112° / 163.86°**、被判失败)→ 正确判据是把位移向量分解为"沿轴分量 + **垂轴分量**",垂轴分量必须 ≈ 0
+- **`Copy Rotation` 的 `owner_space` 只有 `WORLD`/`CUSTOM`/`LOCAL`(没有 `LOCAL_WITH_PARENT`)**:用来"抵消父级旋转"必须 `owner_space='LOCAL'` + `target_space='WORLD'` + `invert_x/y/z=True`(实测 `WORLD`/`CUSTOM` 均无效、仍偏 90°);且**逐分量 invert ≠ 矩阵求逆**,单轴成立、**复合旋转不成立**(实测偏 3.83 单位 / 45°),复合旋转改用 bake 或 `Copy Location`
 ## 约定
 
 - 文档用中文;技巧按"场景 → 做法 → 坑"组织;一坑一篇进 DEVELOPMENT.md
