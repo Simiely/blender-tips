@@ -440,15 +440,46 @@ def main():
         bad(f"基线里的这些对象已消失: {miss}")
     else:
         ok("基线里原有对象全部仍存在")
-    if len(new_objs) == exp_n - 1:
-        ok(f"新增对象数 {len(new_objs)} == 材质槽数-1 ({exp_n - 1})")
+    #    计数判据必须精确到「本组」（v1.17.1 第二处修正）。
+    #    同一场景里连续做多次结构操作时（如先拆 A、再拆 B，之后回头复验 A），
+    #    「全场景新增对象数」会把别的操作新增的对象也算进来 ⇒ 报出误导性提示。
+    #    实测：先拆 `水晶走廊_纵向灯`、后拆 `水晶走廊_竖向灯`，再验前者时看到
+    #    "新增对象数 4 != 材质槽数-1 (1)"，而它自己只该新增 1 个。
+    #    正确口径：只在「以 TARGET + '.' 为前缀的新增对象」里计数。
+    #    （注意 TARGET 可能是别的对象名的前缀，如 `纵向灯` 是 `纵向灯2` 的前缀 ——
+    #      加 '.' 后 `纵向灯2.001` 不会匹配 `纵向灯.`，故安全。）
+    group_new = [n for n in new_objs if n.startswith(TARGET + ".")]
+    extra_new = len(new_objs) - len(group_new)
+    if len(group_new) == exp_n - 1:
+        ok(f"本组新增对象数 {len(group_new)} == 材质槽数-1 ({exp_n - 1})"
+           + (f"；全场景另有 {extra_new} 个新增对象（属其它操作，与本次无关）" if extra_new else ""))
     else:
-        note(f"新增对象数 {len(new_objs)} != 材质槽数-1 ({exp_n - 1})")
-    orphan_mesh = [m.name for m in D.meshes if m.users == 0]
-    if orphan_mesh:
-        bad(f"存在 users=0 的孤儿 mesh: {orphan_mesh}")
+        bad(f"本组新增对象数 {len(group_new)} != 材质槽数-1 ({exp_n - 1}); 本组新增={group_new}")
+    #    判据必须是「与基线做差集」而不是「绝对判无」（v1.17.1 修正）。
+    #    真实工程里常已存在历史遗留孤儿（早期删对象留下的 users=0 数据块）——
+    #    用绝对判据「有孤儿就 ❌」⇒ 在干净拆分下也必然误报，结论显示"不通过"极具误导性。
+    #    正确做法：基线记 orphan_mesh_before，验证时只把「**新增**孤儿」判 ❌，
+    #    「拆分前既有」的孤儿降级为提示（与本次操作无关，且 Blender 存盘时本就会丢弃）。
+    orphan_now = {m.name for m in D.meshes if m.users == 0}
+    if "orphan_mesh_before" not in b:
+        note("基线无 orphan_mesh_before 字段（旧版基线）⇒ 无法区分「本次新增孤儿」与「历史遗留孤儿」，"
+             "本项按 ⚠️ 报出、不计入失败；建议用新版 separate_by_material.py 重录基线后再判")
+        if orphan_now:
+            warn(f"users=0 的孤儿 mesh（来源未知，旧基线无法区分）: {sorted(orphan_now)}")
+        else:
+            ok("无 users=0 的孤儿 mesh")
     else:
-        ok("无 users=0 的孤儿 mesh")
+        orphan_before = set(b.get("orphan_mesh_before") or [])
+        new_orphan = sorted(orphan_now - orphan_before)
+        pre_orphan = sorted(orphan_now & orphan_before)
+        if new_orphan:
+            bad(f"本次拆分**新增**了 users=0 的孤儿 mesh: {new_orphan}")
+        else:
+            ok(f"本次拆分未新增孤儿 mesh（现有 {len(pre_orphan)} 个 users=0 的 mesh 全部是拆分前既有）")
+        if pre_orphan:
+            shown = pre_orphan[:20]
+            note(f"拆分前既有的历史遗留孤儿 mesh {len(pre_orphan)} 个（本次未改动、与本次操作无关，"
+                 f"存盘时会被 Blender 按孤儿丢弃）: {shown}" + (" …" if len(pre_orphan) > 20 else ""))
 
     # ---------------------------------------------------- 判定汇总
     print()

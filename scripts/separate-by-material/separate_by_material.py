@@ -263,6 +263,11 @@ def make_baseline(obj, extra=None):
         "object_names_before": sorted(x.name for x in bpy.data.objects),
         "scene_object_count": len(bpy.data.objects),
         "scene_mesh_count": len(bpy.data.meshes),
+        # v1.17.1：记录「拆分前既有的孤儿 mesh」名单。
+        # 真实工程里常已有历史遗留孤儿（早期删对象留下的 users=0 数据块），
+        # 验证器若用绝对判据「有孤儿就报错」⇒ 必然误报。记下基线才能做差集判定。
+        "orphan_mesh_before": sorted(m.name for m in bpy.data.meshes if m.users == 0),
+        "orphan_mesh_count_before": sum(1 for m in bpy.data.meshes if m.users == 0),
     }
 
     if RECORD_SHARP_BY_MAT and cnt:
@@ -369,6 +374,7 @@ def run_baseline_only(stamp, t0):
         attributes=snap["attr_names"],
         has_custom_normals=snap["has_custom_normals"],
         scene_object_count=snap["scene_object_count"],
+        orphan_mesh_count_before=snap.get("orphan_mesh_count_before"),
     )
 
 
