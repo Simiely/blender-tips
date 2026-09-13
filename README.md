@@ -44,6 +44,7 @@
 | 32 | 位移坐标系:沿自身轴 / 沿世界轴运动 | 物体轴向与世界轴不一致时,K 出来的 `location` 两者都不是(它属于"父空间基底",`delta_location` 同坐标系);两条对称做法 —— 朝向/位移分层→沿自身轴,世界对齐层/世界空间约束→沿世界轴,附诊断器与逐帧验证器,[独立文档](docs/轴向位移-自身轴与世界轴.md) / [脚本包](scripts/axis-space-motion/) |
 | 33 | 按材质拆分为多个网格体 | 一个对象多材质槽 → 「**有面的**」槽各一个独立对象(整网格生效、与选择无关);原对象保留**「面序中首现最晚」**那组(不是"最后一个槽");附拆分前基线(含逐组锐边数)、11 组逐项验证、下游引用扫描。[独立文档](docs/按材质拆分为多个网格体.md) / [脚本包](scripts/separate-by-material/) |
 | 34 | 空物体收敛清理 | 不支撑任何几何的 EMPTY 全清 —— 不能只删"无子级"的(删完会"长出"新的),要用**引用图 + 不动点**一次算准最终可删集;三重安全闸 + 独立核验(非 EMPTY 对象数 / 可见几何包围盒逐位不变)。附空集合、孤儿数据块连带处理。[独立文档](docs/空物体收敛清理.md) / [脚本包](scripts/scene-cleanup/) / [Skill](skills/blender-scene-cleanup/) |
+| 35 | 渲染发黑与材质不发光排查 | "配了发光材质渲染还是黑的" —— 七条按命中率排序的排查路径:头号嫌疑是 **View Layer 材质覆盖**(它是视图层属性、不在材质里,在材质树里永远查不到);其次是 Workbench 引擎不读材质节点、Holdout/相机可见性、**发光值改在了未接输出的孤儿 BSDF 上**(实测第二层原因)、AgX 色彩变换压暗。附一次打全的诊断脚本(236 材质 0.05s)。[独立文档](docs/渲染发黑与材质不发光排查.md) / [脚本包](scripts/blackout-diagnose/) / [Skill](skills/blender-render-blackout-diagnose/) |
 
 ## Agent Skills(给 AI 助手用的作业规范)
 
@@ -54,6 +55,7 @@
 |---|---|---|
 | [blender-bridge-ops](skills/blender-bridge-ops/) | 9877 桥的**传输层作业规范**：客户端封装、120s 上限规避、Blender 5.x Slotted Action、引用判定、删除后引用失效 | [§1](docs/技巧速查.md#1-远程控制运行中的-blender) / [脚本包](scripts/blender-remote-control/) |
 | [blender-scene-cleanup](skills/blender-scene-cleanup/) | 工程**清理类**改造：EMPTY 收敛清理(不动点)、孤儿数据块、空集合、缺失贴图审计与还原 | [主题 34](docs/空物体收敛清理.md) / [脚本包](scripts/scene-cleanup/) |
+| [blender-render-blackout-diagnose](skills/blender-render-blackout-diagnose/) | **渲染发黑 / 材质不发光**排查：材质覆盖、引擎不读材质、Holdout、输出未连线或改错节点、AgX 压暗等七条路径 | [主题 35](docs/渲染发黑与材质不发光排查.md) / [脚本包](scripts/blackout-diagnose/) |
 
 安装(拷到用户级 skill 目录)：`Copy-Item .\skills\* "$env:USERPROFILE\.workbuddy\skills\" -Recurse`，
 详见 [skills/README.md](skills/README.md)。

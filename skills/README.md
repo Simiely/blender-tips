@@ -19,9 +19,11 @@
 |---|---|---|
 | `blender-bridge-ops` | 9877 桥的**传输层作业规范**：客户端封装、120s 上限规避、Blender 5.x Slotted Action、引用判定、删除后引用失效等硬约束 | [技巧速查 §1](../docs/技巧速查.md) / [`../scripts/blender-remote-control/`](../scripts/blender-remote-control/) |
 | `blender-scene-cleanup` | 工程**清理类**改造：EMPTY 收敛清理（不动点）、孤儿数据块、空集合、缺失贴图审计与还原 | [空物体收敛清理](../docs/空物体收敛清理.md) / [`../scripts/scene-cleanup/`](../scripts/scene-cleanup/) |
+| `blender-render-blackout-diagnose` | **渲染发黑 / 材质不发光**排查：材质覆盖、引擎不读材质、Holdout、输出未连线或改错节点、AgX 压暗等七条路径 | [渲染发黑与材质不发光排查](../docs/渲染发黑与材质不发光排查.md) / [`../scripts/blackout-diagnose/`](../scripts/blackout-diagnose/) |
 
-两个 skill 是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
-`blender-scene-cleanup` 管「清理这件事怎么做」，后者开头即引用前者。
+三者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+`blender-scene-cleanup` 管「清理这件事怎么做」、`blender-render-blackout-diagnose` 管「画面不对怎么查」，
+后两者开头即引用前者。
 
 ## 安装
 
@@ -31,6 +33,7 @@
 $dst = "$env:USERPROFILE\.workbuddy\skills"
 Copy-Item .\blender-bridge-ops    $dst -Recurse -Force
 Copy-Item .\blender-scene-cleanup $dst -Recurse -Force
+Copy-Item .\blender-render-blackout-diagnose $dst -Recurse -Force
 ```
 
 拷完目录结构应为：
@@ -38,9 +41,12 @@ Copy-Item .\blender-scene-cleanup $dst -Recurse -Force
 ```
 ~/.workbuddy/skills/
 ├── blender-bridge-ops/SKILL.md
-└── blender-scene-cleanup/
+├── blender-scene-cleanup/
+│   ├── SKILL.md
+│   └── scripts/{purge_empties.py, verify_purge.py, snapshot_baseline.py}
+└── blender-render-blackout-diagnose/
     ├── SKILL.md
-    └── scripts/{purge_empties.py, verify_purge.py, snapshot_baseline.py}
+    └── scripts/diagnose_blackout.py
 ```
 
 > 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），三个脚本要一致。

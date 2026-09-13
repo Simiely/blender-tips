@@ -1,5 +1,33 @@
 # CHANGELOG.md
 
+## v1.17.0 · 2026-09-13
+
+- **新增主题 #35「渲染发黑与材质不发光排查」** —— `docs/渲染发黑与材质不发光排查.md` + 脚本包 `scripts/blackout-diagnose/`
+  - **核心结论：这类问题 90% 不在材质节点里**。七条路径按命中率降序：
+    ① **View Layer 材质覆盖 `material_override`**（★最高频）② Workbench 引擎不读材质节点
+    ③ Holdout / 相机可见性 / 视图层排除 ④ Material Output 未连线或**发光值改在未接输出的孤儿 BSDF 上**
+    ⑤ AgX 色彩变换压暗（只解释"不够亮"，不解释"纯黑"）⑥ 透明度与背面剔除 ⑦ 材质被几十对象共享 / 挂错材质
+  - **头号嫌疑的特殊性**：`material_override` 是 **View Layer 级属性、不在材质里** ⇒
+    在材质节点树里永远查不到，用户极难自查。非 None 时**该视图层下全部对象**的材质被替换，改任何材质都不生效
+  - **实测案例（真实工程 `260910xAx01`，Blender 5.2 / Cycles）**：用户报"给了发光材质渲染还是黑的"，排查后发现**两层原因叠加** ——
+    ① `material_override` 覆盖（用户已自行清除，这是本次根因）
+    ② 清除后仍偏暗：该对象材质内有**两个 Principled BSDF**，用户把 `Emission Strength=100` 设在了
+    **未接输出**的 `原理化 BSDF` 上，真正接在输出上的是 `原理化 BSDF.001`（只有 **10**）
+    ⇒ 看到 100 以为够亮，实际生效 1/10
+    ③ 另记：`view_transform = AgX` 仍在生效，AgX 下 10 的发光强度偏弱
+  - **教训**：必须**一次打全七条路径**。只盯用户提到的那一条，会漏掉第二层原因
+  - 诊断脚本实测：全场景 236 个材质扫描耗时 **0.05 s**；自动输出「发光值>0 但未接到输出」的孤儿节点清单
+- **新增 Skill `skills/blender-render-blackout-diagnose/`**（含 `scripts/diagnose_blackout.py`）：
+  按命中率排序的七条排查路径 + 铁律（先查全局开关再查局部节点）+ 报告模板（头号结论 / 机制解释 / 逐条判定表 / 建议动作 / 顺带隐患）
+- **`blender-bridge-ops` 补一条硬约束：脚本文件绝不能带 BOM**
+  - 桥端 `exec` 带 BOM 的源码 → `SyntaxError: invalid non-printable character U+FEFF`
+  - **Windows PowerShell 5.1 的 `Set-Content -Encoding UTF8` / `Out-File -Encoding UTF8` 会写 BOM**，用它生成送桥脚本必炸（本次实测踩到）
+  - 安全做法：Write 类工具直接落盘 / Python `open(...,encoding='utf-8',newline='\n')` /
+    PowerShell `[System.IO.File]::WriteAllText($p,$s,(New-Object System.Text.UTF8Encoding($false)))`
+- 涉及文档：`docs/渲染发黑与材质不发光排查.md`、`scripts/blackout-diagnose/README.md`、
+  `skills/blender-render-blackout-diagnose/SKILL.md`、`skills/README.md`、`skills/blender-bridge-ops/SKILL.md`、
+  `README.md`(索引 #35 + Agent Skills 表)、`docs/技巧速查.md`(索引 #35)、`AGENTS.md`、`DEVELOPMENT.md`
+
 ## v1.16.0 · 2026-09-13
 
 - **新增主题 #34「空物体收敛清理」** —— `docs/空物体收敛清理.md` + 脚本包 `scripts/scene-cleanup/`

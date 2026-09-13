@@ -25,6 +25,26 @@ python bl.py <code.py>        # 结果打印到 stdout 并写入 <code.py>.out
 
 要点：客户端 socket timeout 设 300s；结果文件命名为 `<脚本名>.out`，**每次都要 Read 这个文件**而不是读 shell 输出。
 
+### ⚠️ 脚本文件绝不能带 BOM
+
+桥端是直接 `exec` 收到的源码，**带 UTF-8 BOM 会在第一行就炸**：
+
+```
+ERR
+  File "<remote>", line 1
+    ﻿# -*- coding: utf-8 -*-
+    ^
+SyntaxError: invalid non-printable character U+FEFF
+```
+
+- **Windows PowerShell 5.1 的 `Set-Content -Encoding UTF8` / `Out-File -Encoding UTF8` 会写入 BOM** ——
+  用它们生成送给桥的脚本必炸（本机已实测踩过一次）
+- 安全做法，任选：
+  - 用 Write 类工具直接落盘（无 BOM）
+  - Python：`open(path, "w", encoding="utf-8", newline="\n")`
+  - PowerShell：`[System.IO.File]::WriteAllText($p, $s, (New-Object System.Text.UTF8Encoding($false)))`
+- 只落**日志/报告**（不送桥）的文本文件不受影响，但读回来时注意首行可能带 `﻿`
+
 ## 标准作业循环
 
 1. 侦察：确认 9877 在听、Blender PID、当前活动文件、`bpy.data.is_dirty`
@@ -84,6 +104,7 @@ python bl.py <code.py>        # 结果打印到 stdout 并写入 <code.py>.out
 ## 相关 skill
 
 - **`blender-scene-cleanup`** —— 基于本 skill 传输层的「工程清理」方法论：空物体收敛清理（不动点算法）、孤儿数据块、缺失贴图审计与还原，含可直接复用的脚本。
+- **`blender-render-blackout-diagnose`** —— 基于本 skill 传输层的「画面不对」诊断：渲染发黑 / 材质不发光（材质覆盖、引擎不读材质、Holdout、输出未连线或改错节点、AgX 压暗）。
 
 ## 本机路径约定
 

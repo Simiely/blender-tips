@@ -633,3 +633,45 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
   ② 给用户的选项要带"**选了之后还剩什么**",否则用户只能靠猜;③ 交付必须带独立核验(另一支脚本 + 重新取引用),
   "非 EMPTY 对象数""可见几何包围盒"这类**不可能变**的量逐位相等,才是"没动几何"的硬证据
   (详见 docs/空物体收敛清理.md、scripts/scene-cleanup/README.md)
+
+## 问题:"配了发光材质渲染还是黑的" —— 两层原因叠加,只查一层必得出错误结论
+
+**TL;DR**:这类问题 90% **不在材质节点里**。本次真凶是 **View Layer 材质覆盖**(视图层属性,
+材质树里永远查不到);清掉之后**还有第二层** —— 用户把 `Emission Strength=100` 设在了
+**未接输出**的孤儿 BSDF 上,真正生效的那个只有 10。
+
+- 现象:对象 `图形1371.001` 配了发光材质,渲染出来是黑的
+- 排查(按命中率,一次打全七条):
+  ① `view_layer.material_override` —— **命中**。它是 View Layer 级属性,非 None 时该层**全部对象**材质被替换,
+     在材质树里怎么翻都翻不到
+  ② 引擎 —— 原为 `BLENDER_WORKBENCH`(**完全不读材质节点树**,发光永不生效),用户已切 `CYCLES`
+  ③ Holdout / 相机可见性 / 视图层 Exclude —— 全 False,不命中
+  ④ 输出连线 —— **第二层命中**:该材质内有 **2 个 Principled BSDF**,`原理化 BSDF`(`Emission Strength=100`)
+     **未接输出**,真正接到 `材质输出.Surface` 的是 `原理化 BSDF.001`(只有 **10**)
+  ⑤ `view_transform = AgX` —— 仍在生效,AgX 下 10 的强度偏弱(它只解释"不够亮",**不解释"纯黑"**)
+- 根因:两个独立的坑叠在一起,且**第二个在第一个被解决之后才会暴露** ⇒
+  只盯着用户提到的那一条线索,会直接漏掉第二层
+- 解决:先 `vl.material_override = None`;再确认发光设在了**接到输出的那个**节点上;
+  最后按 AgX 特性提高强度。诊断脚本 `scripts/blackout-diagnose/diagnose_blackout.py` 一次打全七条路径
+  (236 材质实测 **0.05 s**),并自动列出"发光>0 但未接到输出"的**孤儿节点**
+- 预防:① 报"材质不生效"按**全局 → 局部**顺序查(覆盖/引擎/Holdout 是一刀切级的,命中率远高于节点连线);
+  ② 排查脚本必须显式输出"**输出节点连的是谁**"+"**孤儿发光节点**";
+  ③ 别用 `mat.diffuse_color` 判断(那是视口颜色,与节点树结果无关);
+  ④ 材质可能被几十个对象共享(本例 **62 users**)⇒ 改前先报 users 数
+  (详见 docs/渲染发黑与材质不发光排查.md、scripts/blackout-diagnose/README.md)
+
+## 问题:PowerShell `Set-Content -Encoding UTF8` 会写 BOM —— 桥端 `exec` 直接 SyntaxError
+
+**TL;DR**:Windows PowerShell 5.1 的 `Set-Content -Encoding UTF8` / `Out-File -Encoding UTF8`
+**会写入 UTF-8 BOM**(PS 7 才有 `utf8NoBOM`);送给桥的脚本第一行就被判非法字符,脚本完全跑不起来。
+
+- 现象:用 PowerShell 拼接生成的 `_smoke.py` 发到桥,返回
+  `SyntaxError: invalid non-printable character U+FEFF`,报错行是 `# -*- coding: utf-8 -*-`
+- 根因:桥端是 `exec` 收到的源码文本,**不吞 BOM**;
+  而 PowerShell 5.1 的 `-Encoding UTF8` 语义恰恰是"UTF-8 带 BOM"
+- 解决(任选):用 Write 类工具直接落盘 / PowerShell
+  `[System.IO.File]::WriteAllText($p,$s,(New-Object System.Text.UTF8Encoding($false)))` /
+  Python `open(p,"w",encoding="utf-8",newline="\n")`
+- 预防:凡"**生成文件 → 交给另一个程序解析**"的链路,都要核对首字节。
+  注意本机 `bl.py` 落的 `.out` 是客户端写的、不受影响;**手工生成的输入脚本才是风险点**
+  (详见 skills/blender-bridge-ops/SKILL.md「脚本文件绝不能带 BOM」)

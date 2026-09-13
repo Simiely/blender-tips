@@ -97,6 +97,10 @@
 - **空集合 ≠ 空对象**:`objects=0` 且 `children=0` 的集合用 `bpy.data.collections.remove(col, do_unlink=True)`(实测 `Export` 集合 `users=1`、挂在场景根),要**单独问用户**
 - **判贴图缺失必须带 `not img.packed_file`**:否则会把"路径失效但已打包"的贴图误报为缺失(真实工程 105 个);同一判据散落在体检/核验/文档多处时要交叉核对口径
 - **孤儿数据块清理顺序:先材质再图像**;删前逐个判"磁盘有同名副本或已打包"(磁盘无副本的打包数据一旦变孤儿,存盘即永久丢失)
+- **"配了发光材质渲染还是黑的"先查 `view_layer.material_override`,别去材质树里翻**:它是 **View Layer 级属性、不在材质里** ⇒ 材质节点树里永远查不到;非 None 时该视图层下**全部对象**材质被替换,此时改任何材质都不生效。第二查**引擎**(`BLENDER_WORKBENCH` **完全不读材质节点树**,发光永不生效,必须 `CYCLES`/`BLENDER_EEVEE_NEXT`),第三查 `ob.is_holdout`·`ob.visible_camera`·视图层 Exclude(症状都极像"材质没用"),最后才怀疑数值
+- **一个材质可以有多个 BSDF,只有「接到 `OUTPUT_MATERIAL.Surface`」的那个生效**:实测 `Material #18526fds.001` 里 `原理化 BSDF`(`Emission Strength=100`)**未接输出**、真正生效的 `原理化 BSDF.001` 只有 **10** ⇒ 用户看到的 100 是假的。排查必须**打印"输出连的是谁"**并列出"发光>0 但未接输出"的**孤儿节点**;多个 `OUTPUT_MATERIAL` 时只有 `is_active_output=True` 那个生效
+- **`view_transform` 默认 AgX(4.x/5.x)会压暗高亮**:同强度发光在 Filmic/Standard 下亮、AgX 下像哑光 ⇒ 它只解释"**不够亮**",**不解释"纯黑"**(纯黑往覆盖/Holdout/未连线找);`mat.diffuse_color` 是视口颜色,与节点树结果无关,不能当判断依据
+- **送给桥的脚本文件绝不能带 BOM**:桥端 `exec` 直接 `SyntaxError: invalid non-printable character U+FEFF`。**Windows PowerShell 5.1 的 `Set-Content -Encoding UTF8` / `Out-File -Encoding UTF8` 会写 BOM** ⇒ 用它生成送桥脚本必炸(实测踩过一次);改用 `[System.IO.File]::WriteAllText($p,$s,(New-Object System.Text.UTF8Encoding($false)))` 或 Python `open(...,encoding='utf-8',newline='\n')`
 
 ## 约定
 
