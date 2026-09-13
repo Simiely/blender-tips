@@ -1,5 +1,35 @@
 # CHANGELOG.md
 
+## v1.16.0 · 2026-09-13
+
+- **新增主题 #34「空物体收敛清理」** —— `docs/空物体收敛清理.md` + 脚本包 `scripts/scene-cleanup/`
+  - **核心结论：不能只删"无子级"的 EMPTY**。实测删掉 5006 个无子级空物体后，Outliner 里**又长出 2026 个** ——
+    原本挂着这些叶子的中转容器（`Group-*` / `Arc*` / `Line*`）自己变成了叶子。
+    正确做法是 **引用图 + 不动点**，一次算准最终可删集（避免反复扫描撞 120s 上限）
+  - 判定规则：`EMPTY 需要保留 ⟺ 它支撑某个非 EMPTY 对象`，支撑 = a) 直接挂非 EMPTY 子级 /
+    b) 子级里有需保留的 EMPTY / c) 被需保留对象引用（约束·修改器·驱动）/ d) 被外部数据块引用（节点 OBJECT socket ·
+    场景相机 · 相机 DOF 焦点 · 粒子）
+  - **三重安全闸**：① 只删 `type=='EMPTY'` ② 删后无非 EMPTY 对象失去父级 ③ 删后无悬空引用（由引用图保证）
+  - 实测（真实工程 `260910xAx01`，22315 对象 / 5867 网格）：总对象 **22315 → 14848**，EMPTY **11775 → 4308**
+    （两轮共删 **7467** = 5006 + 2461 级联），**EMPTY 无子级 5006 → 2026 → 0（收敛）**；
+    **非 EMPTY 10540 / MESH 10527 / CAMERA 13 / 材质 236 逐个不变**；可见几何包围盒
+    `min(-1348.71, -428.05, -958.45)` / `max(1348.71, 428.05, 439.90)` **逐位一致**；
+    删除耗时 **71.88 s**，引用图扫描 **12~20 s**
+  - 独立核验（另起一次请求）：名单残留 0 / 悬空约束 0 / 父级丢失 0 / 位置漂移 0 / 真缺失贴图 0 / 孤儿数据块 0
+- **新增 `skills/` 目录（Agent Skill，给 AI 助手用的作业规范）**
+  - `skills/blender-bridge-ops/` —— 9877 桥的**传输层**规范：客户端封装、**120s 上限规避**、
+    Blender 5.x Slotted Action、引用判定必须排除 `Scene.objects`/`ID.original`、
+    **判贴图缺失必须带 `not img.packed_file`**、`bpy.data.objects.remove()` 后旧引用立即失效
+  - `skills/blender-scene-cleanup/` —— 工程**清理**方法论：不动点算法、三重安全闸、还原点流程、9 条核验清单
+  - `skills/README.md` 说明与 `scripts/` 的分工（前者面向 AI、后者面向人，同一套脚本**两处需同步**）与安装方式
+  - 同步修正三处脚本里陈旧的硬编码 `OUT_DIR`（原为某次会话的绝对路径）→ 改为显式占位符 + 顶部注释，
+    避免跨会话复用时报错或把报告写到不存在/不该写的目录
+- **连带清理项收录**：空集合（`objects=0` 且 `children=0`，用 `bpy.data.collections.remove(col, do_unlink=True)`，
+  **不是"空对象"要单独问**）、孤儿材质/图像（顺序**先材质再图像**，每个先判磁盘副本）、空 action slot（存盘自动丢弃）
+- 涉及文档：`docs/空物体收敛清理.md`、`scripts/scene-cleanup/README.md`、`skills/README.md`、
+  `skills/blender-bridge-ops/SKILL.md`、`skills/blender-scene-cleanup/SKILL.md`、
+  `README.md`（索引 #34 + Agent Skills 节）、`docs/技巧速查.md`（索引 #34）、`CHANGELOG.md`、`AGENTS.md`、`DEVELOPMENT.md`
+
 ## v1.15.2 · 2026-09-11
 
 - **规则修正**:「按材质拆分后原对象保留哪个槽」的表述**有误**,由「最后一个材质槽」修正为

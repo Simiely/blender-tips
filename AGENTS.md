@@ -91,9 +91,17 @@
 - **文档相对链接必须相对「本文件所在目录」**:`docs/` 下的文档写成 `[x](docs/x.md)`,GitHub 会解析为 `docs/docs/x.md` → **404**(实测 HTTP 状态码);同目录写 `x.md`,指向仓库根写 `../scripts/x/`。**改完必须跑可及性扫描复验**(相对路径 + 锚点)
 - **GitHub 锚点生成规则(实测)**:小写 → 移除标点 → **每个空白字符各转一个连字符(不合并)**。`## 16. 循环渐变色(ColorRamp 三色自然循环)` ⇒ `#16-循环渐变色colorramp-三色自然循环`;`## 2. 自定义属性 + 驱动控制显隐` ⇒ `#2-自定义属性--驱动控制显隐`(`+` 被移除后留两个空格 ⇒ 两个连字符)。**权威核验法**:抓线上页面 HTML 里的 `id="user-content-..."`(GitHub 的 `/markdown` API 返回的 HTML **不含** heading id,别用它验)
 - **删除文档必须连带清理全部引用与副本**:教训 —— 2026-08-28 删 `docs/应用缩放Scale归1.md` 时只删了本体 + 索引行,**正文整节 / 锚点 / 重复副本**全部残留,长期无人察觉。删文档检查单:① 本体 ② README 索引 ③ 技巧速查索引 ④ 技巧速查正文整节 ⑤ 其他文档引用 ⑥ CHANGELOG 补「后续变更」注记(不改写历史)
+- **不支撑几何的 EMPTY 必须用「引用图 + 不动点」清**:只删"当前无子级"的会漏掉级联(实测 5006 → 7467 —— 中转容器 `Group-*`/`Arc*` 删完自己变叶子)。引用判定**必须排除** `Scene.objects`/`Collection.objects`/`ViewLayer.objects`/`Collection.all_objects`(成员关系)与 `ID.original`,否则全场景对象都会被标成"被引用"
+- **禁止 `bl_rna.properties` 全属性遍历上万对象**(22315 对象 ≈ 7 分钟,必超 120s)⇒ 改**打靶式**:约束 `c.target` / 修改器指针 / 节点 OBJECT·COLLECTION socket / 驱动 `variable.targets[*].id` / `scene.camera` / 相机 `dof.focus_object` / 粒子 `dupli_object`(全场景 12~20s)。也别在循环里用 `ob.children`(每次 O(n) 重算),自建 `parent.name -> [child]` 映射
+- **⚠️ 删除后旧引用立即失效**:`bpy.data.objects.remove()` 之后连 `o.name` 都抛 `ReferenceError: StructRNA of type Object has been removed` ⇒ 要用的字段**删除前冻结成纯值**、「被删名单」**先落盘再删**、核验**重新取引用**(本机连踩两次)
+- **空集合 ≠ 空对象**:`objects=0` 且 `children=0` 的集合用 `bpy.data.collections.remove(col, do_unlink=True)`(实测 `Export` 集合 `users=1`、挂在场景根),要**单独问用户**
+- **判贴图缺失必须带 `not img.packed_file`**:否则会把"路径失效但已打包"的贴图误报为缺失(真实工程 105 个);同一判据散落在体检/核验/文档多处时要交叉核对口径
+- **孤儿数据块清理顺序:先材质再图像**;删前逐个判"磁盘有同名副本或已打包"(磁盘无副本的打包数据一旦变孤儿,存盘即永久丢失)
+
 ## 约定
 
 - 文档用中文;技巧按"场景 → 做法 → 坑"组织;一坑一篇进 DEVELOPMENT.md
+- `skills/` 放**给 AI 助手用的作业规范**(`SKILL.md` + 附件脚本);`scripts/` 放**给人用的脚本包**(README + 脚本);同一套脚本**两处需同步**
 - 文档内链接用**相对本文件**的路径;结构改动后跑一次「链接可及性 + 锚点存在性」检查(本地模拟 GitHub 解析)
 
 ## 常用命令
