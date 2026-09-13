@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-09-13(commit `a03c64e`)v1.16.0 空物体收敛清理(不动点)+Agent Skills(`skills/`)+空集合/孤儿数据块连带清理
+> 📌 **文档基线**:2026-09-13(commit `ba8d942`)v1.17.0 渲染发黑与材质不发光排查(#35)+Skill `blender-render-blackout-diagnose`+材质覆盖/孤儿 BSDF/BOM 三条坑
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
 
 ## 技术栈
