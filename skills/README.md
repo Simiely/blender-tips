@@ -20,10 +20,14 @@
 | `blender-bridge-ops` | 9877 桥的**传输层作业规范**：客户端封装、120s 上限规避、Blender 5.x Slotted Action、引用判定、删除后引用失效等硬约束 | [技巧速查 §1](../docs/技巧速查.md) / [`../scripts/blender-remote-control/`](../scripts/blender-remote-control/) |
 | `blender-scene-cleanup` | 工程**清理类**改造：EMPTY 收敛清理（不动点）、孤儿数据块、空集合、缺失贴图审计与还原 | [空物体收敛清理](../docs/空物体收敛清理.md) / [`../scripts/scene-cleanup/`](../scripts/scene-cleanup/) |
 | `blender-render-blackout-diagnose` | **渲染发黑 / 材质不发光**排查：材质覆盖、引擎不读材质、Holdout、输出未连线或改错节点、AgX 压暗等七条路径 | [渲染发黑与材质不发光排查](../docs/渲染发黑与材质不发光排查.md) / [`../scripts/blackout-diagnose/`](../scripts/blackout-diagnose/) |
+| `blender-overlap-difference` | 让两个互相穿插的网格体「**物理上不重叠**」——**面级剔除**替代布尔差集（只删目标件伸进刀具体的面，刀具体分毫不动）；含动刀前分类着色预览、三票制内外判定、布尔干跑评估、还原点与 `__BAK__` 撤回、独立核验 | 暂无独立文档，脚本包随 skill 自带 `scripts/`（`cull_overlap.py` / `probe_overlap.py` / `render_classify.py` / `restore_from_backup.py`） |
+| `blender-procedural-emission-material` | **世界空间程序化噪波滚动发光材质** + 全套数字控件：不用 UV，标准链 `纹理坐标→Mapping(滚)→噪波4D→ColorRamp(对比度)→×强度→Emission`；含 SINGLE_PROP 驱动、**看门狗定时器**自动刷新、AREA 面光灯节点树同构接入与依赖环铁律 | [渐变发光滚动材质](../docs/渐变发光滚动材质.md) / [材质参数统一控制器与实时面板](../docs/材质参数统一控制器与实时面板.md)（其 §3 刷新结论不完整，见本 skill §6） |
+| `blender-plane-procedural-material` | **平面（flat plane）专项**：法线轴零跨度导致的坐标退化、**平面 = 3D 噪声体的一片切片**、把平面当**验收测试卡**出客观读数（暗区占比 / 滚动方向 / 位移的像素级测法） | 母 skill `blender-procedural-emission-material` |
 
-三者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
-`blender-scene-cleanup` 管「清理这件事怎么做」、`blender-render-blackout-diagnose` 管「画面不对怎么查」，
-后两者开头即引用前者。
+六者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+其余五个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
+`blender-overlap-difference` 去重叠、`blender-procedural-emission-material` 做程序化发光材质与控件、
+`blender-plane-procedural-material` 用平面验收材质（母 skill = 前者）。后五个开头均引用前者。
 
 ## 安装
 
@@ -34,6 +38,9 @@ $dst = "$env:USERPROFILE\.workbuddy\skills"
 Copy-Item .\blender-bridge-ops    $dst -Recurse -Force
 Copy-Item .\blender-scene-cleanup $dst -Recurse -Force
 Copy-Item .\blender-render-blackout-diagnose $dst -Recurse -Force
+Copy-Item .\blender-overlap-difference $dst -Recurse -Force
+Copy-Item .\blender-procedural-emission-material $dst -Recurse -Force
+Copy-Item .\blender-plane-procedural-material $dst -Recurse -Force
 ```
 
 拷完目录结构应为：
@@ -44,9 +51,19 @@ Copy-Item .\blender-render-blackout-diagnose $dst -Recurse -Force
 ├── blender-scene-cleanup/
 │   ├── SKILL.md
 │   └── scripts/{purge_empties.py, verify_purge.py, snapshot_baseline.py}
-└── blender-render-blackout-diagnose/
+├── blender-render-blackout-diagnose/
+│   ├── SKILL.md
+│   └── scripts/diagnose_blackout.py
+├── blender-overlap-difference/
+│   ├── SKILL.md
+│   └── scripts/{cull_overlap.py, probe_overlap.py, render_classify.py, restore_from_backup.py}
+├── blender-procedural-emission-material/
+│   ├── SKILL.md
+│   └── scripts/{build_noise_scroll.py, verify_noise_scroll.py, verify_lights.py, restore_lights.py, ...}
+└── blender-plane-procedural-material/
     ├── SKILL.md
-    └── scripts/diagnose_blackout.py
+    └── scripts/{plane_testcard.py, probe_plane.py, probe_threshold_e2e.py, ...}
 ```
 
-> 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），三个脚本要一致。
+> 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），同一 skill 下的脚本要一致。
+> 后三个 skill 的脚本**只随 skill 自带**（`../scripts/` 下暂无对应脚本包），暂不需要两处同步。

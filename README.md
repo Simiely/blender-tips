@@ -56,6 +56,9 @@
 | [blender-bridge-ops](skills/blender-bridge-ops/) | 9877 桥的**传输层作业规范**：客户端封装、120s 上限规避、Blender 5.x Slotted Action、引用判定、删除后引用失效 | [§1](docs/技巧速查.md#1-远程控制运行中的-blender) / [脚本包](scripts/blender-remote-control/) |
 | [blender-scene-cleanup](skills/blender-scene-cleanup/) | 工程**清理类**改造：EMPTY 收敛清理(不动点)、孤儿数据块、空集合、缺失贴图审计与还原 | [主题 34](docs/空物体收敛清理.md) / [脚本包](scripts/scene-cleanup/) |
 | [blender-render-blackout-diagnose](skills/blender-render-blackout-diagnose/) | **渲染发黑 / 材质不发光**排查：材质覆盖、引擎不读材质、Holdout、输出未连线或改错节点、AgX 压暗等七条路径 | [主题 35](docs/渲染发黑与材质不发光排查.md) / [脚本包](scripts/blackout-diagnose/) |
+| [blender-overlap-difference](skills/blender-overlap-difference/) | 让两个互相穿插的网格体「**物理上不重叠**」——用**面级剔除**替代布尔差集（只删目标件伸进刀具体的面，刀具体分毫不动）；含动刀前分类着色预览、三票制内外判定、布尔干跑评估、还原点与 `__BAK__` 撤回、独立核验 | 脚本包随 skill 自带：`skills/blender-overlap-difference/scripts/`（`cull_overlap.py` / `probe_overlap.py` / `render_classify.py` / `restore_from_backup.py`） |
+| [blender-procedural-emission-material](skills/blender-procedural-emission-material/) | **世界空间程序化噪波滚动发光材质** + 全套数字控件：不用 UV，标准链 `纹理坐标→Mapping(滚)→噪波4D→ColorRamp(对比度)→×强度→Emission`；含 SINGLE_PROP 驱动、**看门狗定时器**自动刷新、AREA 面光灯节点树同构接入与**依赖环铁律**（驱动变量绝不能指向宿主自身属性） | [主题 25](docs/渐变发光滚动材质.md) / [主题 28](docs/材质参数统一控制器与实时面板.md) |
+| [blender-plane-procedural-material](skills/blender-plane-procedural-material/) | **平面（flat plane）专项**：法线轴零跨度导致的坐标退化、**平面 = 3D 噪声体的一片切片**、把平面当**验收测试卡**出客观读数（暗区占比 / 滚动方向 / 位移的像素级测法） | 母 skill `blender-procedural-emission-material` / [主题 25](docs/渐变发光滚动材质.md) |
 
 安装(拷到用户级 skill 目录)：`Copy-Item .\skills\* "$env:USERPROFILE\.workbuddy\skills\" -Recurse`，
 详见 [skills/README.md](skills/README.md)。
