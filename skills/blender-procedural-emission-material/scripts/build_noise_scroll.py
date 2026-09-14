@@ -338,8 +338,10 @@ def _bind_var(d, name, id_type, id_obj, data_path):
 
 def _bind_frame_var(d):
     """fr = scene.frame_current
-    ⚠️ 用 SINGLE_PROP 而不是驱动内置 frame：内置 frame 在 5.2 里实测解析不到
-       （probe_51：取值恒停在默认 0，画面零变化）；滚筒方案用的也是 SINGLE_PROP。"""
+    用 SINGLE_PROP 是为了**显式声明依赖边**，不是因为内置 frame 不可用 ——
+    【勘误 2026-09-14】内建 frame 在 5.2 实测**可用**（probe_51 当年报"取值恒停在默认 0"，
+    真凶是表达式里引用的 nz_z_speed 没注册进命名空间 ⇒ 整条驱动 is_valid=False 取默认值 0，
+    frame 是被连累的）。滚筒方案用的也是 SINGLE_PROP。详见本 skill §3 勘误与 AGENTS.md。"""
     return _bind_var(d, 'fr', 'SCENE', SCENE, 'frame_current')
 
 
