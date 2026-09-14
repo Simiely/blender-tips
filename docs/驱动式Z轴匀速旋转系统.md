@@ -78,7 +78,10 @@ python send.py build_spin_drivers.py
 - **Z 轴旋转用 `rotation_euler[2]`,不是 `rotation` / `rotation_quaternion`**:直接给 `rotation`(四元数)挂驱动路径会被当四元数读,结果错乱;务必 `driver_add('rotation_euler', 2)`。
 - **基准角要复位为 0**:目标若之前被驱动污染过 Z 角(如实战里残留 100°),构建时显式 `rotation_euler.z = 0.0`,否则角度从错误基准累加。脚本在挂驱动前强制复位。
 - **`spin_speed()` 不随 .blend 保存**:驱动依赖注册进 `bpy.app.driver_namespace` 的函数,重开文件函数丢失 → 旋转驱动变红。必须用文本块 `spin_driver.py` 勾 Register 持久化,或用 `scripts/driver-restore/restore_drivers.py` 一键恢复。
-- **速度用 SINGLE_PROP 读 `scene.frame_current`**:不依赖内置 `frame` 变量(5.x 驱动命名空间默认无 `frame` 键),每帧强制重算,调速即时生效。
+- **速度用 SINGLE_PROP 读 `scene.frame_current`**:每帧强制重算,调速即时生效。
+  **〔更正 2026-09-14〕** 原文写"不依赖内置 `frame` 变量(5.x 驱动命名空间默认无 `frame` 键)"——
+  该理由**不成立**:内置 `frame` 是驱动求值器注入的内建变量,与 `driver_namespace` 无关,5.2 实测**可用**。
+  本包继续用 SINGLE_PROP 是为了**显式声明依赖边**,不是因为 `frame` 不可用。
 - **多个独立速度组**:本包默认一个共享 `旋转控制`;若要两组互不干扰的速度,复制 `spin_driver.py` / `build_spin_drivers.py` 并把 `旋转控制` / `旋转速度` 改名(函数和表达式里同步改)。
 - **桥只改内存**:构建完记得 Ctrl+S(尤其 `spin_driver.py` 文本块 + `旋转控制` 面板属性)。
 

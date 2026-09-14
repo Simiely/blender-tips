@@ -1,5 +1,73 @@
 # CHANGELOG.md
 
+## v1.18.0 · 2026-09-14
+
+- **新增 Agent Skill `blender-radial-pulse-material`** —— 世界空间**径向距离场**发光材质 + 空物体属性驱动
+  - 定位：与 `blender-procedural-emission-material` 并列（同属世界空间程序化材质），母 skill = 后者
+    （通用机制在那边：SINGLE_PROP 驱动、tag 矩阵、读求值依赖图、像素级验收）；本 skill 只讲径向这一路
+  - 核心认知：图案只依赖到**共享中心的距离 r**（和方向 d）⇒ 共心的 XY/XZ/YZ 平面切过去天然同心、
+    交线连续。「从中心向外发散」是几何必然，不是技巧
+  - 五种模式：`spot` / `ring` / `spike` / `pulse` / **`cycle`（四段循环脉冲）**
+  - **`cycle` 的两个关键技巧**：
+    - **`TVAL ≡ 帧号`**：Value 节点只打两个关键帧（1→1.0 / 250→250.0）+ 全 LINEAR +
+      F-Curve `extrapolation='LINEAR'` ⇒ 任意帧 TVAL 精确等于帧号（实测外推到 1000 帧仍准）。
+      **不用驱动、不用脚本**，也不受"表达式里有东西解析不了"影响
+    - **周期与相位必须分离**：`周期 = 四段之和`（自动求和）、`v = u − 变亮前等待`、`prog = v / 活动`。
+      **时长类参数必须进【相位】** —— 只进"周期"的参数在 `f < 周期` 时是**数学恒等变换**，
+      两种设置画面逐像素相同（实测改黑场停留 26→120：帧 30/150/199 diff **0.0/255**；帧 250/300/350 才 255/255）
+  - **控制面 = 空物体自定义属性 + 驱动器**（数据驱动，用户明确不要面板）：9 个中文属性
+    （带 `min/max/soft_min/soft_max/description`）→ 9 条 `SINGLE_PROP` 驱动 → 材质节点插槽；
+    `周期帧数` 另挂一条 **IDProperty 驱动**做自动读数（拖任一时长它立刻跟随 —— 死数字会被误判成"逻辑没理顺"）
+  - 三个静默陷阱（都实测踩过）：**`Math` 第 3 个输入只有 `MULTIPLY_ADD` 会读**（三路相加必须串两个 ADD，
+    否则静默丢第三路）；**未连接的输入默认 0.5 不是 0**；**`driver_add()` 会把表达式自动填成当时的数值**
+    （不覆盖 `d.expression` 就等于装了个常量驱动）
+  - 脚本包随 skill 自带：`radial_field.py`（4 模式）/ `cycle_pulse.py`（循环版 + 驱动自检）/
+    `verify_field.py`（T1 对称性 / T2 多物体一致性 / T3 时间推进）/ `self_test.py`（隔离试跑）/
+    `shoot_modes.py`（出参考图）。`self_test.py` 改为**改脚本后必跑**的一步
+- **勘误：驱动表达式里的内建 `frame` 变量【是可用的】—— 旧结论错了**
+  - 症状：仓库里这条**自相矛盾**。4 处写"不可用"（`AGENTS.md:41`、`docs/驱动式Z轴匀速旋转系统.md`、
+    `scripts/driver-spin/README.md`、`skills/blender-procedural-emission-material/SKILL.md` §3 + description），
+    另 4 处写"可用"（`AGENTS.md` 自己的另一行、`docs/材质参数统一控制器与实时面板.md`、
+    `docs/技巧速查.md` §29 与其 §17）
+  - 定论（`_bridge/a_frame_probe.py`，5 组对照，Blender 5.2.0 LTS）：
+    | 写法 | 结果 |
+    |---|---|
+    | `frame`（节点插槽驱动） | ✅ 帧 7→7.0、30→30.0，`is_valid=True` |
+    | `frame`（**对象级**驱动 `location.z`） | ✅ 帧 10→1.0、40→4.0 |
+    | `frame * <未注册的命名空间函数>()` | ❌ **`is_valid=False`、值恒为 0、画面零变化** |
+    | `frame * <已注册的命名空间函数>()` | ✅ 帧 30→90.0、60→180.0 |
+    | `fr` = `SINGLE_PROP → SCENE.frame_current` | ✅ 帧 30→60.0、60→120.0 |
+  - **真凶**：`probe_51` 用的表达式是 `frame * nz_z_speed()`，是 **`nz_z_speed` 没进命名空间**
+    （文本块没 Register / Auto Run 没开）导致整条表达式求值失败 ⇒ 取默认值 0。**`frame` 是被连累的**
+  - **范畴纠正**：`frame` 是驱动求值器注入的**内建变量**，与 `bpy.app.driver_namespace` **无关**
+    —— "5.x 驱动命名空间默认无 `frame` 键"是把内建变量当成了命名空间键
+  - **新增最快判据：读 `driver.is_valid`**（变红 = 表达式里有东西解析不了，与 `frame` 无关），
+    比原先写的"渲染像素差 0.00%"快得多
+  - 修正文件：`AGENTS.md`、`docs/驱动式Z轴匀速旋转系统.md`、`scripts/driver-spin/README.md`、
+    `skills/blender-procedural-emission-material/SKILL.md`（§3 加勘误块 + description + 出处三处）
+- **修正 `skills/README.md` 一处过时说明**：原文"后三个 skill 的脚本只随 skill 自带
+  （`../scripts/` 下暂无对应脚本包）"—— 实际 `scripts/scene-cleanup/`、`scripts/blackout-diagnose/` **都存在**，
+  只有 4 个 skill 是纯自带。已改成分项说明（**有对应包的必须两处同步**）
+- **勘误：把「UI 里改数字 ⇒ 控件全哑」这条推断降级为「未隔离实测」**
+  - 现状：`emission-material` §6 第 3 层、`plane-procedural-material` §7、`材质参数统一控制器与实时面板.md`
+    都曾把「用户在 UI 数值框里改 ⇒ 不 tag ⇒ 全哑」当**结论**写；但唯一证据脚本
+    `probe_driver_autotrigger.py` / `autorefresh_*` 用的全是 `ctl["x"] = 21.0`（**Python 赋值**），
+    从没测过 UI 编辑
+  - 复核还确认**无法从脚本侧旁证**（2026-09-14 实测）：① 自定义属性**不在 `bl_rna`**
+    （`prop_in_rna=False`）⇒ `setattr` 走不到，直接 `AttributeError`；② `wm.properties_edit`
+    是 INVOKE-only 元数据弹窗（脚本调用报"不支持直接执行"），不是数值框
+  - 处理：三处统一改成「脚本侧不 tag 是**实测**铁证；UI 侧**未隔离实测**，只能真去 UI 里拖」。
+    **做法不变**——看门狗对"会 tag / 不会 tag"两种情况都成立，照旧用
+  - 新增可复现配方（随 `blender-radial-pulse-material` 带上）：
+    `probe_ui_tag_arm.py`（装 depsgraph 观察器）+ 人在 UI 里拖 + `probe_ui_tag_read.py`（只读回采），
+    以及 `probe_tag_path_matrix.py`（脚本侧写入路径对照矩阵，自证了上面①②两条）
+- 涉及文档：`README.md`、`skills/README.md`、`AGENTS.md`、`CHANGELOG.md`、
+  `skills/blender-radial-pulse-material/`（新增）、
+  `skills/blender-procedural-emission-material/SKILL.md`、
+  `skills/blender-plane-procedural-material/SKILL.md`、
+  `docs/材质参数统一控制器与实时面板.md`、
+  `docs/驱动式Z轴匀速旋转系统.md`、`scripts/driver-spin/README.md`
+
 ## v1.17.1 · 2026-09-13
 
 - **修正 `scripts/separate-by-material/` 验证器的一处必然误报：孤儿 mesh 判据从「绝对判无」改为「基线差集」**

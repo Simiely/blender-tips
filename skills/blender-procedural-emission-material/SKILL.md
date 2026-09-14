@@ -1,6 +1,6 @@
 ---
 name: blender-procedural-emission-material
-description: 通过本地 9877 桥给 Blender 网格体做「世界空间程序化发光材质」——不用 UV，噪波写在指定平面、按指定轴滚动，全部参数做成数字控件（自定义属性 + 节点驱动 + Register 实时面板）。当用户说「做个程序化贴图/噪波材质」「不要 UV、要按物理空间」「从 Y 轴看是个方形/长灯带，上面是噪波」「噪波沿 Z 方向移动」「我要能改噪波密度/种子/速度/对比度/发光强度」「这些参数要有个控件能改数字」「整片全发光／没有不发光暗区」「拖动滑块材质没变化／改了属性驱动不重算」时使用。**标准链 = Mapping 滚 + ColorRamp 做对比度**（噪波 Fac 实测聚在 0.5 附近，直通映射会全片发亮 ⇒ 必须用 ColorRamp 拉伸窗口才有真暗区）。含坐标空间选择、4D 噪波当连续种子、ColorRamp 色标挂驱动、驱动重算 tag 矩阵（命名空间型 vs SINGLE_PROP 型）、读驱动真值必须走求值依赖图、驱动内置 frame 变量无效、Register 文本块持久化面板、隔离场景渲预览与像素级验证。
+description: 通过本地 9877 桥给 Blender 网格体做「世界空间程序化发光材质」——不用 UV，噪波写在指定平面、按指定轴滚动，全部参数做成数字控件（自定义属性 + 节点驱动 + Register 实时面板）。当用户说「做个程序化贴图/噪波材质」「不要 UV、要按物理空间」「从 Y 轴看是个方形/长灯带，上面是噪波」「噪波沿 Z 方向移动」「我要能改噪波密度/种子/速度/对比度/发光强度」「这些参数要有个控件能改数字」「整片全发光／没有不发光暗区」「拖动滑块材质没变化／改了属性驱动不重算」时使用。**标准链 = Mapping 滚 + ColorRamp 做对比度**（噪波 Fac 实测聚在 0.5 附近，直通映射会全片发亮 ⇒ 必须用 ColorRamp 拉伸窗口才有真暗区）。含坐标空间选择、4D 噪波当连续种子、ColorRamp 色标挂驱动、驱动重算 tag 矩阵（命名空间型 vs SINGLE_PROP 型）、读驱动真值必须走求值依赖图、**驱动表达式里的内建 `frame` 是可用的**（旧笔记说"无效"是误判，真凶是未注册的命名空间函数，用 `driver.is_valid` 一秒分辨）、Register 文本块持久化面板、隔离场景渲预览与像素级验证。
 agent_created: true
 ---
 
@@ -181,15 +181,25 @@ fc.update()                            # 立即算一次
 
 - **表达式读属性**用 `bpy.app.driver_namespace` 里的函数（`nz_*`），函数内部去 `ctrl.get(key, default)`。
   这样属性改了只改一处，节点侧不用重连。
-- ★★ **需要当前帧时，必须用 `SINGLE_PROP` 变量指向 `scene.frame_current`，不要用驱动内置的 `frame`**：
+- ★★ **需要当前帧时用 `SINGLE_PROP` 变量指向 `scene.frame_current`**（本 skill 原写法），
+  但**理由不是"内置 `frame` 不可用"** —— 见下方勘误：
 
   | 写法 | 实测（Blender 5.2.0 LTS） |
   |---|---|
-  | `frame * nz_z_speed()`（内置变量） | **❌ 解析不到**，取值恒停在默认 0，**画面零变化**（像素差 0.00%） |
-  | `fr * nz_z_speed()`，`fr` = `SINGLE_PROP → SCENE.frame_current` | ✅ 正常（帧1→0.02、帧60→1.2） |
+  | `frame` 单独用（节点插槽驱动） | ✅ 正常（帧 7→7.0、帧 30→30.0，`is_valid=True`） |
+  | `frame` 单独用（**对象级**驱动 `location.z`） | ✅ 正常（帧 10→1.0、帧 40→4.0） |
+  | `frame * <未注册的命名空间函数>()` | **❌ 整条驱动 `is_valid=False`，值恒为默认 0，画面零变化** |
+  | `frame * <已注册的命名空间函数>()` | ✅ 正常（帧 30→90.0、帧 60→180.0） |
+  | `fr` = `SINGLE_PROP → SCENE.frame_current` | ✅ 正常（帧 30→60.0、帧 60→120.0） |
 
-  仓库滚筒材质用的也是 SINGLE_PROP。**别信"内置 frame 能用"的旧笔记**。
-  `probe_51` 两轮都栽在这上面：对比度/种子/密度都变了，唯独滚动 0% 变化 —— 差别就在这一条。
+  > **【勘误 · 2026-09-14】** 本节早先写的是"内置 `frame` 解析不到，别信旧笔记"，
+  > **那个归因是错的**。`probe_51` 用的表达式是 `frame * nz_z_speed()`，
+  > 真凶是 **`nz_z_speed` 没进命名空间**（文本块没 Register / Auto Run 没开）
+  > ⇒ 整条表达式求值失败 ⇒ `is_valid=False`、取默认值 0。`frame` 是被连累的：
+  > 单独用它一直是好的（5 组对照，见 `_bridge/a_frame_probe.py`）。
+  > `AGENTS.md` 里"5.x 驱动命名空间默认无 `frame` 键"同样是把**内建变量**当成了**命名空间键**（范畴错误）。
+  > **最快的分辨判据 = 读 `driver.is_valid`**：变红就说明表达式里有东西解析不了，与 `frame` 无关。
+  > 两种写法现在都可用；选 `SINGLE_PROP` 的价值是**显式声明依赖边**，不是可用性。
 - **socket 路径必须用数字索引**：`nodes["噪波纹理"].inputs[1].default_value`。
   用 socket **名字**在某些版本会 `not found`（仓库 `AGENTS.md` 有记）。
 - **ColorRamp 色标不是 socket**：只能 `nt.driver_add('nodes["对比度"].color_ramp.elements[0].position', -1)`。
@@ -305,11 +315,20 @@ t = v.targets[0]; t.id_type = 'OBJECT'; t.id = ctrl; t.data_path = '["噪波对�
 
 ### 第 3 层：看门狗（不依赖任何 UI）
 
-★ **绝不要**把刷新放在面板 `draw()` 里。`draw()` 只在「N 面板显示本分类、且被重绘」时执行；
-用户在「物体属性 → 自定义属性」里改数字时它**不执行** ⇒ 不 tag ⇒ **控件全哑**。
-（上一版本就是这么写的，正是用户踩的坑。）
-
+★ **绝不要**把刷新放在面板 `draw()` 里。`draw()` 只在「N 面板显示本分类、且被重绘」时执行 ——
+它的执行时机**不由你保证**，把刷新放进去等于**把重算挂在 UI 的重绘节奏上**。
 正解 = Register 文本块里注册一个**定时看门狗**，与 UI 完全解耦：
+
+> **证据等级（2026-09-14 复核）**：脚本侧「改属性不 tag」是**实测**（见第 1 层表格）。
+> 但「**在 UI 里改数字**会不会自动 tag」仓库**从未隔离实测** —— 唯一相关的
+> `probe_driver_autotrigger.py` 用的全是 `ctl["x"] = 21.0`（Python 赋值）。
+> 复核还确认它**无法从脚本侧旁证**：① 自定义属性**不出现在 `bl_rna` 里**
+> （`prop_in_rna=False`，141 个 RNA 属性里没有它）⇒ `setattr(ctrl, "键", v)` 直接
+> `AttributeError`，压根走不到 RNA 那条路；② `bpy.ops.wm.properties_edit` 是
+> **INVOKE-only** 的元数据弹窗（脚本调用报"不支持直接执行"），不是数值框。
+> ⇒ 想判这条**只能在 UI 里真拖一次**，配方见
+> `blender-radial-pulse-material/scripts/probe_ui_tag_arm.py` + `probe_ui_tag_read.py`。
+> **做法不受影响**：看门狗对"会 tag"和"不会 tag"两种情况都成立，是无脑稳的选择。
 
 ```python
 _TICK = 0.25
@@ -593,4 +612,4 @@ val = nt_eval.nodes["滚动映射"].inputs[1].default_value[2]
 | `scripts/probe_threshold_e2e.py` | 【端到端】亮区阈值真实驱动链渲染 + 恢复用户值 |
 
 > 参考探针（留在工程 `blender_control/` 下，未收进 skill）：`probe_50`（ColorRamp 色标可否挂驱动）、
-> `probe_51`（对比度扫描 + 暴露内置 `frame` 无效）、`probe_52`（切活动场景 + 求值依赖图定位滚动驱动）。
+> `probe_51`（对比度扫描 + 当时误判"内置 `frame` 无效"，真凶是 `nz_z_speed` 未注册 —— 见 §3 勘误）、`probe_52`（切活动场景 + 求值依赖图定位滚动驱动）、`_bridge/a_frame_probe.py`（2026-09-14 五组对照定论）。

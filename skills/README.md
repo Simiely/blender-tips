@@ -24,10 +24,12 @@
 | `blender-procedural-emission-material` | **世界空间程序化噪波滚动发光材质** + 全套数字控件：不用 UV，标准链 `纹理坐标→Mapping(滚)→噪波4D→ColorRamp(对比度)→×强度→Emission`；含 SINGLE_PROP 驱动、**看门狗定时器**自动刷新、AREA 面光灯节点树同构接入与依赖环铁律 | [渐变发光滚动材质](../docs/渐变发光滚动材质.md) / [材质参数统一控制器与实时面板](../docs/材质参数统一控制器与实时面板.md)（其 §3 刷新结论不完整，见本 skill §6） |
 | `blender-plane-procedural-material` | **平面（flat plane）专项**：法线轴零跨度导致的坐标退化、**平面 = 3D 噪声体的一片切片**、把平面当**验收测试卡**出客观读数（暗区占比 / 滚动方向 / 位移的像素级测法） | 母 skill `blender-procedural-emission-material` |
 
-六者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
-其余五个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
+七者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+其余六个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
 `blender-overlap-difference` 去重叠、`blender-procedural-emission-material` 做程序化发光材质与控件、
-`blender-plane-procedural-material` 用平面验收材质（母 skill = 前者）。后五个开头均引用前者。
+`blender-plane-procedural-material` 用平面验收材质、`blender-radial-pulse-material` 做径向距离场脉冲材质。
+后两者**母 skill 均为 `blender-procedural-emission-material`**（通用机制在那边）；
+各 skill 开头均引用 `blender-bridge-ops`。
 
 ## 安装
 
@@ -60,9 +62,12 @@ Copy-Item .\blender-plane-procedural-material $dst -Recurse -Force
 ├── blender-procedural-emission-material/
 │   ├── SKILL.md
 │   └── scripts/{build_noise_scroll.py, verify_noise_scroll.py, verify_lights.py, restore_lights.py, ...}
-└── blender-plane-procedural-material/
+├── blender-plane-procedural-material/
+│   ├── SKILL.md
+│   └── scripts/{plane_testcard.py, probe_plane.py, probe_threshold_e2e.py, ...}
+└── blender-radial-pulse-material/
     ├── SKILL.md
-    └── scripts/{plane_testcard.py, probe_plane.py, probe_threshold_e2e.py, ...}
+    └── scripts/{radial_field.py, cycle_pulse.py, verify_field.py, self_test.py, shoot_modes.py}
 ```
 
 > 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），同一 skill 下的脚本要一致。

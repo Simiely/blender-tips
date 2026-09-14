@@ -67,7 +67,10 @@ python send.py build_spin_drivers.py
    否则角度从错误基准累加。本脚本在挂驱动前强制复位。
 3. **驱动变量类型无 `SELF`(Blender 5.x)**:与 bob 同理,本脚本只读控制面板(共享对象),不涉及自身属性,故无需 use_self。
 4. **`spin_speed()` 不随文件保存**:必须靠文本块 `spin_driver.py` + Register 持久化,否则下次打开驱动变红。
-5. **速度用 SINGLE_PROP 读 `scene.frame_current`**:不依赖内置 `frame` 变量(5.x 驱动命名空间默认无 `frame` 键),每帧强制重算。
+5. **速度用 SINGLE_PROP 读 `scene.frame_current`**:每帧强制重算。
+   **〔更正 2026-09-14〕** 原文写"不依赖内置 `frame` 变量(5.x 驱动命名空间默认无 `frame` 键)"——
+   该理由**不成立**:内置 `frame` 是驱动求值器注入的内建变量,与 `driver_namespace` 无关,5.2 实测**可用**。
+   本包沿用 SINGLE_PROP 是为了**显式声明依赖边**。
 6. 桥只改内存,**记得 Ctrl+S**(尤其是 `spin_driver.py` 文本块 + `旋转控制` 面板属性)。
 
 ## 调试建议
