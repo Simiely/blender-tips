@@ -45,6 +45,7 @@
 | 33 | 按材质拆分为多个网格体 | 一个对象多材质槽 → 「**有面的**」槽各一个独立对象(整网格生效、与选择无关);原对象保留**「面序中首现最晚」**那组(不是"最后一个槽");附拆分前基线(含逐组锐边数)、11 组逐项验证(孤儿 mesh 判据取**基线差集**,工程原有的历史孤儿不算失败)、下游引用扫描。[独立文档](docs/按材质拆分为多个网格体.md) / [脚本包](scripts/separate-by-material/) |
 | 34 | 空物体收敛清理 | 不支撑任何几何的 EMPTY 全清 —— 不能只删"无子级"的(删完会"长出"新的),要用**引用图 + 不动点**一次算准最终可删集;三重安全闸 + 独立核验(非 EMPTY 对象数 / 可见几何包围盒逐位不变)。附空集合、孤儿数据块连带处理。[独立文档](docs/空物体收敛清理.md) / [脚本包](scripts/scene-cleanup/) / [Skill](skills/blender-scene-cleanup/) |
 | 35 | 渲染发黑与材质不发光排查 | "配了发光材质渲染还是黑的" —— 七条按命中率排序的排查路径:头号嫌疑是 **View Layer 材质覆盖**(它是视图层属性、不在材质里,在材质树里永远查不到);其次是 Workbench 引擎不读材质节点、Holdout/相机可见性、**发光值改在了未接输出的孤儿 BSDF 上**(实测第二层原因)、AgX 色彩变换压暗。附一次打全的诊断脚本(236 材质 0.05s)。[独立文档](docs/渲染发黑与材质不发光排查.md) / [脚本包](scripts/blackout-diagnose/) / [Skill](skills/blender-render-blackout-diagnose/) |
+| 36 | 径向内收多脉冲材质 | 若干个同心亮环**从外往内收**、无缝循环、黑边很细;核心是**环数恒定**的约束解算 —— 可见带窗口 `L + 占空比 − 软边 − 2×最小可见宽度 ≈ N`(**三项缺一,环数就在 N±1 之间跳**),以及**计数基准**的选择(内切圆 vs 角点,相差 √2 倍);另含亮面裁切(把发光限制在圆内)、从姊妹材质读 ColorRamp 复制配色、**驱动只能挂 Value 节点**的守卫。[独立文档](docs/径向内收多脉冲材质.md) / [脚本包](scripts/radial-inward-pulse/) / [Skill](skills/blender-inward-pulse-material/) |
 
 ## Agent Skills(给 AI 助手用的作业规范)
 
@@ -60,6 +61,7 @@
 | [blender-procedural-emission-material](skills/blender-procedural-emission-material/) | **世界空间程序化噪波滚动发光材质** + 全套数字控件：不用 UV，标准链 `纹理坐标→Mapping(滚)→噪波4D→ColorRamp(对比度)→×强度→Emission`；含 SINGLE_PROP 驱动、**看门狗定时器**自动刷新、AREA 面光灯节点树同构接入与**依赖环铁律**（驱动变量绝不能指向宿主自身属性） | [主题 25](docs/渐变发光滚动材质.md) / [主题 28](docs/材质参数统一控制器与实时面板.md) |
 | [blender-plane-procedural-material](skills/blender-plane-procedural-material/) | **平面（flat plane）专项**：法线轴零跨度导致的坐标退化、**平面 = 3D 噪声体的一片切片**、把平面当**验收测试卡**出客观读数（暗区占比 / 滚动方向 / 位移的像素级测法） | 母 skill `blender-procedural-emission-material` / [主题 25](docs/渐变发光滚动材质.md) |
 | [blender-radial-pulse-material](skills/blender-radial-pulse-material/) | **世界空间径向距离场发光材质**：图案只依赖到**共享中心的距离 r**（和方向 d）⇒ 共心的 XY/XZ/YZ 平面切过去天然同心、交线连续；含五种模式、**四段循环脉冲**（`TVAL≡帧号` 关键帧技巧 + 周期/相位分离：时长类参数只进周期就是空操作）、**空物体自定义属性 + SINGLE_PROP 驱动器**（数据驱动，不写面板）；附 Math 第 3 输入口 / 未连输入默认 0.5 / 接触表行序三个静默陷阱 | 母 skill `blender-procedural-emission-material` |
+| [blender-inward-pulse-material](skills/blender-inward-pulse-material/) | **径向内收多脉冲**：若干同心亮环从外往内收、无缝循环；核心是**环数恒定的有效窗口公式**（`L + 占空比 − 软边 − 2×最小可见宽度 ≈ N`，缺一项环数就会在 N±1 间跳）与**计数基准的选择**（内切圆 vs 角点，相差 √2）；含亮面裁切把发光限制在圆内、从姊妹材质读 ColorRamp 复制配色、**驱动只能挂 Value 节点**的守卫 | [主题 36](docs/径向内收多脉冲材质.md) / [脚本包](scripts/radial-inward-pulse/) |
 
 安装(拷到用户级 skill 目录)：`Copy-Item .\skills\* "$env:USERPROFILE\.workbuddy\skills\" -Recurse`，
 详见 [skills/README.md](skills/README.md)。

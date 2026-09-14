@@ -23,12 +23,15 @@
 | `blender-overlap-difference` | 让两个互相穿插的网格体「**物理上不重叠**」——**面级剔除**替代布尔差集（只删目标件伸进刀具体的面，刀具体分毫不动）；含动刀前分类着色预览、三票制内外判定、布尔干跑评估、还原点与 `__BAK__` 撤回、独立核验 | 暂无独立文档，脚本包随 skill 自带 `scripts/`（`cull_overlap.py` / `probe_overlap.py` / `render_classify.py` / `restore_from_backup.py`） |
 | `blender-procedural-emission-material` | **世界空间程序化噪波滚动发光材质** + 全套数字控件：不用 UV，标准链 `纹理坐标→Mapping(滚)→噪波4D→ColorRamp(对比度)→×强度→Emission`；含 SINGLE_PROP 驱动、**看门狗定时器**自动刷新、AREA 面光灯节点树同构接入与依赖环铁律 | [渐变发光滚动材质](../docs/渐变发光滚动材质.md) / [材质参数统一控制器与实时面板](../docs/材质参数统一控制器与实时面板.md)（其 §3 刷新结论不完整，见本 skill §6） |
 | `blender-plane-procedural-material` | **平面（flat plane）专项**：法线轴零跨度导致的坐标退化、**平面 = 3D 噪声体的一片切片**、把平面当**验收测试卡**出客观读数（暗区占比 / 滚动方向 / 位移的像素级测法） | 母 skill `blender-procedural-emission-material` |
+| `blender-radial-pulse-material` | **世界空间径向距离场发光材质**：图案只依赖到**共享中心的距离 r**（和方向 d）⇒ 共心的 XY/XZ/YZ 平面切过去天然同心、交线连续；含五种模式、**四段循环脉冲**（`TVAL≡帧号` 关键帧技巧 + 周期/相位分离：时长类参数只进周期就是空操作）、**空物体自定义属性 + SINGLE_PROP 驱动器**（数据驱动，不写面板）；附 Math 第 3 输入口 / 未连输入默认 0.5 / 接触表行序三个静默陷阱 | 母 skill `blender-procedural-emission-material` |
+| `blender-inward-pulse-material` | **径向内收多脉冲**：若干同心亮环从外往内收、无缝循环；核心是**环数恒定的有效窗口公式**（`L + 占空比 − 软边 − 2×最小可见宽度 ≈ N`，缺一项环数就会在 N±1 间跳）与**计数基准的选择**（内切圆 vs 角点，相差 √2）；含亮面裁切把发光限制在圆内、从姊妹材质读 ColorRamp 复制配色、**驱动只能挂 Value 节点**的守卫 | [径向内收多脉冲材质](../docs/径向内收多脉冲材质.md) / [`../scripts/radial-inward-pulse/`](../scripts/radial-inward-pulse/) |
 
-七者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
-其余六个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
+八者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+其余七个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
 `blender-overlap-difference` 去重叠、`blender-procedural-emission-material` 做程序化发光材质与控件、
-`blender-plane-procedural-material` 用平面验收材质、`blender-radial-pulse-material` 做径向距离场脉冲材质。
-后两者**母 skill 均为 `blender-procedural-emission-material`**（通用机制在那边）；
+`blender-plane-procedural-material` 用平面验收材质、`blender-radial-pulse-material` 做径向距离场脉冲材质、
+`blender-inward-pulse-material` 做径向**内收多脉冲**材质（环数恒定的约束解算）。
+后三者**母 skill 均为 `blender-procedural-emission-material`**（通用机制在那边）；
 各 skill 开头均引用 `blender-bridge-ops`。
 
 ## 安装
@@ -43,6 +46,8 @@ Copy-Item .\blender-render-blackout-diagnose $dst -Recurse -Force
 Copy-Item .\blender-overlap-difference $dst -Recurse -Force
 Copy-Item .\blender-procedural-emission-material $dst -Recurse -Force
 Copy-Item .\blender-plane-procedural-material $dst -Recurse -Force
+Copy-Item .\blender-radial-pulse-material $dst -Recurse -Force
+Copy-Item .\blender-inward-pulse-material $dst -Recurse -Force
 ```
 
 拷完目录结构应为：
@@ -68,6 +73,9 @@ Copy-Item .\blender-plane-procedural-material $dst -Recurse -Force
 └── blender-radial-pulse-material/
     ├── SKILL.md
     └── scripts/{radial_field.py, cycle_pulse.py, verify_field.py, self_test.py, shoot_modes.py}
+└── blender-inward-pulse-material/
+    ├── SKILL.md                  # 脚本包在 ../scripts/radial-inward-pulse/(与本目录不重复)
+    └── (无自带 scripts —— 引用 ../scripts/radial-inward-pulse/)
 ```
 
 > 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），同一 skill 下的脚本要一致。
