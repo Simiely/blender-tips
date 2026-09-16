@@ -1,6 +1,8 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-09-16 v1.22.0(commit `80c1e8b`) —— 新增主题 #39「星芒散射光效系统」(隐藏源 + ObjectInfo RELATIVE)
+> 📌 **文档基线**:2026-09-16 v1.24.0 —— 新增主题 #41「雪花下落系统」(EMPty 宿主几何节点下雪 + FLOORED_MODULO 触地回卷 + 宿主变换清零锚地)
+> (**宿主必须 loc=0/rot=0/scale=1 否则雪埋地** · `FLOORED_MODULO` 触地回卷不加贴地淡出 · RandomValue 显式接 Index+独立种子防堆积 · `'%s' % (tuple)` 单%s×三元组报 not all arguments)
+> 前序 v1.22.0(commit `80c1e8b`) 新增主题 #39「星芒散射光效系统」(隐藏源 + ObjectInfo RELATIVE)
 > (**源隐藏渲染、散布实例照常** · `ObjectInfo` 必须 **RELATIVE** 才继承源缩放/动画,ORIGINAL 会忽略 · 位置偏移经 `设置位置` 施加在实例化前 · `mod.properties.inputs` 不可迭代 · EMPTY 属性驱动几何 socket 不稳)
 > 同批 v1.23.0 新增 Skill `blender-loop-keyframe-anim`(循环三角波关键帧;Slotted Action 写入路径)
 > 前序 v1.21.0(commit `bad5a70`) 新增主题 #38「驱动参数化材质维护」(引用体检 / 关键帧收敛 / 改名换轴)
@@ -184,6 +186,11 @@
 - **Blender 5.2 `mod.properties.inputs` 不可迭代**:返回 `GeometryNodesInterfaceInputs`,`enumerate(...)` 抛 `TypeError`;读单 socket 用 `.get(名)` / 属性访问
 - **不要用 EMPTY 自定义属性驱动几何节点 socket**:5.2 depsgraph 读缓存值(如 288.0)不可靠;量化的 `生成数量` 等直接放节点组接口 / 修改器面板调,实时生效
 - **循环三角波关键帧动画**(Slotted Action):一个完整周期进 fcurve + `CYCLES` 循环修饰器铺满帧范围;写路径 `action.layers[0].strips[0].channelbags[0].fcurves`,`FModifierCycles` **无 mode 属性**(默认即正向循环);被驱动属性再用 fcurve 补关键帧时**关键帧值显式覆盖**( `kp.co=(fr,val)`)绕开当前值被驱动干扰,读被驱动值走 depsgraph
+
+- **★ 连续自然降水(下雪/飘落)的统一心法 = `SceneTime → ×1/CYCLE → +随机相位 → FLOORED_MODULO 1 → prog`,位置由 `GROUND + (1-prog)*FALL_SPAN` 线性映射**:`prog∈[0,1)` 均匀铺满整条高度列,**触地瞬间(prog→1)取模回卷到天空** ⇒ 每片循环下落、均匀铺满、无半空消失、无顶部堆积;**别加贴地淡出**(否则雪花半空消失)。相位随机会话 = 初始就铺满全高,不需要"先等落到场"。(详见 docs/雪花下落系统.md §5,脚本 scripts/snowfall-scatter/)
+- **★ 几何怪散布宿主变换必须清零**:落雪区高度是相对宿主锚定的(`GROUND` 取地平面世界包围盒底部 Z),宿主若被移动(如实测 Z=-1.47)整个雪区整体移位、**雪埋进地面/顶部够不到天空**;构建脚本强制清零 loc/rot/scale。凡"点阵按世界包围盒算位置再挂到宿主实例化"的模式,宿主必须留在原点
+- **★ 随机值共用默认 ID ⇒ 坐标/相位相关(共线/同时落)**:多个 `RandomValue` 想各自独立(相位+X+Y+朝向),必须每个都**显式接 `Index` 作 ID 输入**并给**不同 Seed**(下雪: 29/7/13/401/509);只接 Index 不给独立 seed 仍会相关。同批实例要"各自不同"必须 每域独立随机源
+- **★ `'%s' % (tuple)` 陷阱**:单个 `%s` 的右操作数是**三元组**时,Python 把元组当作**多参数解包**,若左边只有一个占位符 ⇒ `TypeError: not all arguments converted during string formatting`。要打印一个坐标元组,必须写成 `% (tuple(...), )`(包成单元素元组)或先 `str()`。`%s` 单占位符对 str 安全、对长度≥2 的 tuple/list 报错
 ## 约定
 
 - 文档用中文;技巧按"场景 → 做法 → 坑"组织;一坑一篇进 DEVELOPMENT.md

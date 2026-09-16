@@ -50,6 +50,7 @@
 | 38 | 驱动参数化材质维护:引用体检 / 关键帧收敛 / 改名换轴 | 给**已建成**的「空物体属性 + 驱动器」系统做运维改造:**改前**跑引用体检(扫描必须含 `物体数据 → node_tree` 层 —— 灯光/网格自带节点树、驱动都挂那里;漏扫会**双向出事**:误判"假控件" 或 改名后 7 条驱动 `is_valid=False` 静默失效),**改后**跑失效体检(`is_valid` + 悬空引用,判据 **0 条**);含「关键帧 → 常量」的存档纪律(先留 `(帧,值)` 全表再删)与驱动换轴六步顺序(`driver_add` 会把表达式自动填成常量、**驱动重建完才准删旧属性键`)、三个容易混淆的「index」对照。[独立文档](docs/驱动参数化材质维护.md) / [脚本包](scripts/driver-param-maintenance/) / [Skill](skills/blender-driver-param-maintenance/) |
 | 39 | 星芒散射光效系统 | 参数化星芒 + 沿相机朝向的亮片散射:一个被隐藏的单面"源"平面借 `星芒_GN` 几何节点生成星芒形状,三个点云宿主各挂一份 `星芒_散布_GN` 把它实例化到每个点,并经 `ObjectInfo(RELATIVE)` 继承源缩放 + `对齐欧拉至矢量(空物体)` 做 billboard + SceneTime 错相缩放动画 + 设置位置偏移;`星芒_控制器` 6 个中文滑块统一控形状/大小/循环脉冲。源隐藏渲染不影响散布实例。[独立文档](docs/星芒散射光效系统.md) / [脚本包](scripts/starburst-scatter/) |
 | 40 | 循环三角波关键帧动画 (Skill) | 给自定义属性批量写「循环三角波关键帧动画」:一个完整周期进 fcurve + CYCLES 循环修饰器铺满帧范围;沉淀 5.x Slotted Action 正确写入路径、FModifierCycles 无 mode 属性、关键帧值精确写入绕被驱动干扰、is_valid 判空、depsgraph 读被驱动值。[Skill](skills/blender-loop-keyframe-anim/) |
+| 41 | 雪花下落系统 | 参数化连续下雪:一个隐藏的低模雪花源 + 一个 EMPTY 宿主上的 `下雪_GN` 节点组,按真实雪速(~0.5 m/s)下落 50000 片;`SceneTime→FLOORED_MODULO` 触地回卷(贴地消失无半空消失)、`RandomValue(ID←Index)` 独立相位/落点/朝向防堆积、顶部 `MapRange` 入场缩放;宿主变换必须清零锚定地面参考平面。[独立文档](docs/雪花下落系统.md) / [脚本包](scripts/snowfall-scatter/) |
 
 ## Agent Skills(给 AI 助手用的作业规范)
 

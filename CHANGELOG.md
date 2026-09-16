@@ -1,5 +1,22 @@
 # CHANGELOG.md
 
+## v1.24.0 · 2026-09-16
+
+- **新增主题 #41「雪花下落系统」** —— `docs/雪花下落系统.md` + 脚本包 `scripts/snowfall-scatter/`
+  - **系统**：参数化连续下雪。一个隐藏低模雪花源 `花瓣雪花_低模`(26 顶点, 浅蓝材质) + 一个 **EMPTY 宿主** `下雪_宿主` 上的单个几何节点组 `下雪_GN`，按**真实雪速(~0.5 m/s)**下落 **50000**(250×200) 片
+    - 下落核心：`SceneTime → ×1/CYCLE → +随机相位 → FLOORED_MODULO 1 → prog`，`Z = GROUND + (1-prog)*FALL_SPAN`；**触地(prog→1)取模回卷到天空**，无半空消失、无顶部堆积
+    - 落点：`RandomValue(ID←Index, 独立种子)` 生成 X/Y(取地平面世界包围盒中心±半宽)与相位，防共线/堆积
+    - 顶部入场：`MapRange(prog 0~2% → scale 0→满)` → 实例化 Scale；朝向 = 倾角RandomValue(90°±15°, 平行地面) + 自旋RandomValue(0~360°)
+    - `ObjectInfo(花瓣雪花_低模)` **RELATIVE** 继承源几何；源三连隐藏(render/viewport/camera)
+  - **实测数据(本地桥 9878，`probe_snow.py`)**：frame 1/75/150 均 n=50000，`Z[-1.30, 28.70]` 精确贴地(地面=-1.3, 天空=+30)
+  - **关键坑(写入文档 §七 + AGENTS)**：
+    - **宿主变换必须清零**(loc=0/rot=0/scale=1)——落雪区高度锚定地面参考平面；宿主被移(Z=-1.47)会使雪区整体下移、雪埋进地面
+    - **`'%s' % (tuple)` 陷阱**：单个 `%s` 对三元组右操作数会按「多参数解包」报 `TypeError: not all arguments converted`，需包 `(xxx,)` 成单元素元组
+    - 触地回卷用 FLOORED_MODULO，**别加贴地淡出**(否则半空消失)；位置偏移经 `设置位置` 施加在实例化前
+    - RandomValue 必须显式接 Index 作 ID 且各维度独立种子，否则共线/同时落
+  - 脚本包：`build_snowfall.py`(构建, 幂等, 顶部参数可改)/ `probe_snow.py`(只读探查, 3 帧实例数+贴地范围)/ `verify_snow.py`(独立核验 10 项)/ `pack_snow_collection.py`(归拢到 `下雪_系统` 集合用于迁移)；经 `send.py -p 9878` 实况验证 50000 实例贴地，四脚本 py_compile 通过、无 BOM、无 `__main__` 守卫
+- 涉及文档：`docs/雪花下落系统.md`、`scripts/snowfall-scatter/README.md`、`README.md`(索引 #41)、`docs/技巧速查.md`(索引 #41)、`AGENTS.md`、`DEVELOPMENT.md`
+
 ## v1.22.0 · 2026-09-16
 
 - **新增主题 #39「星芒散射光效系统」** —— `docs/星芒散射光效系统.md` + 脚本包 `scripts/starburst-scatter/`
