@@ -26,15 +26,18 @@
 | `blender-radial-pulse-material` | **世界空间径向距离场发光材质**：图案只依赖到**共享中心的距离 r**（和方向 d）⇒ 共心的 XY/XZ/YZ 平面切过去天然同心、交线连续；含五种模式、**四段循环脉冲**（`TVAL≡帧号` 关键帧技巧 + 周期/相位分离：时长类参数只进周期就是空操作）、**空物体自定义属性 + SINGLE_PROP 驱动器**（数据驱动，不写面板）；附 Math 第 3 输入口 / 未连输入默认 0.5 / 接触表行序三个静默陷阱 | 母 skill `blender-procedural-emission-material` |
 | `blender-inward-pulse-material` | **径向内收多脉冲**：若干同心亮环从外往内收、无缝循环；核心是**环数恒定的有效窗口公式**（`L + 占空比 − 软边 − 2×最小可见宽度 ≈ N`，缺一项环数就会在 N±1 间跳）与**计数基准的选择**（内切圆 vs 角点，相差 √2）；含亮面裁切把发光限制在圆内、从姊妹材质读 ColorRamp 复制配色、**驱动只能挂 Value 节点**的守卫 | [径向内收多脉冲材质](../docs/径向内收多脉冲材质.md) / [`../scripts/radial-inward-pulse/`](../scripts/radial-inward-pulse/) |
 | `blender-driver-param-maintenance` | **参数化驱动系统的运维改造**（已建成系统的维护，不是新建）：① `refs` 引用体检 —— 谁在读这个参数（扫描**必须含 `物体数据 → node_tree`**，灯光 Shader Nodetree 层漏扫会双向出事：误判"假控件" / 改名后驱动静默失效）；② `health` 失效体检 —— 全库 `is_valid=False` + 悬空引用，判据 0 条；③ 关键帧 → 常量的存档纪律；④ 改名换轴六步顺序（驱动重建完才删旧键） | [驱动参数化材质维护](../docs/驱动参数化材质维护.md) / [`../scripts/driver-param-maintenance/`](../scripts/driver-param-maintenance/) |
+| `blender-loop-keyframe-anim` | **给自定义属性批量写「循环三角波关键帧动画」**：一个完整周期进 fcurve + CYCLES 循环修饰器铺满帧范围，贝塞尔自然缓入缓出；含 Slotted Action 正确写入路径、5.x 无 mode 属性、`is_valid=False` 判空、depsgraph 读被驱动值、关键帧值精确写入（绕开属性当前值被驱动干扰） | 传输层 `blender-bridge-ops`；[技巧速查 §3/§4/§5](../docs/技巧速查.md) |
 
-九者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
-其余八个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
+十者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+其余九个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
 `blender-overlap-difference` 去重叠、`blender-procedural-emission-material` 做程序化发光材质与控件、
 `blender-plane-procedural-material` 用平面验收材质、`blender-radial-pulse-material` 做径向距离场脉冲材质、
 `blender-inward-pulse-material` 做径向**内收多脉冲**材质（环数恒定的约束解算）、
-`blender-driver-param-maintenance` 给**已建成**的参数化系统做维护（引用体检 / 关键帧收敛 / 改名换轴）。
+`blender-driver-param-maintenance` 给**已建成**的参数化系统做维护（引用体检 / 关键帧收敛 / 改名换轴）、
+`blender-loop-keyframe-anim` 给自定义属性批量写**循环三角波关键帧动画**（Slotted Action + CYCLES）。
 后四者**母 skill 均为 `blender-procedural-emission-material`**（通用机制在那边）；
 `blender-driver-param-maintenance` 与之并列，管的是同一套系统的**运维**而非新建；
+`blender-loop-keyframe-anim` 是**动画写入类**（继承 bridge 传输层，管关键帧而非材质）；
 各 skill 开头均引用 `blender-bridge-ops`。
 
 ## 安装
@@ -52,6 +55,7 @@ Copy-Item .\blender-plane-procedural-material $dst -Recurse -Force
 Copy-Item .\blender-radial-pulse-material $dst -Recurse -Force
 Copy-Item .\blender-inward-pulse-material $dst -Recurse -Force
 Copy-Item .\blender-driver-param-maintenance $dst -Recurse -Force
+Copy-Item .\blender-loop-keyframe-anim $dst -Recurse -Force
 ```
 
 拷完目录结构应为：
@@ -83,6 +87,9 @@ Copy-Item .\blender-driver-param-maintenance $dst -Recurse -Force
 └── blender-driver-param-maintenance/
     ├── SKILL.md                  # 脚本包在 ../scripts/driver-param-maintenance/(与本目录不重复)
     └── (无自带 scripts —— 引用 ../scripts/driver-param-maintenance/)
+└── blender-loop-keyframe-anim/
+    ├── SKILL.md
+    └── scripts/{write_loop_anim.py, verify_loop_anim.py}
 ```
 
 > 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），同一 skill 下的脚本要一致。

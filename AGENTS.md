@@ -1,7 +1,9 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-09-16 v1.21.0(commit `bad5a70`) —— 新增主题 #38「驱动参数化材质维护」(引用体检 / 关键帧收敛 / 改名换轴)
-> (**扫描必须含 `物体数据 → node_tree`** · **改完必跑失效体检,判据 0 条** · 关键帧→常量存档纪律 · 改名换轴六步)
+> 📌 **文档基线**:2026-09-16 v1.22.0(commit `<待提交时回填>`) —— 新增主题 #39「星芒散射光效系统」(隐藏源 + ObjectInfo RELATIVE)
+> (**源隐藏渲染、散布实例照常** · `ObjectInfo` 必须 **RELATIVE** 才继承源缩放/动画,ORIGINAL 会忽略 · 位置偏移经 `设置位置` 施加在实例化前 · `mod.properties.inputs` 不可迭代 · EMPTY 属性驱动几何 socket 不稳)
+> 同批 v1.23.0 新增 Skill `blender-loop-keyframe-anim`(循环三角波关键帧;Slotted Action 写入路径)
+> 前序 v1.21.0(commit `bad5a70`) 新增主题 #38「驱动参数化材质维护」(引用体检 / 关键帧收敛 / 改名换轴)
 > 前序 v1.20.0(commit `9cf12e5`) 新增主题 #37「径向材质多位置部署与播放时差」
 > 前序 v1.19.0(commit `bcc96c6`) 新增主题 #36「径向内收多脉冲材质」+ Skill `blender-inward-pulse-material`
 > 前序 v1.18.0(commit `e08b05b`) 新增 Skill `blender-radial-pulse-material` + 双勘误(驱动内建 `frame` 可用 / UI tag 未隔离实测)
@@ -176,6 +178,12 @@
 - **同名参数常被多处【同构接入】,换轴必须全搬**:主材质 + 若干面光灯节点树都读同一个速度属性时,
   只搬主材质的分量 ⇒ 两边噪波滚动方向不一致、且漏搬的那批直接失效。判据:
   「主材质与全部灯在同帧的下游插槽读数**逐位相等**」(实测 8 个插槽同时 5.0 / 50.0)
+- **几何散布"源隐藏渲染、实例照常"**:想藏掉生成形状的源对象(如星芒的单面源平面),把节点里的 `物体信息(ObjectInfo)` 设 **RELATIVE** 读源 + `源.hide_render=True` / `visible_camera=False`(保留 `hide_viewport=False` 便于调试)。`ObjectInfo` 换 **ORIGINAL 会忽略源的 scale/动画**(控制器参数驱动形同虚设);散布读的是源**评估几何**(depsgraph),藏的是"相机直接渲染"、不拦"被节点组当实例源引用"
+- **位置偏移要经 `设置位置` 施加在实例化之前的点上**:先对点 `设置位置(SET_POSITION)` 偏移、再进 `实例化于点上`;直接改 IOP 的 Position/Scale 会被实例基缩放放大、方向错乱
+- **SCRIPTED 驱动"声明了变量却没用进表达式"= 参数静默失效**:求值只看表达式文本,变量表装了不用没用。例:源 scale 只写 `a/1000`、`b` 没进式 ⇒ 控制器 `动态缩放` 循环动画对整体大小毫无作用;完整式应 `a/1000 + b/1000`
+- **Blender 5.2 `mod.properties.inputs` 不可迭代**:返回 `GeometryNodesInterfaceInputs`,`enumerate(...)` 抛 `TypeError`;读单 socket 用 `.get(名)` / 属性访问
+- **不要用 EMPTY 自定义属性驱动几何节点 socket**:5.2 depsgraph 读缓存值(如 288.0)不可靠;量化的 `生成数量` 等直接放节点组接口 / 修改器面板调,实时生效
+- **循环三角波关键帧动画**(Slotted Action):一个完整周期进 fcurve + `CYCLES` 循环修饰器铺满帧范围;写路径 `action.layers[0].strips[0].channelbags[0].fcurves`,`FModifierCycles` **无 mode 属性**(默认即正向循环);被驱动属性再用 fcurve 补关键帧时**关键帧值显式覆盖**( `kp.co=(fr,val)`)绕开当前值被驱动干扰,读被驱动值走 depsgraph
 ## 约定
 
 - 文档用中文;技巧按"场景 → 做法 → 坑"组织;一坑一篇进 DEVELOPMENT.md

@@ -20,6 +20,42 @@ Blender 5.x 技巧速查仓库:沉淀实战验证的 Blender 操作技巧,核心
 
 ## 关键问题与方案(一坑一篇)
 
+## 问题:两端分叉后版本号/主题号撞车,入库前如何统一
+
+**TL;DR**:仓库曾出现「本地另起一条版本线(v1.18~v1.19/主题#36)」与远端主线(已到 v1.21/#38)分叉,两处 v1.18.0/v1.19.0/主题#36 全部撞号。入库前**不要机械 rebase 或贪图少动**——先把本地独有成果按远端当前最大值顺延重编(星芒→v1.22.0/#39,loop-keyframe→v1.23.0/无主题号),再基于 `origin/main` 重建干净基线、把共享索引按最新文本重排,避免合并冲突噪音与版本号重复。
+
+- 问题:`main` 领先 `origin/main` 3 提交、落后 6 提交,两端都在 CHANGELOG/README/技巧速查/AGENTS/DEVELOPMENT 上改动
+- 根因:各自为政的分叉开发,合流前无版本号分配机制
+- 解决:基于 `origin/main` 建新分支 → 拷贝本地独有**内容文件**(内容文件不与远端冲突) → 共享索引按远端最新文本**追加**顺延条目(星芒 #39/loop #40) → 单独提交 + 回填 AGENTS 基线 → 快进推送
+- 预防:提交前先 `git fetch` 看两端差分,再决定版本号
+
+## 问题:几何散布想让"源对象隐藏但实例照常渲染"
+
+**TL;DR**:源只用于节点组生成几何,设 `hide_render=True` 后散布实例仍渲染。
+
+- 问题:星芒源平面不想留在画面,但散出去的亮片要渲染
+- 根因:几何节点读的是源的**评估几何**(depsgraph),跟 `hide_render` 无关;`hide_render` 只拦"相机直接渲染这个对象",不拦"作为实例源被引用"
+- 解决:`ObjectInfo` 以 **RELATIVE** 读取源,`星芒.hide_render=True` / `visible_camera=False` / `hide_viewport=False`(视口仍可见源几何,便于调试)
+- 预防:换 ORIGINAL 会**忽略源 scale/动画**(`实际大小` 参数失效);必须 RELATIVE 才能继承源缩放
+
+## 问题:SCRIPTED 驱动"变量声明了但没进表达式"导致参数失效
+
+**TL;DR**:源 scale 驱动写成 `a/1000`、`b`(动态缩放)只挂在变量表里,循环动画对整体大小毫无作用。
+
+- 问题:控制器 `动态缩放` 循环三角波动画不改变星芒大小
+- 根因:驱动表达式只用了 `a`,漏写 `+ b/1000`;声明变量不等于使用变量,求值只看表达式文本
+- 解决:完整式 `a/1000 + b/1000`;脚本一键改写三条 scale 驱动(见 `scripts/starburst-scatter/fix_star_scale.py`,幂等、先打印旧式)
+- 预防:探测脚本打印**驱动表达式全文**,别只列变量表;核验用 depsgraph 评估 scale
+
+## 问题:5.2 修改器输入端 `mod.properties.inputs` 不可迭代
+
+**TL;DR**:`enumerate(mod.properties.inputs)` 抛 `TypeError`,用 `.get(名)` / 属性访问。
+
+- 问题:想枚举修改器几何节点输入端读 `生成数量` 等 socket
+- 根因:Blender 5.2 返回 `GeometryNodesInterfaceInputs`,不是普通可迭代对象
+- 解决:用 `mod.properties.inputs["Socket_3"]` / `.get(名)` / 属性访问(单 socket);遍历仅处理 `Socket` 类型并加类型守卫
+- 预防:见 `verify_star.py` 用 `.get()` 读偏移,不 `enumerate` 整个接口
+
 ## 问题:`bpy.context` 在后台线程不可访问
 
 **TL;DR**:远程 exec 放后台线程会报 `'Context' object has no attribute 'active_object'`,必须主线程。

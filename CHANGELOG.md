@@ -1,5 +1,44 @@
 # CHANGELOG.md
 
+## v1.22.0 · 2026-09-16
+
+- **新增主题 #39「星芒散射光效系统」** —— `docs/星芒散射光效系统.md` + 脚本包 `scripts/starburst-scatter/`
+  - **系统**：参数化星芒（6 尖角 + 中央圆盘）沿相机朝向散布到三个点云宿主。核心机制是「**隐藏的单面源对象 + 几何节点**」：
+    - 源 `星芒`（单面平面 + NODES 修改器 `星芒_GN` 生成星芒形状，4 形状参数 socket）`hide_render=True` 隐藏本尊，散布实例不受影响照常渲染
+    - 三宿主 (`球心_点云/2/3`) 各挂独立散布组 `星芒_散布_GN 系列`：随机筛选→`设置位置`(偏移,实例化前施加)→`实例化于点上`(源几何,`ObjectInfo RELATIVE` 继承源缩放;`对齐欧拉至矢量←空物体` billboard;SceneTime→运算链错相缩放)→实现实例
+    - `星芒_控制器` 6 中文滑块统一驱动：`尖角长度/圆盘半径/基部半角/内凹程度`→修改器 Socket_0..3（expr `x`）；`实际大小`→源 scale（expr `实际大小/1000`）；`动态缩放`→源 scale（正确式应 `实际大小/1000 + 动态缩放/1000`）+ 30 帧循环三角波 Action（CYCLES）
+  - **实测数据（Blender 5.2 / Eevee / AgX）**：三组散布 ObjectInfo 均 RELATIVE；位置偏移 `(-0.0065,+/-0.0076,0)` / `(-0.0065,0,-0.0076)`；评估顶点数 96652/96652/68766；`material_override=None`
+  - **可复用坑（写入文档 §七 + AGENTS）**：
+    - 几何散布「源隐藏渲染实例照常」——`ObjectInfo(RELATIVE)` 继承源缩放/动画；换 ORIGINAL 会忽略源缩放
+    - **位置偏移要经 `设置位置` 施加在实例化前的点上**，别直接改 IOP Position/Scale（否则被实例基缩放放大）
+    - **SCRIPTED scale 驱动把 `b` 变量丢掉只剩 `a/1000`** ⇒ 控制器 `动态缩放` 循环动画对整体大小失效；完整式 `a/1000 + b/1000`（`fix_star_scale.py` 一键恢复、幂等、先打印旧式）
+    - 5.2 `mod.properties.inputs` 不可迭代（`GeometryNodesInterfaceInputs`），用 `.get(名)`/属性访问；`enumerate` 抛异常
+    - EMPTY 自定义属性驱动几何 socket 不稳（读缓存值）→ `生成数量` 走节点组接口/修改器面板
+  - 脚本包：`probe_star.py`（只读探查）/ `verify_star.py`（独立核验 20 项全绿）/ `fix_star_scale.py`（修复 scale 驱动）；经 `send.py -p 9878` 实况验证 ALL_PASS，三脚本 py_compile 通过、无 BOM、无 `__main__` 守卫
+- 涉及文档：`docs/星芒散射光效系统.md`、`scripts/starburst-scatter/README.md`、`README.md`(索引 #39)、
+  `docs/技巧速查.md`(索引 #39)、`AGENTS.md`、`DEVELOPMENT.md`
+  - 注：本主题在两端分叉后并入主线，故版本号较主题编号后置（星芒→v1.22.0/#39，见 DEVELOPMENT 分叉记录）
+
+## v1.23.0 · 2026-09-16
+
+- **新增 Skill `skills/blender-loop-keyframe-anim/`** —— 给自定义属性批量写「循环三角波关键帧动画」
+  - 场景：用户要求 `面光统一强度`（1–450 帧，每 30 帧 8→13→8 缓入缓出）、`发光强度`
+    （每 20 帧 5→50→5）等属性做**循环三角波动画**，一个完整周期进 fcurve + **CYCLES 循环修饰器**铺满帧范围
+  - 关键写法定型（Blender 5.x Slotted Action）：
+    - 正确写入路径 `obj.animation_data.action.layers[0].strips[0].channelbags[0].fcurves`
+      （5.x 起不再用 `action.fcurves`）
+    - `FModifierCycles` **无 `mode` 属性**（5.x 移除），默认即为正向循环（CYCLES）
+    - **关键帧值精确写入** `kp.co=(fr,val)` 绕开「属性当前值被驱动干扰」——被驱动属性再用 fcurve 补关键帧时，
+      直接读表达式会拿到被驱动后的值，写进去会错位，必须用具名周期点显式覆盖
+    - **is_valid=False 判空**：5.x 中引用/驱动判空靠 `is_valid` 而非 `is None`
+    - 验证时读「被驱动值」必须走 **depsgraph**（`dg = bpy.context.evaluated_depsgraph_get()`），
+      不能读内存对象属性
+  - 配套脚本：`scripts/write_loop_anim.py`（写入器，顶部 `TARGET_OBJ`/`ANIMS` 配置）+
+    `scripts/verify_loop_anim.py`（独立核验器：关键帧、BEZIER 插值、CYCLES 修饰器、depsgraph 抽样求值）
+  - 传输层依赖 `skills/blender-bridge-ops`；写入/验证铁律同各 skill（先侦察、干跑副本、还原点、独立核验、判据取差集）
+- 涉及文档：`skills/blender-loop-keyframe-anim/{SKILL.md,scripts/*}`、`skills/README.md`（清单 + 安装段）
+  - 注：本 Skill 与远端 v1.18.0 撞号，随本条主线并线重编为 v1.23.0（见 DEVELOPMENT 分叉记录）
+
 ## v1.21.0 · 2026-09-16
 
 - **新增主题 #38「驱动参数化材质维护:引用体检 / 关键帧收敛 / 改名换轴」** ——
