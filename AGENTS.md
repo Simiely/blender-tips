@@ -1,7 +1,8 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-09-15 v1.20.0 —— 新增主题 #37「径向材质多位置部署与播放时差」
-(**位置副本**动态定位/自动编号/**action 重建** · **三层共享判别+快照式独立化** · **播放时差≡相位偏移** · **材质丢失防护**)
+> 📌 **文档基线**:2026-09-16 v1.21.0 —— 新增主题 #38「驱动参数化材质维护」(引用体检 / 关键帧收敛 / 改名换轴)
+> (**扫描必须含 `物体数据 → node_tree`** · **改完必跑失效体检,判据 0 条** · 关键帧→常量存档纪律 · 改名换轴六步)
+> 前序 v1.20.0(commit `9cf12e5`) 新增主题 #37「径向材质多位置部署与播放时差」
 > 前序 v1.19.0(commit `bcc96c6`) 新增主题 #36「径向内收多脉冲材质」+ Skill `blender-inward-pulse-material`
 > 前序 v1.18.0(commit `e08b05b`) 新增 Skill `blender-radial-pulse-material` + 双勘误(驱动内建 `frame` 可用 / UI tag 未隔离实测)
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
@@ -143,6 +144,38 @@
 - **★「亮面面积缩小」与「黑边变粗」是两个【正交】旋钮**:想收紧发光范围要用**径向裁切**(`MapRange(r − 亮面半径, 0..淡出宽度, 1..0)` 乘进掩码),**不是**加宽黑边 —— 混成一个(占空比 0.88→0.60)会把黑边从 24% 涨到 52%,用户下一句必然是「黑边太粗了」
 - **★ 读「另一个材质的颜色」不能读 `default_value`**:插槽若**已连线**,`default_value` 只是残留存值(实测读到 `(1,1,1,1)`,而真实配色是一条 ColorRamp 的 6 个色标,全丢)⇒ 必须**顺连线找到真正的来源节点**(ColorRamp 等)再把色标**逐项复制**;色标若铺在 `r∈[0,1]` 而新网格半宽不同,还要按 `r / 色相半径` 归一化,否则超出 1 的部分全被钳到最后一个色标 ⇒ 整面糊成暗红
 - **★ 已连线的「计算输出」插槽,Python 读 `default_value` 恒为 0**:只有被**关键帧或驱动器直接写入**的插槽才有可读值(Value 节点输出读得到,`Math`/`MapRange` 的输出读不到)⇒ 核验中间量要改成「**验基准 + 验驱动输入 + 解析式复算**」,别去读中间节点真值
+- **★★ 查「谁在读这个参数」必须扫到 `物体数据 → node_tree` 层,否则会双向出事**(2026-09-16 实测):
+  驱动器的宿主不止控制物体与材质 —— **Blender 5.x 的灯光/网格数据块自带节点树**,面光灯的同构接入驱动
+  全在 `o.data.node_tree.animation_data.drivers`。只扫 `o.animation_data` / `o.data.animation_data` /
+  材质节点树会整层漏掉:`面光统一强度` 明明被 7 盏灯的 `发光强度.001` 读着(`expr='st * k'`),
+  却被判成"全库零引用 ⇒ 假控件"(**结论完全相反**);更糟的是把 `Z向速度` 改名为 `X向速度` 后,
+  漏扫的 7 条驱动全变 **`is_valid=False` 静默失效**(面光灯噪波滚动停摆,UI 上毫无异常)。
+  **完整清单**:`o.animation_data` / `o.data.animation_data` / **`o.data.node_tree.animation_data`** /
+  `o.modifiers[i].node_group.animation_data` / `materials(+.node_tree)` / `node_groups` / `scenes` /
+  `worlds(+.node_tree)`。经验法则:`hasattr(x, "node_tree")` 为真的 data-block 都要往下再扫一层
+  (详见 docs/驱动参数化材质维护.md,脚本 scripts/driver-param-maintenance/param_ref_scan.py)
+- **★★ 改名/删键之后必须跑「失效体检」,判据是 0 条**:① 全库 `dr.driver.is_valid == False` 计数;
+  ② 变量 `data_path` 形如 `["X"]` 但该 ID 已无 `X` 键(正则 `^\["(.+)"\]$` 比对 `id.keys()` ⇒ 悬空引用)。
+  两类都是**静默**问题(画面上只表现为"某处不动了"),只有体检能提前抓到
+- **删除驱动 / 换轴的顺序铁律**:先 `driver_remove(path, 旧分量)` → 再 `driver_add(path, 新分量)`
+  → 重建变量(`id_type` 先于 `id`)→ **★ 显式覆盖 `d.expression`**(`driver_add()` 会把表达式**自动填成
+  当时的数值** = 装了个常量驱动)→ 旧分量归零 → **全部驱动重建完之后才删旧属性键**
+  (反了会留下指向已删属性的悬空驱动)
+- **「关键帧 → 常量」的存档纪律**:删曲线前先打印 `(帧, 值)` 全表 + `interpolation` + `extrapolation`
+  + **`fc.evaluate(当前帧)`**(这是唯一回滚依据);**只删目标 `data_path`+`array_index` 那一条 fcurve**
+  (同 action 其它曲线必须原样保留);常量取「当前帧所见值」可保证画面不跳变,用户指定值则要回报实际结果值;
+  删完打印"动作剩余 fcurves"作证据,并在**另一次请求**里复核
+- **三个「index」别混**:① 驱动 FCurve 的**分量索引**(`drivers.find(path, index=2)` /
+  `driver_remove(path, 2)` / `driver_add(path, 2)`,向量的 X/Y/Z;`find()` 的 index **必须关键字传参**,
+  位置传参报 `TypeError`)② `DriverTarget` 的数组分量(**5.2 无 `.array_index`**,写进 `data_path='location[0]'`)
+  ③ `ActionSlot` 的标识(**`.identifier` / `.name_display`** —— 既没有 `.name`,也没有 `.display_name`)
+- **`id_properties_ui(k).update(...)` 可全量复制/改写属性 UI**:`as_dict()` 抄下
+  `min/max/soft_min/soft_max/default/step/precision/description` 再 `update()` 写进新键 ——
+  **给参数改名时描述文案里的轴向要同步改**(如"沿世界 Z"→"沿世界 X");`update()` **不接受 `name`**,
+  自定义属性的显示名就是键名本身(逻辑读键处 —— 驱动变量 `targets[0].data_path` —— 必须同步改)
+- **同名参数常被多处【同构接入】,换轴必须全搬**:主材质 + 若干面光灯节点树都读同一个速度属性时,
+  只搬主材质的分量 ⇒ 两边噪波滚动方向不一致、且漏搬的那批直接失效。判据:
+  「主材质与全部灯在同帧的下游插槽读数**逐位相等**」(实测 8 个插槽同时 5.0 / 50.0)
 ## 约定
 
 - 文档用中文;技巧按"场景 → 做法 → 坑"组织;一坑一篇进 DEVELOPMENT.md

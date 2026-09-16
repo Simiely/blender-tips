@@ -47,6 +47,7 @@
 | 35 | 渲染发黑与材质不发光排查 | "配了发光材质渲染还是黑的" —— 七条按命中率排序的排查路径:头号嫌疑是 **View Layer 材质覆盖**(它是视图层属性、不在材质里,在材质树里永远查不到);其次是 Workbench 引擎不读材质节点、Holdout/相机可见性、**发光值改在了未接输出的孤儿 BSDF 上**(实测第二层原因)、AgX 色彩变换压暗。附一次打全的诊断脚本(236 材质 0.05s)。[独立文档](docs/渲染发黑与材质不发光排查.md) / [脚本包](scripts/blackout-diagnose/) / [Skill](skills/blender-render-blackout-diagnose/) |
 | 36 | 径向内收多脉冲材质 | 若干个同心亮环**从外往内收**、无缝循环、黑边很细;核心是**环数恒定**的约束解算 —— 可见带窗口 `L + 占空比 − 软边 − 2×最小可见宽度 ≈ N`(**三项缺一,环数就在 N±1 之间跳**),以及**计数基准**的选择(内切圆 vs 角点,相差 √2 倍);另含亮面裁切(把发光限制在圆内)、从姊妹材质读 ColorRamp 复制配色、**驱动只能挂 Value 节点**的守卫。[独立文档](docs/径向内收多脉冲材质.md) / [脚本包](scripts/radial-inward-pulse/) / [Skill](skills/blender-inward-pulse-material/) |
 | 37 | 径向材质多位置部署与播放时差 | 同一套径向材质部署到多个位置:动态定位 + 复制材质与控制器到新圆心(**`_位N` 自动编号、防叠名**);**三层共享判别**(网格数据/材质/控制器——「改一个其它跟着变」的三种成因)与**快照式独立化**(不能一边遍历一边判 `users>1`,会漏一整批);**播放时差 = 相位偏移**(时间错位 ≡ 相位偏移,脉冲类改 TVAL 关键帧值);材质 `users=0` 无 fake 会被存盘清掉、未挂载的材质不进依赖图。[独立文档](docs/径向材质多位置部署与时差.md) / [脚本包](scripts/radial-inward-pulse/) |
+| 38 | 驱动参数化材质维护:引用体检 / 关键帧收敛 / 改名换轴 | 给**已建成**的「空物体属性 + 驱动器」系统做运维改造:**改前**跑引用体检(扫描必须含 `物体数据 → node_tree` 层 —— 灯光/网格自带节点树、驱动都挂那里;漏扫会**双向出事**:误判"假控件" 或 改名后 7 条驱动 `is_valid=False` 静默失效),**改后**跑失效体检(`is_valid` + 悬空引用,判据 **0 条**);含「关键帧 → 常量」的存档纪律(先留 `(帧,值)` 全表再删)与驱动换轴六步顺序(`driver_add` 会把表达式自动填成常量、**驱动重建完才准删旧属性键**)、三个容易混淆的「index」对照。[独立文档](docs/驱动参数化材质维护.md) / [脚本包](scripts/driver-param-maintenance/) / [Skill](skills/blender-driver-param-maintenance/) |
 
 ## Agent Skills(给 AI 助手用的作业规范)
 
@@ -63,6 +64,7 @@
 | [blender-plane-procedural-material](skills/blender-plane-procedural-material/) | **平面（flat plane）专项**：法线轴零跨度导致的坐标退化、**平面 = 3D 噪声体的一片切片**、把平面当**验收测试卡**出客观读数（暗区占比 / 滚动方向 / 位移的像素级测法） | 母 skill `blender-procedural-emission-material` / [主题 25](docs/渐变发光滚动材质.md) |
 | [blender-radial-pulse-material](skills/blender-radial-pulse-material/) | **世界空间径向距离场发光材质**：图案只依赖到**共享中心的距离 r**（和方向 d）⇒ 共心的 XY/XZ/YZ 平面切过去天然同心、交线连续；含五种模式、**四段循环脉冲**（`TVAL≡帧号` 关键帧技巧 + 周期/相位分离：时长类参数只进周期就是空操作）、**空物体自定义属性 + SINGLE_PROP 驱动器**（数据驱动，不写面板）；附 Math 第 3 输入口 / 未连输入默认 0.5 / 接触表行序三个静默陷阱 | 母 skill `blender-procedural-emission-material` |
 | [blender-inward-pulse-material](skills/blender-inward-pulse-material/) | **径向内收多脉冲**：若干同心亮环从外往内收、无缝循环；核心是**环数恒定的有效窗口公式**（`L + 占空比 − 软边 − 2×最小可见宽度 ≈ N`，缺一项环数就会在 N±1 间跳）与**计数基准的选择**（内切圆 vs 角点，相差 √2）；含亮面裁切把发光限制在圆内、从姊妹材质读 ColorRamp 复制配色、**驱动只能挂 Value 节点**的守卫 | [主题 36](docs/径向内收多脉冲材质.md) / [脚本包](scripts/radial-inward-pulse/) |
+| [blender-driver-param-maintenance](skills/blender-driver-param-maintenance/) | **参数化驱动的运维改造**：两张体检表 —— `refs`（谁在读这个参数，**必须扫到 `物体数据 → node_tree`**，灯光 Shader Nodetree 层漏扫 ⇒ 误判"假控件" / 改名留静默失效驱动）、`health`（全库 `is_valid=False` + 悬空引用，判据 0 条）；含关键帧 → 常量的存档纪律、改名换轴六步（`driver_add` 自动填常量表达式、**驱动重建完才删旧键**）、三个易混的「index」 | [主题 38](docs/驱动参数化材质维护.md) / [脚本包](scripts/driver-param-maintenance/) |
 
 安装(拷到用户级 skill 目录)：`Copy-Item .\skills\* "$env:USERPROFILE\.workbuddy\skills\" -Recurse`，
 详见 [skills/README.md](skills/README.md)。

@@ -15,6 +15,7 @@ agent_created: true
 |---|---|
 | 怎么把代码送进正在运行的 Blender（桥、客户端封装、120s 上限、5.x Slotted Action、引用/删除写法） | **`blender-bridge-ops`** |
 | 世界空间程序化材质的**通用机制**：SINGLE_PROP 驱动、tag 矩阵、读驱动真值必须走求值依赖图、隔离场景渲预览、像素级验收、ColorRamp 类对比度 | **`blender-procedural-emission-material`** |
+| **建成之后的维护**：查"这个参数到底谁在读"（引用体检）、关键帧动画收敛成常量、参数改名 / 驱动换轴而不留失效驱动 | **`blender-driver-param-maintenance`** |
 
 **本 skill 只讲径向这一路独有的东西**：距离场怎么建、环形掩码怎么做、以及「循环脉冲」的时间轴。
 
