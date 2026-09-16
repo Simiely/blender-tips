@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-09-16 v1.22.0(commit `<待提交时回填>`) —— 新增主题 #39「星芒散射光效系统」(隐藏源 + ObjectInfo RELATIVE)
+> 📌 **文档基线**:2026-09-16 v1.22.0(commit `80c1e8b`) —— 新增主题 #39「星芒散射光效系统」(隐藏源 + ObjectInfo RELATIVE)
 > (**源隐藏渲染、散布实例照常** · `ObjectInfo` 必须 **RELATIVE** 才继承源缩放/动画,ORIGINAL 会忽略 · 位置偏移经 `设置位置` 施加在实例化前 · `mod.properties.inputs` 不可迭代 · EMPTY 属性驱动几何 socket 不稳)
 > 同批 v1.23.0 新增 Skill `blender-loop-keyframe-anim`(循环三角波关键帧;Slotted Action 写入路径)
 > 前序 v1.21.0(commit `bad5a70`) 新增主题 #38「驱动参数化材质维护」(引用体检 / 关键帧收敛 / 改名换轴)
