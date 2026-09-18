@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## v1.24.2 · 2026-09-19
+
+- **双径向 Skill 铁律统一补「三平面」备注** —— 两个径向发光材质 Skill（四段循环脉冲 / 内收多脉冲）都明确：**效果必须在「三块两两正交且共心的平面」下做才准确**，目标不是三平面时必须先提示用户补齐；三面同场交线连续、任意角度环都同心，**效果对不对一眼可验**。
+  - `skills/blender-radial-pulse-material/SKILL.md`：铁律 #7 补「便于检验」句
+  - `skills/blender-inward-pulse-material/SKILL.md`：铁律新增 #6（同口径）
+  - 来源：2026-09-19 实战（`260918xAx06` 烟花灯三平面试验台，径向脉冲_位6 / 内收脉冲_位7 两次部署）
+- 涉及文档：`skills/blender-radial-pulse-material/SKILL.md`、`skills/blender-inward-pulse-material/SKILL.md`、`AGENTS.md`（基线行）
+
 ## v1.24.1 · 2026-09-19
 
 - **Skill `blender-radial-pulse-material` 铁律补充（#7）** —— 部署/复制本材质到新目标时，若目标**不是「三块两两正交且共心的平面」**，必须先停下提示用户「要增加/补齐三块平面，做出来才准确」，确认后再动手；少于三块得不到完整的立体（球形）观感。
