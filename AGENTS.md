@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-09-19 v1.24.1(commit `<待提交时回填>`) —— Skill blender-radial-pulse-material 铁律补充「部署目标非三平面须提示补齐」
+> 📌 **文档基线**:2026-09-19 v1.24.1(commit `b12db2b1`) —— Skill blender-radial-pulse-material 铁律补充「部署目标非三平面须提示补齐」
 > (**少于三块正交共心平面得不到完整立体(球形)观感;部署前必须先提示用户补齐三块平面**)
 > 前序 v1.24.0(commit `20f98649`) 新增主题 #41「雪花下落系统」(EMPty 宿主几何节点下雪 + FLOORED_MODULO 触地回卷)
 > (**宿主必须 loc=0/rot=0/scale=1 否则雪埋地** · `FLOORED_MODULO` 触地回卷不加贴地淡出 · RandomValue 显式接 Index+独立种子防堆积 · `'%s' % (tuple)` 单%s×三元组报 not all arguments)
