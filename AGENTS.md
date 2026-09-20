@@ -1,6 +1,8 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-09-19 v1.24.2(commit `bec7ef47`) —— 双径向 Skill 铁律统一补「三平面下做效果才对 + 便于检验」
+> 📌 **文档基线**:2026-09-20 v1.24.3(commit `5bba3cd`) —— 修复技能安装链路断链 + 订正环境事实
+> (**只拷 `skills/` 会断链,须三件套一起拷 `skills`+`scripts`+`docs`** · 从 `skills/<名>/` 出发是**一级** `../`,写两级会落到安装根之外 · 删除「bash 已损坏」错误条目(bash 实测可用) · 新增「heredoc 吃成对反斜杠致 `replace` 静默失败,须 `chr(92)`」)
+> 前序 v1.24.2(commit `bec7ef47`) 双径向 Skill 铁律统一补「三平面下做效果才对 + 便于检验」
 > (**内收多脉冲 Skill 补铁律 #6;四段脉冲 Skill #7 补「三面同场交线连续、一眼可验」**)
 > 前序 v1.24.1(commit `b12db2b1`) Skill blender-radial-pulse-material 铁律补充「部署目标非三平面须提示补齐」
 > 前序 v1.24.0(commit `20f98649`) 新增主题 #41「雪花下落系统」(EMPty 宿主几何节点下雪 + FLOORED_MODULO 触地回卷)
