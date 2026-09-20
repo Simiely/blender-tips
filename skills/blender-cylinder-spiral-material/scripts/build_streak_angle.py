@@ -45,9 +45,9 @@ import math
 TARGET_OBJ = '滚动效果网格体'
 MAT_NAME = '滚动效果网格体_滚筒斜纹_按角度'
 CTRL_NAME = '竖条旋转控制'
-SLOT_INDEX = 3
+SLOT_INDEX = 0          # 条纹材质（唯一：跑哪个方案就装哪个）
 CAP_MAT = '滚动效果网格体_端盖黑'          # 端盖专用（端盖上 atan2 是极角 ⇒ 条纹会摊成扇形）
-CAP_SLOT = 2
+CAP_SLOT = 1            # 端盖专用（纯黑）
 
 # ⚠️ 以下圆柱几何是【本工程实测值】。换工程必须重新只读侦察后改写。
 AXIS_X, AXIS_Y = 30.9216, 2.8832
@@ -337,7 +337,7 @@ def add_drives(mat, ctrl, bsdf):
     made.append(p)
     # ③ 条纹数量 K
     p = 'nodes["%s"].inputs[1].default_value' % N_K
-    bind_drive(nt.driver_add(p, -1), 'kn', {'kn': V['kn']})
+    bind_drive(nt.driver_add(p, -1), 'floor(kn + 0.5)', {'kn': V['kn']})   # ★ 取整：K 必须整数，否则绕柱接缝处会错位半格
     made.append(p)
     # ④ 斜角（度）→ 斜角_弧度 的输入（N 随后由节点链反算，这样调斜度不必改条数）
     p = 'nodes["%s"].inputs[0].default_value' % N_ANG_RAD

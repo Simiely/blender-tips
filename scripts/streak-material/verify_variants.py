@@ -3,7 +3,7 @@ import bpy
 
 VAR = {
  'A 按条数(槽1)': dict(slot=1, mat='滚动效果网格体_滚筒斜纹_按条数', nodes=18, links=20,
-                   prop='高度条纹数', dexp='hn', dpath='nodes["高度条纹N"].inputs[1].default_value',
+                   prop='高度条纹数', dexp='floor(hn + 0.5)', dpath='nodes["高度条纹N"].inputs[1].default_value',
                    panel='streak_count_panel.py', cls='VIEW3D_PT_streak_count', watch='_streak_count_watch',
                    extra=[]),
  'B 按角度(槽3)': dict(slot=3, mat='滚动效果网格体_滚筒斜纹_按角度', nodes=22, links=25,
@@ -19,8 +19,15 @@ def chk(n, c, d=''):
 ob = bpy.data.objects['滚动效果网格体']
 ctrl = bpy.data.objects['竖条旋转控制']
 print('槽位:', [(i, s.material.name if s.material else None) for i, s in enumerate(ob.material_slots)])
-chk('槽 0 = 螺旋上升（保留）', ob.material_slots[0].material.name == '滚动效果网格体_螺旋上升')
-chk('槽 2 = 端盖黑（共用）', ob.material_slots[2].material.name == '滚动效果网格体_端盖黑')
+# ★ 不写死槽位索引（配置里 SLOT_INDEX/CAP_SLOT 可能调整），按材质名定位
+_mats = [s2.material.name if s2.material else None for s2 in ob.material_slots]
+chk('端盖材质在槽位里', '滚动效果网格体_端盖黑' in _mats, '%s' % _mats)
+_stripe_i = next((i for i, m in enumerate(_mats) if m and '斜纹' in m), None)
+chk('条纹材质在槽位里', _stripe_i is not None, '%s' % _mats)
+_cap_i = _mats.index('滚动效果网格体_端盖黑') if '滚动效果网格体_端盖黑' in _mats else None
+_cap_faces = {p.material_index for p in ob.data.polygons if abs(abs(p.normal.z) - 1.0) < 1e-3}
+chk('★ 两个端盖面都指向端盖槽', _cap_i is not None and _cap_faces == {_cap_i},
+    '端盖面索引 %s / 端盖槽 %s' % (_cap_faces, _cap_i))
 _installed = [k for k, v in VAR.items() if bpy.data.materials.get(v['mat'])]
 chk('至少装了一个方案', bool(_installed), '%s' % _installed)
 chk('槽位里没有空槽（残留已清）',
@@ -66,8 +73,8 @@ for label, v in VAR.items():
 z = [p for p in ob.data.polygons if abs(abs(p.normal.z) - 1.0) < 1e-3]
 chk('端盖面 = 2 个', len(z) == 2)
 cur = ob.data.polygons[0].material_index
-chk('★ 当前显示的是【单一个】方案（不是混合）', cur in (1, 3),
-    '面索引=%d ⇒ %s' % (cur, '按条数' if cur == 1 else '按角度'))
+chk('★ 侧面全部指向【条纹槽】（不是混着端盖材质）', cur == _stripe_i,
+    '侧面面索引=%d / 条纹槽=%s' % (cur, _stripe_i))
 print('\n--- 幽灵参数检查（ctrl 上没有节点引用不到的键）---')
 for label, v in VAR.items():
     mat = bpy.data.materials.get(v['mat'])

@@ -45,9 +45,9 @@ import math
 TARGET_OBJ = '滚动效果网格体'
 MAT_NAME = '滚动效果网格体_滚筒斜纹_按条数'
 CTRL_NAME = '竖条旋转控制'
-SLOT_INDEX = 1          # 方案A 占槽 1；方案B 占槽 3，两者互不覆盖
+SLOT_INDEX = 0          # 条纹材质（唯一：跑哪个方案就装哪个）
 CAP_MAT = '滚动效果网格体_端盖黑'          # 端盖专用（端盖上 atan2 是极角 ⇒ 条纹会摊成扇形）
-CAP_SLOT = 2
+CAP_SLOT = 1            # 端盖专用（纯黑）
 
 # ⚠️ 以下圆柱几何是【本工程实测值】。换工程必须重新只读侦察后改写。
 AXIS_X, AXIS_Y = 30.9216, 2.8832
@@ -326,11 +326,11 @@ def add_drives(mat, ctrl, bsdf):
     made.append(p)
     # ③ 条纹数量 K
     p = 'nodes["%s"].inputs[1].default_value' % N_K
-    bind_drive(nt.driver_add(p, -1), 'kn', {'kn': V['kn']})
+    bind_drive(nt.driver_add(p, -1), 'floor(kn + 0.5)', {'kn': V['kn']})   # ★ 取整：K 必须整数，否则绕柱接缝处会错位半格
     made.append(p)
     # ④ 高度条纹 N
     p = 'nodes["%s"].inputs[1].default_value' % N_HN
-    bind_drive(nt.driver_add(p, -1), 'hn', {'hn': V['hn']})
+    bind_drive(nt.driver_add(p, -1), 'floor(hn + 0.5)', {'hn': V['hn']})   # ★ 取整：N 非整数会让柱顶/柱底条纹错位（拖动滑块可能产生小数）
     made.append(p)
     # ⑤ 前缘宽度 → 前缘 MapRange 的 From Max（inputs[2]）
     p = 'nodes["%s"].inputs[2].default_value' % N_RISE
