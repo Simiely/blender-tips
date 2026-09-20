@@ -82,7 +82,9 @@ PROPS = [
      '发光强度倍数（AgX 会压暗发光，看不清就往大调）'),
 ]
 # 历史版本遗留、现已废弃的控件 —— 重跑时清掉，避免面板/文档出现幽灵参数
-DEPRECATED = ('条纹宽度', '渐变柔化', '流星拖尾')   # ⚠️ 不含「斜角」/「高度条纹数」—— 那两个是 A/B 各自在用的键
+DEPRECATED = ('条纹宽度', '渐变柔化', '流星拖尾', '斜角')
+#   ↑「斜角」是方案B 引入的键，本方案【没有任何节点引用它】⇒ 属于幽灵参数，一并清掉
+#    （本方案在用的键：条纹数量 / 高度条纹数 / 前缘宽度 / 拖尾起点 / 上升速度 / 旋转速度 / 发光强度）
 
 # 节点名（中文；驱动 data_path 与面板都引用它们）
 N_TEX, N_SEP = '纹理坐标', '分离XYZ'
@@ -380,6 +382,27 @@ def ensure_cap_mat():
     return m
 
 
+VARIANT_B_MAT = '滚动效果网格体_滚筒斜纹_按角度'   # 方案B 的材质（本方案不参与）
+
+
+def cleanup_variant_b(ob):
+    """把方案B（按角度）留在工程里的东西收干净：材质、槽位、它的控件键。
+    ⚠️ 只在【跑本方案】时执行 —— 两个方案不该长期并存，否则 ctrl 上会互相留幽灵参数。
+    需要方案B 时重跑 build_streak_angle.py 即可恢复。"""
+    gone = []
+    m = bpy.data.materials.get(VARIANT_B_MAT)
+    if m is not None:
+        users = m.users
+        bpy.data.materials.remove(m)
+        gone.append('材质 %s（原 users=%d）' % (VARIANT_B_MAT, users))
+    me = ob.data
+    for i in range(len(me.materials) - 1, -1, -1):
+        if me.materials[i] is None:
+            me.materials.pop(index=i)
+            gone.append('空槽位 %d' % i)
+    return gone
+
+
 def assign_slot(ob, mat, idx):
     """侧面 → 槽 idx；端盖 → 槽 CAP_SLOT（纯黑）。
     ⚠️ 端盖按【法线平行 Z 轴】判定，不写死面索引。返回 (原槽位, 改动面数, 端盖面数)。"""
@@ -417,6 +440,9 @@ def main():
     bsdf = rebuild(mat, ctrl)
     drives, fc_st = add_drives(mat, ctrl, bsdf)
     before, changed, cap_n = assign_slot(ob, mat, SLOT_INDEX)
+    b_gone = cleanup_variant_b(ob)
+    for g in b_gone:
+        print('  清理方案B 残留:', g)
 
     txt = write_panel_text()
     try:

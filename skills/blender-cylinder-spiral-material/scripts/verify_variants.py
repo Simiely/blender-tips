@@ -21,16 +21,19 @@ ctrl = bpy.data.objects['竖条旋转控制']
 print('槽位:', [(i, s.material.name if s.material else None) for i, s in enumerate(ob.material_slots)])
 chk('槽 0 = 螺旋上升（保留）', ob.material_slots[0].material.name == '滚动效果网格体_螺旋上升')
 chk('槽 2 = 端盖黑（共用）', ob.material_slots[2].material.name == '滚动效果网格体_端盖黑')
-chk('两个方案材质同时存在（互不覆盖）',
-    ob.material_slots[1].material.name == VAR['A 按条数(槽1)']['mat']
-    and ob.material_slots[3].material.name == VAR['B 按角度(槽3)']['mat'])
+_installed = [k for k, v in VAR.items() if bpy.data.materials.get(v['mat'])]
+chk('至少装了一个方案', bool(_installed), '%s' % _installed)
+chk('槽位里没有空槽（残留已清）',
+    all(s2.material is not None for s2 in ob.material_slots),
+    '%s' % [(i, s2.material.name if s2.material else None) for i, s2 in enumerate(ob.material_slots)])
 
 for label, v in VAR.items():
     print('\n--- %s ---' % label)
     mat = bpy.data.materials.get(v['mat'])
-    chk('%s 材质存在且 use_nodes' % label, bool(mat and mat.use_nodes))
     if not (mat and mat.use_nodes):
+        print('  SKIP  %s 未安装（只装了另一个方案）' % label)
         continue
+    chk('%s 材质存在且 use_nodes' % label, True)
     nt = mat.node_tree
     chk('  节点 %d / 连线 %d' % (v['nodes'], v['links']),
         len(nt.nodes) == v['nodes'] and len(nt.links) == v['links'],
@@ -65,6 +68,20 @@ chk('端盖面 = 2 个', len(z) == 2)
 cur = ob.data.polygons[0].material_index
 chk('★ 当前显示的是【单一个】方案（不是混合）', cur in (1, 3),
     '面索引=%d ⇒ %s' % (cur, '按条数' if cur == 1 else '按角度'))
+print('\n--- 幽灵参数检查（ctrl 上没有节点引用不到的键）---')
+for label, v in VAR.items():
+    mat = bpy.data.materials.get(v['mat'])
+    if not (mat and mat.use_nodes):
+        continue
+    _u = set()
+    for d in (mat.node_tree.animation_data.drivers if mat.node_tree.animation_data else []):
+        for var in d.driver.variables:
+            if var.type == 'SINGLE_PROP' and var.targets[0].id is ctrl:
+                _u.add(var.targets[0].data_path.strip('[]"'))
+    # 本方案的面板只应列它自己那套键；ctrl 上其它方案的键也算幽灵（除非另一个方案装着）
+    other = [k for k in ctrl.keys() if not k.startswith('_') and k not in _u]
+    chk('%s：ctrl 上无本方案用不到的键' % label, not other, '幽灵 %s' % other)
+
 print('\n' + '=' * 58)
 print('VERIFY  通过 %d / 失败 %d' % (len(PASS), len(FAIL)))
 for f in FAIL:
