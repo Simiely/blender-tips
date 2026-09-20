@@ -406,37 +406,30 @@ prof = lambda row: np.interp(X_PIX, np.arange(wpx), row)
 
 ## §7 脚本
 
+### 主线（19 个）
+
 | 脚本 | 作用 |
 |---|---|
-| `scripts/build_cylinder_spiral.py` | **螺旋路主建脚本**：材质 + 锚点空物体 + 14 节点 + 5 控件 + 5 驱动 + 写 Register 文本块并当场注册。配置区置顶（`TARGET_OBJ / MAT_NAME / CTRL_NAME / AXIS_X / AXIS_Y / Z_BOTTOM / HEIGHT / COLOR_*`），幂等，重跑不覆盖已调过的控件值 |
-| `scripts/panel_watchdog.py` | 螺旋路面板 + 看门狗源码（内容作为文本块写进 .blend，必须自包含） |
-| `scripts/verify_spiral.py` | 螺旋路核验模板（56 项：结构 + 行为，驱动真值走求值依赖图） |
-| `scripts/render_shift_check.py` | 隔离临时场景渲染多帧 + **垂直**互相关位移判据 + 拼图 + 清理自证 |
-| `scripts/param_sweep.py` | 螺旋路参数扫描拼对比图（定默认值的依据） |
-| `scripts/build_cylinder_rotate.py` | **竖条旋转路主建脚本**：新增「双渐变节点」（遮罩 + 配色）+「渐变柔化」控件 + **端盖按法线分到独立纯黑槽**（坑 5）。7 条驱动 |
-| `scripts/panel_vertical_stripes.py` | 竖条路面板 + 看门狗（与螺旋面板类名/定时器键互不干扰，可同时在线） |
-| `scripts/verify_vertical_stripes.py` | 竖条路核验模板（96 项，含端盖分槽 / 双渐变结构 / 柔化行为断言） |
-| `scripts/grad_sweep.py` | 双渐变视觉验收：柔化 0/0.3/0.6/1.0 扫描 + 配色三种演示（**含还原后断言**） |
-| `scripts/orbit_render.py` | 环绕 4 侧面 + 俯视 + 斜视渲染（验"端盖是否干净"就靠俯视图） |
-| `scripts/ksweep.py` | 条纹数量 K 对比（定"像不像绕柱条纹"） |
-| `scripts/tailsweep.py` | 流星拖尾 0/0.4/0.8/1.0 对比 + "细亮带满拖尾"的 SVG 式配置 |
-| `scripts/build_cylinder_streak.py` | **v2 主建脚本（推荐）**：Math 域波形（MapRange×2 + MINIMUM），5 控件 / 5 驱动 / 14 节点；自动清理 v1 废弃控件、面板类、文本块、看门狗 |
-| `scripts/streak_panel.py` | v2 面板 + 看门狗（含「拖尾起点 ≤ 前缘宽度」的形状自检提示） |
-| `scripts/verify_streak.py` | v2 核验模板（103 项；含「ColorRamp 上无任何驱动」这条核心断言） |
-| `scripts/shape_check.py` | ★ **端到端波形验证**：φ 空间剖面 vs 独立重算的理论 mask（相关系数判据） |
+| **`scripts/build_streak_count.py`** | **方案 A 建脚本（推荐）**：材质 + 锚点 + 18 节点 + 7 控件 + 7 驱动 + 写 Register 文本块并当场注册；幂等；装 A 时自动清掉 B 的残留 |
+| `scripts/streak_count_panel.py` | 方案 A 面板 + 看门狗源码（类别「滚筒斜纹·条数」） |
+| **`scripts/build_streak_angle.py`** | **方案 B 建脚本**：K + 斜角，`N` 经 `RADIANS→TANGENT→K×(H/P)÷tanθ` 反算（22 节点 / 25 连线） |
+| `scripts/streak_angle_panel.py` | 方案 B 面板 + 看门狗（类别「滚筒斜纹·角度」，底部实时显示反算出的 N） |
+| `scripts/switch_to_count.py` / `switch_to_angle.py` | 两套都装着时快速切换（改每个面的 `material_index`，即时生效） |
+| `scripts/verify_variants.py` | **并列核验**（只验已装的方案，未装自动 SKIP；含幽灵参数 / 空槽位断言） |
+| **`scripts/recon_cylinder.py`** | **换工程先跑**：逐顶点世界包围盒 → 半径恒定 / 轴向 / zmin / zmax / 锚点偏差 |
+| **`scripts/shape_check.py`** | ★ **端到端波形验证**：φ 空间剖面 vs 独立重算的理论 mask（相关系数判据，实测 0.9989） |
+| **`scripts/shift_check.py`** | ★ **跨帧位移方向实测**（固定高度行的暗带中心比对）—— 方向就是这么定下来的 |
+| `scripts/ksweep.py` / `scripts/param_sweep.py` | 条纹数量 / 参数扫描对比 |
+| `scripts/orbit_render.py` | 环绕 4 侧面 + 俯视 + 斜视（验端盖是否干净就靠俯视图） |
+| `scripts/helix_check.py` | 三帧渲染 + 斜向判定（顶部相对底部的水平偏移符号） |
 | `scripts/kdiag.py` | K 黑盒诊断（渲染是否真随 K 变） |
-| `scripts/v2_sweep.py` | 形状 / K 对比渲染 |
-| `scripts/build_cylinder_streak.py` | **v3 主建脚本（推荐）**：`f = u×K − v×N` 螺旋斜纹 + Math 域波形；18 节点 / 20 连线 / 7 驱动；7 控件。自动清理旧控件/面板/文本块/看门狗 |
-| `scripts/build_streak_count.py` | **方案 A 建脚本**：按条数（K + N 两个整数控件）⇒ 斜角是结果；槽 1 |
-| `scripts/build_streak_angle.py` | **方案 B 建脚本**：按角度（K + 斜角，N 经节点链反算）；槽 3 |
-| `scripts/streak_count_panel.py` / `streak_angle_panel.py` | 两套面板 + 看门狗（各自类名/键，可同时在线） |
-| `scripts/switch_to_count.py` / `switch_to_angle.py` | 切换脚本（改面索引，即时生效） |
-| `scripts/verify_variants.py` | ★ 两方案**并列核验**（含"互不覆盖"断言） |
-| `scripts/verify_streak.py` | v3 核验模板（123 项；含「上升偏移必须用正号」这条实测定标的断言） |
-| `scripts/shift_check.py` | ★ **跨帧位移方向实测**（固定高度行的暗带中心比对）—— 方向就是这么定下来的 |
-| `scripts/recon_cylinder.py` | 圆柱几何 + 锚点偏差侦察（换工程先跑这个） |
+| `scripts/build_cylinder_spiral.py` + `panel_watchdog.py` + `verify_spiral.py` + `render_shift_check.py` | **同源另一路：螺旋上升版**（`f = u×K + v×N`，`\\` 形斜纹 + 竖直位移判据） |
 
-> ⚠️ 竖条那套（rotate）是按螺旋那套改的，**两套的锚点/材质/控件名都不同**，别混用配置区。
+### 历史版本（`scripts/_legacy/`，9 个）
+
+v2 竖条旋转（`build_cylinder_rotate.py` / `panel_vertical_stripes.py` / `verify_vertical_stripes.py` /`grad_sweep.py`）、
+v4 早期滚筒（`build_cylinder_streak.py` / `streak_panel.py` / `verify_streak.py`）、
+以及过程性扫描（`tailsweep.py` / `v2_sweep.py`）—— 已被上面取代，保留供对照，**不要在新工程里直接用**。
 
 所有脚本顶部的路径常量是**占位/本工程实测值**，换工程前必须重新侦察并改写。
 

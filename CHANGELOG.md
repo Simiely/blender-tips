@@ -1,5 +1,19 @@
 # CHANGELOG.md
 
+## v1.24.9 · 2026-09-20
+
+- **滚筒斜纹材质收尾：按仓库「三件套」标准补齐**（之前只推了 `skills/`）
+  - 新增 `docs/滚筒斜纹材质.md`：原理（柱面坐标 + Math 域波形）、两套并列方案、参数表、
+    实测数据（方向标定 / 斜角↔N / 波形相关系数 0.9989）、6 类坑、换工程复用清单
+  - 新增 `scripts/streak-material/`：8 个脚本 + README（一句话原理 / 文件清单 / 配置区 / 实测数据）
+  - `README.md`：速查表加 **主题 39** + Agent Skills 表加一行
+  - `skills/README.md`：清单加一行
+- **skills 侧整理**：9 个历史版本脚本（v2 竖条旋转 / v4 早期滚筒 / 过程性扫描）归档到
+  `scripts/_legacy/`；§7 脚本表重写为「主线 19 个 + legacy 9 个」；核验 19 脚本 / 断链 0
+- 换行符按仓库既有惯例：`skills/` 下 **LF**，`README` / `docs` / `scripts` 下 **CRLF**
+- 涉及文档：`docs/滚筒斜纹材质.md`、`scripts/streak-material/*`、
+  `skills/blender-cylinder-spiral-material/*`、`README.md`、`skills/README.md`、`CHANGELOG.md`、`AGENTS.md`
+
 ## v1.24.8 · 2026-09-20
 
 - **跑哪个方案就只装哪个**：`build_streak_count.py` 增加 `cleanup_variant_b()`，

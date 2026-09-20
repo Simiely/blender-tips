@@ -53,6 +53,7 @@
 | 41 | 雪花下落系统 | 参数化连续下雪:一个隐藏的低模雪花源 + 一个 EMPTY 宿主上的 `下雪_GN` 节点组,按真实雪速(~0.5 m/s)下落 50000 片;`SceneTime→FLOORED_MODULO` 触地回卷(贴地消失无半空消失)、`RandomValue(ID←Index)` 独立相位/落点/朝向防堆积、顶部 `MapRange` 入场缩放;宿主变换必须清零锚定地面参考平面。[独立文档](docs/雪花下落系统.md) / [脚本包](scripts/snowfall-scatter/) |
 
 ## Agent Skills(给 AI 助手用的作业规范)
+| 39 | 滚筒斜纹材质 | 圆柱面上的**螺旋斜条纹**发光材质:条纹斜着沿柱身流动(右下→左上)。核心是**波形放 Math 域**而不是让 ColorRamp 兼职 —— 后者会把参数耦合、色标被驱动锁死、拖尾长度被结构卡在 58%;含**两套并列调参方案**(按条数 / 按角度,跑哪个装哪个)、端盖按法线单独分槽(否则条纹摊成扇形风车),以及 5 条渲染管线级实测坑(隔离场景驱动不被求值 / images 按路径缓存 / pixels 返 sRGB / ortho_scale 对应较长边 / 比对前先自证 φ 映射)。[独立文档](docs/滚筒斜纹材质.md) / [脚本包](scripts/streak-material/) / [Skill](skills/blender-cylinder-spiral-material/) |
 
 `skills/` 目录收录 **Agent Skill**：`SKILL.md` 写清「怎么干、先干什么、什么绝对不能干」，
 并把配套脚本作为附件带上，让 AI 助手不必每次重新推演流程与安全闸。
@@ -68,6 +69,7 @@
 | [blender-radial-pulse-material](skills/blender-radial-pulse-material/) | **世界空间径向距离场发光材质**：图案只依赖到**共享中心的距离 r**（和方向 d）⇒ 共心的 XY/XZ/YZ 平面切过去天然同心、交线连续；含五种模式、**四段循环脉冲**（`TVAL≡帧号` 关键帧技巧 + 周期/相位分离：时长类参数只进周期就是空操作）、**空物体自定义属性 + SINGLE_PROP 驱动器**（数据驱动，不写面板）；附 Math 第 3 输入口 / 未连输入默认 0.5 / 接触表行序三个静默陷阱 | 母 skill `blender-procedural-emission-material` |
 | [blender-inward-pulse-material](skills/blender-inward-pulse-material/) | **径向内收多脉冲**：若干同心亮环从外往内收、无缝循环；核心是**环数恒定的有效窗口公式**（`L + 占空比 − 软边 − 2×最小可见宽度 ≈ N`，缺一项环数就会在 N±1 间跳）与**计数基准的选择**（内切圆 vs 角点，相差 √2）；含亮面裁切把发光限制在圆内、从姊妹材质读 ColorRamp 复制配色、**驱动只能挂 Value 节点**的守卫 | [主题 36](docs/径向内收多脉冲材质.md) / [脚本包](scripts/radial-inward-pulse/) |
 | [blender-driver-param-maintenance](skills/blender-driver-param-maintenance/) | **参数化驱动的运维改造**：两张体检表 —— `refs`（谁在读这个参数，**必须扫到 `物体数据 → node_tree`**，灯光 Shader Nodetree 层漏扫 ⇒ 误判"假控件" / 改名留静默失效驱动）、`health`（全库 `is_valid=False` + 悬空引用，判据 0 条）；含关键帧 → 常量的存档纪律、改名换轴六步（`driver_add` 自动填常量表达式、**驱动重建完才删旧键**）、三个易混的「index」 | [主题 38](docs/驱动参数化材质维护.md) / [脚本包](scripts/driver-param-maintenance/) |
+| [blender-cylinder-spiral-material](skills/blender-cylinder-spiral-material/) | **圆柱面螺旋斜条纹发光材质**：斜纹走柱面坐标相位取模（`f = u×K − v×N` + `FLOORED_MODULO`），波形走 Math 域（`MapRange(SMOOTHSTEP)×2 + MINIMUM`，ColorRamp 零驱动只管颜色）；含两套并列调参方案（按条数 / 按角度，跑哪个装哪个）、端盖按**法线**单独分槽、**方向以实测标定**（纸面推导曾推反） | [主题 39](docs/滚筒斜纹材质.md) / [脚本包](scripts/streak-material/) |
 
 安装(拷到用户级 skill 目录)：`Copy-Item .\skills\* "$env:USERPROFILE\.workbuddy\skills\" -Recurse`，
 详见 [skills/README.md](skills/README.md)。
