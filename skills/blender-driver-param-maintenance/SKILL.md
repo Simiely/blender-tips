@@ -18,8 +18,8 @@ agent_created: true
 | 这套参数化系统的**建法**(SINGLE_PROP 驱动、空物体中文属性 + `id_properties_ui`、tag 矩阵、看门狗刷新) | **`blender-procedural-emission-material`** / **`blender-radial-pulse-material`** |
 | 拆曲线 / 建曲线 / 分层 Action 的读写细节 | **`blender-bridge-ops`** |
 
-配套文档:[`docs/驱动参数化材质维护.md`](../../docs/驱动参数化材质维护.md) ·
-脚本包:[`scripts/driver-param-maintenance/`](../../scripts/driver-param-maintenance/)
+配套文档:[`docs/驱动参数化材质维护.md`](../docs/驱动参数化材质维护.md) ·
+脚本包:[`scripts/driver-param-maintenance/`](../scripts/driver-param-maintenance/)
 
 **实测环境**：Blender **5.2.0 LTS** / Windows / 9877 桥。
 

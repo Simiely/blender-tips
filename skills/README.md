@@ -42,21 +42,47 @@
 
 ## 安装
 
-拷到用户级 skill 目录（Windows）：
+⚠️ **只拷 `skills/` 会留下断链** —— 多数 SKILL.md 用 `../scripts/<包>/` 与 `../docs/<文>.md` 引用同级目录，
+所以必须**连同 `scripts/` 与 `docs/` 一起**拷到同一个父目录下（相对路径才成立）。
+
+拷到用户级 skill 目录（Windows，三件套一起拷）：
 
 ```powershell
 $dst = "$env:USERPROFILE\.workbuddy\skills"
-Copy-Item .\blender-bridge-ops    $dst -Recurse -Force
-Copy-Item .\blender-scene-cleanup $dst -Recurse -Force
-Copy-Item .\blender-render-blackout-diagnose $dst -Recurse -Force
-Copy-Item .\blender-overlap-difference $dst -Recurse -Force
-Copy-Item .\blender-procedural-emission-material $dst -Recurse -Force
-Copy-Item .\blender-plane-procedural-material $dst -Recurse -Force
-Copy-Item .\blender-radial-pulse-material $dst -Recurse -Force
-Copy-Item .\blender-inward-pulse-material $dst -Recurse -Force
-Copy-Item .\blender-driver-param-maintenance $dst -Recurse -Force
-Copy-Item .\blender-loop-keyframe-anim $dst -Recurse -Force
+# 1) 10 个技能本体
+Copy-Item .\skills\* $dst -Recurse -Force
+# 2) 共享脚本包 —— 供 SKILL.md 里的 ../scripts/<包>/ 解析
+Copy-Item .\scripts   $dst -Recurse -Force
+# 3) 配套文档 —— 供 SKILL.md 里的 ../docs/<文>.md 解析
+Copy-Item .\docs      $dst -Recurse -Force
 ```
+
+装完**务必跑一次断链校验**（下面的脚本会把每个带路径的引用逐一解析）：
+
+```bash
+python - <<'PY'
+import os, re
+SK = os.path.expanduser("~/.workbuddy/skills")
+ref = re.compile(r'((?:\.\./)*[A-Za-z0-9_\u4e00-\u9fff-]+(?:/[A-Za-z0-9_\u4e00-\u9fff.-]+)+\.(?:py|md))')
+bad = 0
+for d in sorted(os.listdir(SK)):
+    p = os.path.join(SK, d, "SKILL.md")
+    if not os.path.isfile(p): continue
+    for r in sorted(set(ref.findall(open(p, encoding="utf-8").read()))):
+        if r.startswith("http") or r.startswith("_bridge/"): continue
+        if not (os.path.exists(os.path.normpath(os.path.join(os.path.dirname(p), r)))
+                or os.path.exists(os.path.normpath(os.path.join(SK, r)))):
+            print("MISS", d, "->", r); bad += 1
+print("断链:", bad)
+PY
+```
+
+判据：**断链 = 0**。非 0 说明漏拷了 `scripts/` 或 `docs/`，或 SKILL.md 里的相对层级写错（见下）。
+
+> **相对层级约定（易错）**：从 `skills/<名>/` 出发，正确写法是 **`../scripts/`** 与 **`../docs/`**（一级）。
+> 写成 `../../scripts/`（两级）会落到安装根之外，静默断链 —— 本文件早期版本与
+> `blender-driver-param-maintenance` / `blender-inward-pulse-material` 两个 SKILL.md 都踩过，已于 2026-09-20 修正。
+
 
 拷完目录结构应为：
 

@@ -12,7 +12,11 @@ agent_created: true
 - 协议：客户端发 `code + <END>`，桥用 `bpy.app.timers` 每 0.05s 把代码调度到**主线程**执行，回 `OK\n<输出>` 或 `ERR\n<traceback>`
 - **服务端硬超时 120s** —— 超时只断开回包，脚本仍在 Blender 主线程继续跑，期间桥对外表现为无响应
 - 本机 **PowerShell 不回传 stdout**，所有结果必须落盘再用 Read 读
-- 本机 **bash 环境已损坏**（`ls`/`dirname` not found），文件操作一律用 PowerShell 或 Read/Glob/Grep 工具
+- **本机 bash 正常**（2026-09-20 复测：`ls` / `dirname` / `grep` / `find` / `diff` / `cp` 全部可用）—— 文件操作优先用 bash；
+  仅 Windows 专属能力（注册表 / COM 对象 / .NET）才落到 PowerShell 工具
+- ⚠️ **bash heredoc 会把成对反斜杠吃掉**：`python - <<'PY'` 里写 `'C:\\path\\to'`，Python 实际收到 `C:\path<TAB>o`
+  （`\t` 变制表符），字符串匹配会**静默失败**。构造含反斜杠的路径字符串一律用 `chr(92)` 拼接，
+  或用 `.split("\\n")` 这类不依赖反斜杠字面的写法（2026-09-20 实测踩坑）
 - 后台 PowerShell 任务约 **120s 会被杀掉**，长等待改用前台短轮询（每次 sleep 循环 < 90s）
 
 ## 客户端封装

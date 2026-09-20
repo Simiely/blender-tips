@@ -19,8 +19,8 @@ agent_created: true
 
 **本 skill 只讲「内收多脉冲」这一路独有的东西**：周期环带怎么定、**环数怎么算准**、亮面怎么裁、配色怎么从别的材质搬。
 
-**脚本包**：[`../../scripts/radial-inward-pulse/`](../../scripts/radial-inward-pulse/)（`probe_target_size.py` / `build_inward_pulse.py` / `verify_inward_pulse.py`），
-配套文档 [`../../docs/径向内收多脉冲材质.md`](../../docs/径向内收多脉冲材质.md)。
+**脚本包**：[`../scripts/radial-inward-pulse/`](../scripts/radial-inward-pulse/)（`probe_target_size.py` / `build_inward_pulse.py` / `verify_inward_pulse.py`），
+配套文档 [`../docs/径向内收多脉冲材质.md`](../docs/径向内收多脉冲材质.md)。
 
 **实测环境**：Blender **5.2.0 LTS** / Windows。
 

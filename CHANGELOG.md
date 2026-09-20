@@ -1,5 +1,23 @@
 # CHANGELOG.md
 
+## v1.24.3 · 2026-09-20
+
+- **接入联调修复：技能安装链路的相对路径断链** —— 按 `skills/README.md` 只拷 `skills/` 到 `~/.workbuddy/skills/` 后，
+  所有 `../scripts/<包>/` 与 `../docs/<文>.md` 引用全部解析失败。本次修复三处：
+  - `skills/README.md` 安装章节：改为**三件套一起拷**（`skills/` + `scripts/` + `docs/`），并附**断链校验脚本**（判据「断链 = 0」）+ 相对层级约定说明
+  - `skills/blender-driver-param-maintenance/SKILL.md`：`../../docs/` → `../docs/`、`../../scripts/` → `../scripts/`（2 处）
+  - `skills/blender-inward-pulse-material/SKILL.md`：同上（4 处）
+  - **根因**：从 `skills/<名>/` 出发正确层级是**一级** `../`；写成两级 `../../` 会落到安装根之外
+- **`blender-bridge-ops` 环境事实订正（实测）** ——
+  - 删除错误条目「本机 bash 环境已损坏（`ls`/`dirname` not found）」：2026-09-20 复测 `ls`/`dirname`/`grep`/`find`/`diff`/`cp` **全部可用**，文件操作应优先用 bash
+  - 「PowerShell 不回传 stdout」**经复测仍然成立**，保留
+  - 新增坑：**bash heredoc 会吃掉成对反斜杠** —— `python - <<'PY'` 里写 `'C:\\path\\to'`，Python 实际收到 `C:\path<TAB>o`（`\t` 变制表符），字符串匹配**静默失败**；构造含反斜杠的路径必须用 `chr(92)` 拼接
+- **联调实测（Blender 5.2.0 LTS / `2609190xBx02.blend` / CYCLES / 12635 对象 / 12 场景）** —— 经 9877 桥实跑两个只读技能脚本，全链路通：
+  - `blender-scene-cleanup` → `snapshot_baseline.py`：读数 `total 12635 / empty 5916 / empty_no_child 1941 / materials 279 / actions 78`，落盘 `cleanup_baseline.json` 成功
+  - `blender-render-blackout-diagnose` → `diagnose_blackout.py`：一次打全七条路径，命中「AgX 会压暗发光」「1 个假发光节点（`3d66-VRayMtl-22674063-024` 的孤儿原理化 BSDF，发 Strength 改了没用）」「4 个材质多 BSDF 只接 1 个」
+  - 附带校验：48 个自带脚本 `ast.parse` 语法全通过；10 个 SKILL.md 路径引用**断链 0**
+- 涉及文档：`CHANGELOG.md`、`skills/README.md`、`skills/blender-bridge-ops/SKILL.md`、`skills/blender-driver-param-maintenance/SKILL.md`、`skills/blender-inward-pulse-material/SKILL.md`
+
 ## v1.24.2 · 2026-09-19
 
 - **双径向 Skill 铁律统一补「三平面」备注** —— 两个径向发光材质 Skill（四段循环脉冲 / 内收多脉冲）都明确：**效果必须在「三块两两正交且共心的平面」下做才准确**，目标不是三平面时必须先提示用户补齐；三面同场交线连续、任意角度环都同心，**效果对不对一眼可验**。

@@ -28,6 +28,7 @@
 - **探查脚本禁止 `round(kp.co[0])` 统计帧号**(banker's rounding 掩盖 .5 帧,如 361.5→362);用精确值 + `abs(f-round(f))>1e-6` 筛小数帧
 - **Blender 没有"反转关键帧"菜单**!反转 = 关键帧菜单 → 镜像(`Ctrl-M`)→ 沿时间轴关于当前帧(播放头放中间帧)或沿时间轴关于时间 0
 - **send.py 大任务(全量遍历 5 万+ 对象)>120s 会报超时,但桥实际执行完** → 超时后重跑同脚本验证(幂等脚本);写操作先备份
+- **bash heredoc 会吃掉成对反斜杠**:`python - <<'PY'` 里写 `'C:\\path\\to'`,Python 实际收到 `C:\path<TAB>o`(因为 `\t` 被解释成制表符)→ 字符串 `in` / `replace` **静默失败**(返回 False 而不是报错)。构造含反斜杠的路径一律用 `chr(92)` 拼接,或用 `split(chr(10))` 这类不依赖反斜杠字面的写法。**判据:替换后必须回读并打印结果核对,别信 `replace` 的返回值**
 - **重复网格合并指纹必须含材质+UV**(几何相同≠可合并);合并前抽检真实顶点坐标;合并后同组对象共享数据,编辑一个全部同步
 - **parent 赋值后手动设 mpi**:`child.parent = empty` 在 5.x 不自动更新 matrix_parent_inverse → 世界位置 = 父位置+局部(翻倍)!必须 `child.matrix_parent_inverse = empty.matrix_world.inverted()`;空对象先定位到目标位置再挂载;设置 location 后 view_layer.update() 刷新
 - **循环渐变 ColorRamp**:等分数=颜色数×4;同色连标=平台,删过渡中点=线性过渡,首尾同色=无缝循环;插值必须 LINEAR(EASE 会抖);滚动用 Mapping Location 关键帧,勿移动空对象
