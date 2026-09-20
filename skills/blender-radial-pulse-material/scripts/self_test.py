@@ -35,20 +35,42 @@ def snapshot():
     }
 
 def restore(snap):
-    """删掉所有以 _SKILLTEST 开头的材质，并把槽位/帧还原回基线。"""
+    """还原现场：删临时材质与本次新建的对象，且**只在槽位真被改过时**才碰槽位。
+
+    两条实测教训（2026-09-20，真实 Blender 5.2.0 上验证）：
+      1) radial_field 会自建共享坐标空物体（CONFIG["ctrl"]）。旧实现只删材质，
+         不删这个对象 -> 每次试跑都在用户工程里留下 1 个无主 EMPTY，
+         restore 判据也随之一直报 FAIL。
+      2) `me.materials.clear()` 会把该 mesh **所有面的 material_index 归零**。
+         旧实现对全部 mesh 无条件执行，等于清掉用户的面级材质分配 ——
+         实测探针（2 槽、面索引 6 面交替 {0:3,1:3}）跑完变成 {0:6}。
+         改为「槽位没变就完全跳过」，面索引即不会被误伤。
+    """
     for m in [m for m in bpy.data.materials if m.name.startswith("_SKILLTEST")]:
         bpy.data.materials.remove(m)
+
+    # 本次试跑新建的对象（基线里不存在的）—— 主要是 radial_field 自建的 ctrl 空物体
+    for n in sorted(set(o.name for o in bpy.data.objects) - set(snap["objs"])):
+        ob = bpy.data.objects.get(n)
+        if ob is not None:
+            bpy.data.objects.remove(ob, do_unlink=True)
+
     for name, want in snap["slots"].items():
         ob = bpy.data.objects.get(name)
-        if not ob:
+        if not ob or not ob.data:
             continue
         me = ob.data
+        cur = [m.name if m else None for m in me.materials]
+        if cur == want:
+            continue                     # 槽位未变 -> 绝不触碰（clear() 会归零面索引）
         me.materials.clear()
         for mn in want:
             if mn:                       # append(None) 会抛错 —— 跳过即可
                 me.materials.append(bpy.data.materials[mn])
-        for poly in me.polygons:
-            poly.material_index = 0
+        n_slots = len(me.materials)
+        for poly in me.polygons:         # 只把越界索引归 0，其余保持原样
+            if poly.material_index >= n_slots:
+                poly.material_index = 0
     if bpy.context.scene.frame_current != snap["frame"]:
         bpy.context.scene.frame_set(snap["frame"])
 
@@ -117,7 +139,20 @@ for r in results:
                % (r["mode"], "PASS" if r["ok"] else "**FAIL**", r["nodes"], r["links"], r["fails_n"]))
 log.append("场景还原: %s" % ("OK（对象/材质表/槽位/帧 全部与基线一致）" if same else "**FAIL** 有残留"))
 if not same:
-    log.append("  残留材质=%s" % sorted(m.name for m in bpy.data.materials))
-    log.append("  基线对象=%s" % BASE["objs"])
-    log.append("  现在对象=%s" % AFTER["objs"])
+    # 只输出**差异**。旧实现打的是全量材质表/对象表 —— 在几千个材质的工程里会刷出
+    # 几十万字节噪声（实测 445 KB），还会把用户原有材质标成「残留材质」，
+    # 把排查方向带到「材质没删干净」，而真正的残留其实是对象。
+    def _only_in(a, b):
+        return sorted(set(b) - set(a))
+
+    add_o, del_o = _only_in(BASE["objs"], AFTER["objs"]), _only_in(AFTER["objs"], BASE["objs"])
+    add_m, del_m = _only_in(BASE["mats"], AFTER["mats"]), _only_in(AFTER["mats"], BASE["mats"])
+    ch_s = [n for n in BASE["slots"]
+            if n in AFTER["slots"] and BASE["slots"][n] != AFTER["slots"][n]]
+    log.append("  新增对象(%d)=%s" % (len(add_o), add_o[:20]))
+    log.append("  消失对象(%d)=%s" % (len(del_o), del_o[:20]))
+    log.append("  新增材质(%d)=%s" % (len(add_m), add_m[:20]))
+    log.append("  消失材质(%d)=%s" % (len(del_m), del_m[:20]))
+    log.append("  槽位变化(%d)=%s" % (len(ch_s), ch_s[:20]))
+    log.append("  帧: 基线=%s 现在=%s" % (BASE["frame"], AFTER["frame"]))
 print("\n".join(log))

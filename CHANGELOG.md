@@ -1,5 +1,33 @@
 # CHANGELOG.md
 
+## v1.24.4 · 2026-09-20
+
+- **`blender-radial-pulse-material/self_test.py` 还原逻辑修复（实测驱动，两处真缺陷）** ——
+  - **残留**：`radial_field.py` 会自建共享坐标空物体 `CONFIG["ctrl"]`（默认 `FB_ctrl`），
+    而 `restore()` 只删 `_SKILLTEST` 材质、**不删这个对象** → 每次试跑都在用户工程里留下
+    1 个无主 EMPTY，还原判据也随之一直报 FAIL。实测：跑前 12635 对象 → 跑后 12636；
+    残留物带 `assign=false` 与全套 CONFIG 数值属性（铁证）。已改为删除「基线中不存在的新增对象」。
+  - **数据破坏（严重）**：`restore()` 对**全部 6699 个 mesh** 无条件执行
+    `me.materials.clear()` + `poly.material_index = 0`。`clear()` 会把该 mesh 所有面的
+    `material_index` 归零 —— 等于清掉用户的面级材质分配。
+    - 反向对照：隔离探针（2 槽、6 面交替 `{0:3,1:3}`）跑完变 `{0:6}`；修复后保持 `{0:3,1:3}`
+    - 真实损失：磁盘原文件里 152 个多槽 mesh 有 **141 个带非零面索引**；跑完后内存中
+      **152 个全部为 0**。其中 `Group-5334926-1-728.001` 有 1657812 面、**1401528 面（85%）
+      用槽 1**，`Group-5334926-1-728/.729/.730` 各有 156380 面用槽 1 → 材质整体错乱
+    - 已改为「槽位未变则 `continue`，绝不触碰」；确需还原槽位时只把**越界**索引归 0
+  - **误导性报告**：还原失败时打印的是**全量材质表/对象表**（实测刷出 445 KB 噪声），
+    还把用户原有材质标成「残留材质」，把排查方向带向「材质没删干净」—— 而真残留其实是对象。
+    已改为只输出**差异**（新增/消失的对象与材质、变化的槽位、帧）。
+- **联调实测（Blender 5.2.0 LTS / `2609190xBx02.blend` / CYCLES / 12635 对象 / 12 场景）** —— 经 9877 桥做**写入闭环**：
+  - `blender-loop-keyframe-anim`：建隔离临时对象 → `write_loop_anim.py` 写周期三角波 + CYCLES →
+    另起请求 `verify_loop_anim.py` 独立核验，峰值精确命中 `13.00` / `50.00`，BEZIER 与 CYCLES 修饰器均在 →
+    回滚后 `12635 / 78 actions / 帧 365-720` 与基线逐项一致
+  - `blender-radial-pulse-material/self_test.py`：4/4 模式（spot / ring / spike / pulse）`FAILS=0` 全通过
+  - 附带发现：这批技能的目标对象名（`竖向灯001_噪波控制`、`水晶走廊_竖向灯.001`）在当前文件里
+    **一个都不存在**（模糊搜索「竖向灯」「水晶走廊」命中 0），说明它们是给另一个工程文件写的；
+    运行前必须先改 `TARGET_OBJ` / `A_NAME` 等配置项
+- 涉及文档：`CHANGELOG.md`、`skills/blender-radial-pulse-material/SKILL.md`、`scripts/self_test.py`、`AGENTS.md`（基线行）
+
 ## v1.24.3 · 2026-09-20
 
 - **接入联调修复：技能安装链路的相对路径断链** —— 按 `skills/README.md` 只拷 `skills/` 到 `~/.workbuddy/skills/` 后，
