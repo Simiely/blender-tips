@@ -311,7 +311,7 @@ f = (u + spin) × K     spin = −frame × 旋转速度
 | | 方案 A · 按条数 | 方案 B · 按角度 |
 |---|---|---|
 | 材质 | `..._滚筒斜纹_按条数` | `..._滚筒斜纹_按角度` |
-| 槽位 | 1 | 3 |
+| 槽位 | **0** | **0**（跑哪个装哪个） |
 | 节点/连线 | 18 / 20 | 22 / 25 |
 | 面板/看门狗键 | `VIEW3D_PT_streak_count` / `_streak_count_watch` | `..._angle` / `_streak_angle_watch` |
 
@@ -336,7 +336,7 @@ f = (u + spin) × K     spin = −frame × 旋转速度
    跑一次 B 就把 A 的控件删了、A 的驱动跟着失效。两边都只清**历史废弃键**。
 2. 面板类名 / 看门狗键 / 文本块名各自独立，**互不摘对方的**
 3. 两套 `cleanup` 可以共同清掉【更早的单一方案】遗留物（`_streak_watch` 等）
-4. 切换用脚本改**面索引**（不是只改下拉框）
+4. **换方案 = 重跑对应建脚本**（不并存，所以没有"切换脚本"这回事；改面索引只在手动调槽时才需要）
 5. 核验要**并列跑两遍**，并断言"两个材质同时存在且互不覆盖"
 
 ⚠️ 核验 `RADIANS` 节点时：它的**输入是度数**，换算在节点内部完成；
@@ -442,8 +442,7 @@ prof = lambda row: np.interp(X_PIX, np.arange(wpx), row)
 | `scripts/streak_count_panel.py` | 方案 A 面板 + 看门狗源码（类别「滚筒斜纹·条数」） |
 | **`scripts/build_streak_angle.py`** | **方案 B 建脚本**：K + 斜角，`N` 经 `RADIANS→TANGENT→K×(H/P)÷tanθ` 反算（22 节点 / 25 连线） |
 | `scripts/streak_angle_panel.py` | 方案 B 面板 + 看门狗（类别「滚筒斜纹·角度」，底部实时显示反算出的 N） |
-| `scripts/switch_to_count.py` / `switch_to_angle.py` | 两套都装着时快速切换（改每个面的 `material_index`，即时生效） |
-| `scripts/verify_variants.py` | **并列核验**（只验已装的方案，未装自动 SKIP；含幽灵参数 / 空槽位断言） |
+| `scripts/verify_variants.py` | **核验**（只验已装的方案，未装自动 SKIP；含幽灵参数 / 槽位无空槽 / 端盖面分配断言） |
 | **`scripts/recon_cylinder.py`** | **换工程先跑**：逐顶点世界包围盒 → 半径恒定 / 轴向 / zmin / zmax / 锚点偏差 |
 | **`scripts/shape_check.py`** | ★ **端到端波形验证**：φ 空间剖面 vs 独立重算的理论 mask（相关系数判据，实测 0.9989） |
 | **`scripts/shift_check.py`** | ★ **跨帧位移方向实测**（固定高度行的暗带中心比对）—— 方向就是这么定下来的 |

@@ -29,7 +29,7 @@ mask → ColorRamp（配色）→ Principled BSDF.Emission Color
 | | **A · 按条数** | **B · 按角度** |
 |---|---|---|
 | 材质 | `..._滚筒斜纹_按条数` | `..._滚筒斜纹_按角度` |
-| 槽位 | 1 | 3 |
+| 槽位 | **0** | **0**（跑哪个装哪个，不并存） |
 | 控件 | 条纹数量 K + **高度周期数 N** | 条纹数量 K + **斜角** |
 | 节点/连线 | 18 / 20 | 22 / 25 |
 | 斜角 | 由 K:N 算出 | 直接给，`N = K×(柱高/周长)÷tan(斜角)` |
@@ -46,8 +46,7 @@ mask → ColorRamp（配色）→ Principled BSDF.Emission Color
 | `streak_count_panel.py` | 方案 A 面板源码（写进 .blend 的 Register 文本块，自包含） | 由建脚本读取 |
 | `build_streak_angle.py` | **方案 B 建脚本**（斜角经节点链反算 N） | 同上 |
 | `streak_angle_panel.py` | 方案 B 面板源码 | 由建脚本读取 |
-| `switch_to_count.py` / `switch_to_angle.py` | 已装两套时快速切换（改每个面的 `material_index`） | 桥 |
-| `verify_variants.py` | **并列核验**：结构 + 驱动 + 面板 + 看门狗 + 幽灵参数检查 + 槽位无空槽 | 桥（**必须另开一次请求**） |
+| `verify_variants.py` | **核验**：结构 + 驱动 + 面板 + 看门狗 + 幽灵参数检查 + 端盖面分配 + 槽位无空槽；未装的方案自动 SKIP | 桥（**必须另开一次请求**） |
 | `recon_cylinder.py` | **换工程先跑**：逐顶点求世界包围盒 → 半径是否恒定 / 轴向 / zmin / zmax / 锚点偏差 | 桥 |
 | `../docs/滚筒斜纹材质.md` | 完整原理 / 参数说明 / 实测数据 / 坑 | 阅读 |
 | `../../skills/blender-cylinder-spiral-material/` | 同一套脚本的 AI 作业规范版 | AI 加载 |

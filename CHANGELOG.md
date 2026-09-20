@@ -1,5 +1,16 @@
 # CHANGELOG.md
 
+## v1.24.11 · 2026-09-20
+
+- **文档一致性收尾**（用户确认效果正确后要求"修正刚才的一些内容"）：
+  - 槽位表述统一为 `[0 条纹, 1 端盖]`（原表格里还写着 1/3）
+  - 删掉已失效的「切换脚本」说法与 `switch_to_*.py` 文件（两方案不并存，
+    **换方案 = 重跑对应建脚本**）+ 两个 README 与 skill 里的对应行
+  - 「并列核验」措辞改为「核验」（现在只验已装的方案，未装自动 SKIP）
+  - **本地与仓库的 `SKILL.md` 做了一次逐行 diff 并同步**（发现 2 行措辞漂移）
+- 涉及文档：`skills/blender-cylinder-spiral-material/*`、`scripts/streak-material/README.md`、
+  `CHANGELOG.md`、`AGENTS.md`
+
 ## v1.24.10 · 2026-09-20
 
 - **修「有一节对不上」**：实测根因是**端盖材质丢失** —— `material_slots` 只剩 1 个槽、
