@@ -1,0 +1,107 @@
+# panel_vertical_stripes.py —— 竖条旋转材质 · 参数面板 + 看门狗（自包含，供 Register 文本块使用）
+#
+# 部署：作为文本块放进 .blend，勾 Register(use_module=True)，并开启
+#       偏好设置 → Save & Load → Auto Run Python Scripts，然后 Ctrl+S。
+#       重开后本模块自动 register()，面板与看门狗一起恢复。
+#
+# 说明：本文件不 import 任何外部脚本 —— 文本块里必须自包含。
+#       与 spiral_rise_panel.py 完全独立（各自的类名/定时器键互不干扰），可同时在线。
+import bpy
+
+CTRL_NAME = '竖条旋转控制'
+MAT_NAMES = ['滚动效果网格体_竖条旋转']
+PROPS = ['条纹数量', '条纹宽度', '渐变柔化', '流星拖尾', '旋转速度', '发光强度']
+
+_TICK = 0.25
+_WATCH_LAST = {}
+_WATCH_KEY = '_vertical_stripes_watch'
+
+
+def _touch():
+    """强制重算挂在材质/节点树上的驱动（ctl + mat + node_tree 三处都 tag）。"""
+    c = bpy.data.objects.get(CTRL_NAME)
+    if c:
+        c.update_tag()
+    for mn in MAT_NAMES:
+        m = bpy.data.materials.get(mn)
+        if m is None:
+            continue
+        m.update_tag()
+        if m.use_nodes and m.node_tree:
+            m.node_tree.update_tag()
+    bpy.context.view_layer.update()
+
+
+def _watch():
+    """定时看门狗：只在该值真的变了才 tag ⇒ 无空转、无递归。"""
+    try:
+        c = bpy.data.objects.get(CTRL_NAME)
+        if c is not None:
+            dirty = False
+            for k in PROPS:
+                v = c.get(k)
+                if _WATCH_LAST.get(k) != v:
+                    _WATCH_LAST[k] = v
+                    dirty = True
+            if dirty:
+                _touch()
+    except Exception:
+        pass
+    return _TICK
+
+
+class VIEW3D_PT_vertical_stripes(bpy.types.Panel):
+    bl_label = '竖条旋转材质'
+    bl_idname = 'VIEW3D_PT_vertical_stripes'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = '竖条旋转'
+
+    def draw(self, context):
+        lay = self.layout
+        c = bpy.data.objects.get(CTRL_NAME)
+        if c is None:
+            lay.label(text='未找到控制空物体:', icon='ERROR')
+            lay.label(text=CTRL_NAME)
+            return
+        col = lay.column(align=True)
+        for k in PROPS:
+            col.prop(c, '["%s"]' % k, text=k)
+        lay.separator()
+        lay.label(text='条纹数量必须是整数', icon='INFO')
+        lay.label(text='渐变柔化 0=硬边 1=最柔', icon='INFO')
+        lay.label(text='流星拖尾 0=对称 1=流星', icon='INFO')
+        lay.label(text='旋转速度 > 0 = 俯视逆时针', icon='INFO')
+        lay.label(text='颜色改「发光配色」节点色标', icon='COLOR')
+
+
+def register():
+    try:
+        bpy.utils.unregister_class(VIEW3D_PT_vertical_stripes)
+    except Exception:
+        pass
+    bpy.utils.register_class(VIEW3D_PT_vertical_stripes)
+
+    # 去重：模块被重新加载时 _watch 会是【新的函数对象】，
+    # 直接 unregister(_watch) 摘不掉上一代那个 ⇒ 必须把上一代存起来再摘。
+    old = bpy.app.driver_namespace.get(_WATCH_KEY)
+    if old is not None:
+        try:
+            bpy.app.timers.unregister(old)
+        except Exception:
+            pass
+    bpy.app.driver_namespace[_WATCH_KEY] = _watch
+    bpy.app.timers.register(_watch, first_interval=0.5, persistent=True)
+    print('[vertical_stripes_panel] 面板 + 看门狗已注册')
+
+
+def unregister():
+    try:
+        bpy.app.timers.unregister(_watch)
+    except Exception:
+        pass
+    bpy.app.driver_namespace.pop(_WATCH_KEY, None)
+    try:
+        bpy.utils.unregister_class(VIEW3D_PT_vertical_stripes)
+    except Exception:
+        pass
