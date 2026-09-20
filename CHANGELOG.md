@@ -1,5 +1,17 @@
 # CHANGELOG.md
 
+## v1.24.7 · 2026-09-20
+
+- **滚筒斜纹拆成两份【并列方案】**（原先硬塞在一套控件里，语义互相打架）：
+  ① `build_streak_count.py` 按条数（K + 高度周期数 N 两个整数控件）⇒ 斜角是结果，占槽 1
+  ② `build_streak_angle.py` 按角度（K + 斜角，N 经 `RADIANS→TANGENT→K×(H/P)÷tanθ` 反算），占槽 3
+  两套面板/看门狗/文本块键名各自独立，可同时在线；切换脚本改面索引即时生效。
+- 关键坑：**废弃键列表绝不能含对方在用的键** —— 实测 B 的 `DEPRECATED` 带了「高度条纹数」，
+  跑一次 B 就把 A 的控件删了、A 的驱动一并失效。两边只清历史废弃键。
+- 核验改为**并列跑两遍**（`verify_variants.py`）：49 项，含「两个材质同时存在且互不覆盖」断言。
+- 说明「斜角越大屏幕上条纹越弯、间距越不均」是**柱面投影固有性质**（`x = R·sinφ` 非线性），非缺陷。
+- 涉及文档：`skills/blender-cylinder-spiral-material/*`、`CHANGELOG.md`、`AGENTS.md`（基线行）
+
 ## v1.24.6 · 2026-09-20
 
 - **新增技能 `blender-cylinder-spiral-material`（圆柱螺旋 / 滚筒斜纹发光材质）** —— 
