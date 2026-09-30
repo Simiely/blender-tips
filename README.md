@@ -51,6 +51,7 @@
 | 39 | 星芒散射光效系统 | 参数化星芒 + 沿相机朝向的亮片散射:一个被隐藏的单面"源"平面借 `星芒_GN` 几何节点生成星芒形状,三个点云宿主各挂一份 `星芒_散布_GN` 把它实例化到每个点,并经 `ObjectInfo(RELATIVE)` 继承源缩放 + `对齐欧拉至矢量(空物体)` 做 billboard + SceneTime 错相缩放动画 + 设置位置偏移;`星芒_控制器` 6 个中文滑块统一控形状/大小/循环脉冲。源隐藏渲染不影响散布实例。[独立文档](docs/星芒散射光效系统.md) / [脚本包](scripts/starburst-scatter/) |
 | 40 | 循环三角波关键帧动画 (Skill) | 给自定义属性批量写「循环三角波关键帧动画」:一个完整周期进 fcurve + CYCLES 循环修饰器铺满帧范围;沉淀 5.x Slotted Action 正确写入路径、FModifierCycles 无 mode 属性、关键帧值精确写入绕被驱动干扰、is_valid 判空、depsgraph 读被驱动值。[Skill](skills/blender-loop-keyframe-anim/) |
 | 41 | 雪花下落系统 | 参数化连续下雪:一个隐藏的低模雪花源 + 一个 EMPTY 宿主上的 `下雪_GN` 节点组,按真实雪速(~0.5 m/s)下落 50000 片;`SceneTime→FLOORED_MODULO` 触地回卷(贴地消失无半空消失)、`RandomValue(ID←Index)` 独立相位/落点/朝向防堆积、顶部 `MapRange` 入场缩放;宿主变换必须清零锚定地面参考平面。[独立文档](docs/雪花下落系统.md) / [脚本包](scripts/snowfall-scatter/) |
+| 42 | 空物体父级整体挪动集合 | 新建 Empty + 选中集合对象 + Ctrl+P 挂父级:以后只动 Empty,整个集合整体偏移,对象自身关键帧动画不受影响;核心机制 = 三段矩阵链与 Parent Inverse 快照;只挂顶层防断链;含 Ctrl+P 三选项对照、实测坑与集合实例化对比,[独立文档](docs/空物体父级整体挪动集合.md) |
 
 ## Agent Skills(给 AI 助手用的作业规范)
 | 39 | 滚筒斜纹材质 | 圆柱面上的**螺旋斜条纹**发光材质:条纹斜着沿柱身流动(右下→左上)。核心是**波形放 Math 域**而不是让 ColorRamp 兼职 —— 后者会把参数耦合、色标被驱动锁死、拖尾长度被结构卡在 58%;含**两套并列调参方案**(按条数 / 按角度,跑哪个装哪个)、端盖按法线单独分槽(否则条纹摊成扇形风车),以及 5 条渲染管线级实测坑(隔离场景驱动不被求值 / images 按路径缓存 / pixels 返 sRGB / ortho_scale 对应较长边 / 比对前先自证 φ 映射)。[独立文档](docs/滚筒斜纹材质.md) / [脚本包](scripts/streak-material/) / [Skill](skills/blender-cylinder-spiral-material/) |
