@@ -52,6 +52,7 @@
 | 40 | 循环三角波关键帧动画 (Skill) | 给自定义属性批量写「循环三角波关键帧动画」:一个完整周期进 fcurve + CYCLES 循环修饰器铺满帧范围;沉淀 5.x Slotted Action 正确写入路径、FModifierCycles 无 mode 属性、关键帧值精确写入绕被驱动干扰、is_valid 判空、depsgraph 读被驱动值。[Skill](skills/blender-loop-keyframe-anim/) |
 | 41 | 雪花下落系统 | 参数化连续下雪:一个隐藏的低模雪花源 + 一个 EMPTY 宿主上的 `下雪_GN` 节点组,按真实雪速(~0.5 m/s)下落 50000 片;`SceneTime→FLOORED_MODULO` 触地回卷(贴地消失无半空消失)、`RandomValue(ID←Index)` 独立相位/落点/朝向防堆积、顶部 `MapRange` 入场缩放;宿主变换必须清零锚定地面参考平面。[独立文档](docs/雪花下落系统.md) / [脚本包](scripts/snowfall-scatter/) |
 | 42 | 空物体父级整体挪动集合 | 新建 Empty + 选中集合对象 + Ctrl+P 挂父级:以后只动 Empty,整个集合整体偏移,对象自身关键帧动画不受影响;核心机制 = 三段矩阵链与 Parent Inverse 快照;只挂顶层防断链;含 Ctrl+P 三选项对照、实测坑与集合实例化对比,[独立文档](docs/空物体父级整体挪动集合.md) |
+| 43 | 按材质合并为单个网格体 | 对象太多导致 GUI 卡死的**治本办法**(是 [主题 33](docs/按材质拆分为多个网格体.md) 的反向操作):**不开 GUI** 用 `blender --background` 命令行无头处理,把材质组合相同的对象合并掉 —— 实测 24,481 → **56** 个对象、顶点/面(10,197,620 / 7,957,765)**严格守恒**、模型包围盒偏差 0;三大要点:**join 前必须烘焙世界变换**(否则模型散架)、join 开销看**对象数**不看几何量(24,137 个对象的组吃掉 98% 时间,332 万顶点的组只用 0.1s)、进程内守恒 ≠ 文件能打开所以**必须重开复核**。附多实例红线(`mesh.users>1` 会让文件反而变大)、排除名单、小场景自测台。[独立文档](docs/按材质合并为单个网格体.md) / [脚本包](scripts/merge-by-material/) / [Skill](skills/blender-headless-batch/) |
 
 ## Agent Skills(给 AI 助手用的作业规范)
 | 39 | 滚筒斜纹材质 | 圆柱面上的**螺旋斜条纹**发光材质:条纹斜着沿柱身流动(右下→左上)。核心是**波形放 Math 域**而不是让 ColorRamp 兼职 —— 后者会把参数耦合、色标被驱动锁死、拖尾长度被结构卡在 58%;含**两套并列调参方案**(按条数 / 按角度,跑哪个装哪个)、端盖按法线单独分槽(否则条纹摊成扇形风车),以及 5 条渲染管线级实测坑(隔离场景驱动不被求值 / images 按路径缓存 / pixels 返 sRGB / ortho_scale 对应较长边 / 比对前先自证 φ 映射)。[独立文档](docs/滚筒斜纹材质.md) / [脚本包](scripts/streak-material/) / [Skill](skills/blender-cylinder-spiral-material/) |
@@ -71,6 +72,7 @@
 | [blender-inward-pulse-material](skills/blender-inward-pulse-material/) | **径向内收多脉冲**：若干同心亮环从外往内收、无缝循环；核心是**环数恒定的有效窗口公式**（`L + 占空比 − 软边 − 2×最小可见宽度 ≈ N`，缺一项环数就会在 N±1 间跳）与**计数基准的选择**（内切圆 vs 角点，相差 √2）；含亮面裁切把发光限制在圆内、从姊妹材质读 ColorRamp 复制配色、**驱动只能挂 Value 节点**的守卫 | [主题 36](docs/径向内收多脉冲材质.md) / [脚本包](scripts/radial-inward-pulse/) |
 | [blender-driver-param-maintenance](skills/blender-driver-param-maintenance/) | **参数化驱动的运维改造**：两张体检表 —— `refs`（谁在读这个参数，**必须扫到 `物体数据 → node_tree`**，灯光 Shader Nodetree 层漏扫 ⇒ 误判"假控件" / 改名留静默失效驱动）、`health`（全库 `is_valid=False` + 悬空引用，判据 0 条）；含关键帧 → 常量的存档纪律、改名换轴六步（`driver_add` 自动填常量表达式、**驱动重建完才删旧键**）、三个易混的「index」 | [主题 38](docs/驱动参数化材质维护.md) / [脚本包](scripts/driver-param-maintenance/) |
 | [blender-cylinder-spiral-material](skills/blender-cylinder-spiral-material/) | **圆柱面螺旋斜条纹发光材质**：斜纹走柱面坐标相位取模（`f = u×K − v×N` + `FLOORED_MODULO`），波形走 Math 域（`MapRange(SMOOTHSTEP)×2 + MINIMUM`，ColorRamp 零驱动只管颜色）；含两套并列调参方案（按条数 / 按角度，跑哪个装哪个）、端盖按**法线**单独分槽、**方向以实测标定**（纸面推导曾推反） | [主题 39](docs/滚筒斜纹材质.md) / [脚本包](scripts/streak-material/) |
+| [blender-headless-batch](skills/blender-headless-batch/) | **不开 GUI 处理巨型工程**（唯一**不走 9877 桥**、用 `--background` 命令行的 skill）：按材质合并海量网格降对象数、结构扫描、删集合、合并两工程；含多实例红线、**世界变换烘焙**（`CLEAR_KEEP_TRANSFORM`，不烘焙模型散架）、join 开销看**对象数**的非直觉真相、后台跑与 **CPU 增量判活法**、**重开复核**铁律、合并两个工程时「重名是假警报」的几何指纹判据 | [主题 43](docs/按材质合并为单个网格体.md) / [脚本包](scripts/merge-by-material/) |
 
 安装(拷到用户级 skill 目录)：`Copy-Item .\skills\* "$env:USERPROFILE\.workbuddy\skills\" -Recurse`，
 详见 [skills/README.md](skills/README.md)。

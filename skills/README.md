@@ -28,8 +28,9 @@
 | `blender-driver-param-maintenance` | **参数化驱动系统的运维改造**（已建成系统的维护，不是新建）：① `refs` 引用体检 —— 谁在读这个参数（扫描**必须含 `物体数据 → node_tree`**，灯光 Shader Nodetree 层漏扫会双向出事：误判"假控件" / 改名后驱动静默失效）；② `health` 失效体检 —— 全库 `is_valid=False` + 悬空引用，判据 0 条；③ 关键帧 → 常量的存档纪律；④ 改名换轴六步顺序（驱动重建完才删旧键） | [驱动参数化材质维护](../docs/驱动参数化材质维护.md) / [`../scripts/driver-param-maintenance/`](../scripts/driver-param-maintenance/) |
 | `blender-cylinder-spiral-material` | **圆柱面螺旋斜条纹发光材质**（滚筒）：斜纹 = 柱面坐标相位取模 `f = u×K − v×N` + `FLOORED_MODULO`；波形走 **Math 域**（`MapRange(SMOOTHSTEP)×2 + MINIMUM`），**不让 ColorRamp 兼职**（后者会参数耦合 / 色标被驱动锁死 / 拖尾被结构卡在 58%）；ColorRamp 零驱动只管颜色。**两套并列调参方案**（按条数 / 按角度，跑哪个装哪个，避免留幽灵参数）；端盖按**法线**单独分槽（否则条纹摊成扇形风车）；**方向以实测标定**（纸面推导曾推反） | [滚筒斜纹材质](../docs/滚筒斜纹材质.md) / [`../scripts/streak-material/`](../scripts/streak-material/) |
 | `blender-loop-keyframe-anim` | **给自定义属性批量写「循环三角波关键帧动画」**：一个完整周期进 fcurve + CYCLES 循环修饰器铺满帧范围，贝塞尔自然缓入缓出；含 Slotted Action 正确写入路径、5.x 无 mode 属性、`is_valid=False` 判空、depsgraph 读被驱动值、关键帧值精确写入（绕开属性当前值被驱动干扰） | 传输层 `blender-bridge-ops`；[技巧速查 §3/§4/§5](../docs/技巧速查.md) |
+| `blender-headless-batch` | **不开 GUI、用命令行无头处理巨型工程**（`--background`）：按材质合并海量网格降对象数、工程结构扫描、删除集合、合并两个工程；含多实例红线、**世界变换烘焙**（不烘焙模型会散架）、join 性能真相（开销看**对象数**而非几何量）、后台跑与 CPU 判定法、**重开复核**铁律、以及合并两个工程时「重名是假警报」的几何指纹判据 | [按材质合并为单个网格体](../docs/按材质合并为单个网格体.md) / [`../scripts/merge-by-material/`](../scripts/merge-by-material/) |
 
-十者是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+十一个是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
 其余九个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
 `blender-overlap-difference` 去重叠、`blender-procedural-emission-material` 做程序化发光材质与控件、
 `blender-plane-procedural-material` 用平面验收材质、`blender-radial-pulse-material` 做径向距离场脉冲材质、
@@ -41,6 +42,11 @@
 `blender-loop-keyframe-anim` 是**动画写入类**（继承 bridge 传输层，管关键帧而非材质）；
 各 skill 开头均引用 `blender-bridge-ops`。
 
+> ⚠️ **`blender-headless-batch` 是唯一不引用 `blender-bridge-ops` 的 skill** ——
+> 它走的是 `blender.exe --background --python <脚本>` 的系统命令行通道，不是 9877 桥。
+> 区别在于：桥有 **120s 超时**且要求 Blender 正在运行；合并这类改动动辄几分钟，
+> 而且目标工程往往大到 GUI 里打不开 —— 这两件事桥都干不了。
+
 ## 安装
 
 ⚠️ **只拷 `skills/` 会留下断链** —— 多数 SKILL.md 用 `../scripts/<包>/` 与 `../docs/<文>.md` 引用同级目录，
@@ -50,7 +56,7 @@
 
 ```powershell
 $dst = "$env:USERPROFILE\.workbuddy\skills"
-# 1) 10 个技能本体
+# 1) 11 个技能本体
 Copy-Item .\skills\* $dst -Recurse -Force
 # 2) 共享脚本包 —— 供 SKILL.md 里的 ../scripts/<包>/ 解析
 Copy-Item .\scripts   $dst -Recurse -Force
@@ -117,9 +123,15 @@ PY
 └── blender-loop-keyframe-anim/
     ├── SKILL.md
     └── scripts/{write_loop_anim.py, verify_loop_anim.py}
+└── blender-headless-batch/
+    └── SKILL.md                  # 脚本包在 ../scripts/merge-by-material/(与本目录不重复)
 ```
 
 > 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），同一 skill 下的脚本要一致。
 > 脚本位置有两种约定（**不要混用**）：① **自带** `skills/<名>/scripts/`（如 plane / radius-pulse）；
 > ② **引用** `../scripts/<名>/`、skill 目录下不放副本（如 `blender-inward-pulse-material` 与
-> `blender-driver-param-maintenance`）—— 后者的脚本**只维护一份**，无需两处同步。
+> `blender-driver-param-maintenance`、`blender-headless-batch`）—— 后者的脚本**只维护一份**，无需两处同步。
+
+> **例外：`blender-headless-batch` 的脚本不在桥里跑。**
+> 它不用 `send.py`，而是 `blender.exe --background --factory-startup <blend> --python <脚本>.py`，
+> 输出路径由 `--` 之后的命令行参数给（不是改顶部 `OUT_DIR`），日志与排除名单写在**当前工作目录**。
