@@ -254,6 +254,13 @@
      `.001`**（`do_reuse_local_id=True` 实测无效）；`Render Result` / `Viewer Node` 不随 append 过来
   ⑤ **存盘必须排在对账之前** —— 对账脚本自身的一个格式化 bug 就让 8 分钟 append 白跑过
 - **★ `'%s' % (tuple)` 陷阱**:单个 `%s` 的右操作数是**三元组**时,Python 把元组当作**多参数解包**,若左边只有一个占位符 ⇒ `TypeError: not all arguments converted during string formatting`。要打印一个坐标元组,必须写成 `% (tuple(...), )`(包成单元素元组)或先 `str()`。`%s` 单占位符对 str 安全、对长度≥2 的 tuple/list 报错
+- **★ 批量改造脚本中途抛异常会留下「半改造状态」**:8 盏灯的循环跑到第 1 盏就炸,结果**只有那一盏**被改成铰链架构(水平朝外 180°),其余 7 盏仍是朝上 90° —— 用户预览直接看到"有一盏不对";且 driver 已 `new` 出来但**变量没挂上**(表达式引用未定义变量)。**对策**:API 先用最小 demo 验证过再写批量脚本;跑完必须看核验脚本的 PASS/FAIL。详见 `docs/射灯阵列径向摆动绽放系统.md` 坑 #1 / 脚本 `scripts/spot-bloom-swing/`
+- **★ 5.2 `DriverTarget.id` 只接受 Object**:`tg.id = scene` 直接 `TypeError: DriverTarget.id expected a Object type, not Scene`。必须**先 `tg.id_type = 'SCENE'` 再赋值**(枚举含 `SCENE`/`WORLD`/`ACTION` 等);读自定义属性用 `data_path = '["键名"]'`
+- **★ 5.2 又一批属性被删改**(与主题 4 的 Slotted Action 同类):`ActionSlot.name` **不存在**(用 `name_display`/`identifier`)、`UnitSettings.length_system` **不存在**(用 `system`/`length_unit`/`scale_length`)、`Light.power` **不存在**(用 `energy`,新建 Spot 默认仅 **10 W**,基本看不见)、`Light.show_cone` **默认 False**(视口要显示照射锥必须显式打开)
+- **★ 桥 exec 整段代码,任何一行抛异常会让前面所有 print 全部丢失**:stdout 被 `redirect_stdout` 接管,只有整体成功才回包 ⇒ 报错时只有 traceback、看不到任何中间输出,排查成本极高。**写批量脚本前先探 API**(打印 `hasattr` / `bl_rna.properties` 枚举),别指望靠报错定位
+- **★ 空对象常常没有旋转,朝向信息是缺失的**:实测 8 个 `射灯*` 全是 `rotation=(0,0,0)`,而聚光灯默认朝 `−Z`(向下)⇒ **方向必须问用户**,不能默认朝下。同理「灯到中轴线的连线」有**垂足(水平)**与**对象点(倾斜)**两种理解,中轴被移动后两者差出仰角(实测 18.8°)
+- **★ 多物体「各在自己平面内摆动」要插一层铰链空物体**:XYZ 欧拉下 `R = Rz·Ry·Rx`,**X 轴水平 ⇒ Z 轴必竖直**,无法一步把灯摆到位 —— 按 `基=[t̂, ẑ, r̂]` 造矩阵赋给 `rotation_euler` 会**静默歪掉**。正解是 `定位空物体(位置)` → `铰链(rotation_euler=(α_driver, 0, rz))` → `灯(π/2 + 起始线仰角, 0, 0)`(推导见 `docs/射灯阵列径向摆动绽放系统.md` §二)
+
 ## 约定
 
 - 文档用中文;技巧按"场景 → 做法 → 坑"组织;一坑一篇进 DEVELOPMENT.md
