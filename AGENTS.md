@@ -263,9 +263,17 @@
 - **★ 空对象常常没有旋转,朝向信息是缺失的**:实测 8 个 `射灯*` 全是 `rotation=(0,0,0)`,而聚光灯默认朝 `−Z`(向下)⇒ **方向必须问用户**,不能默认朝下。同理「灯到中轴线的连线」有**垂足(水平)**与**对象点(倾斜)**两种理解,中轴被移动后两者差出仰角(实测 18.8°)
 - **★ 多物体「各在自己平面内摆动」要插一层铰链空物体**:XYZ 欧拉下 `R = Rz·Ry·Rx`,**X 轴水平 ⇒ Z 轴必竖直**,无法一步把灯摆到位 —— 按 `基=[t̂, ẑ, r̂]` 造矩阵赋给 `rotation_euler` 会**静默歪掉**。正解是 `定位空物体(位置)` → `铰链(rotation_euler=(α_driver, 0, rz))` → `灯(π/2 + 起始线仰角, 0, 0)`(推导见 `docs/射灯阵列径向摆动绽放系统.md` §二)
 
+- **★★★ 换文件级 operator 绝对不许通过桥送进用户正在用的会话**:`bpy.ops.wm.read_factory_settings` / `read_homefile` / `wm.open_mainfile` 会**重置/卸载当前文件**。实测在用户会话里连调两次 `read_factory_settings` ⇒ **Blender 卡死 → 桥无响应 → 崩溃,未存盘改动全部丢失**(本次丢了两次羽化改造,幸好用户 10 分钟前存过盘)。需要空场景做实验**一律另开独立后台进程**:`blender.exe -b --factory-startup --python 实验.py`;桥**只跑读写当前 .blend 内存**的脚本。**识别信号**:桥开始 `ERR / timeout after 120s`,同时 `tasklist` 里 blender.exe **内存长时间不变** ⇒ 是模态框/主线程卡死,不是"在忙"
+- **★★★ `Principled Volume` 的 Emission 不受 `Density` 控制**:实测把 `Density` 接到常量 `Value=0.0`(零浓度),画面**依然亮**(峰值 **19.74**),而且比 0.8 浓度(17.32)**更亮**(浓度低 ⇒ 吸收少 ⇒ 自发光累积更多)。`Density` 只控**吸收/散射**,自发光是**独立通道** ⇒ **只把渐变接 `Density` 是白费的**,想羽化边缘必须**同时接到 `Emission Strength`**(实测 50%→10% 过渡宽度 **6px → 18px**)。详见 `docs/体积光柱羽化系统.md` 坑 #2 / 脚本 `scripts/volume-beam-feather/`
+- **★★ 5.2 里对 `node_tree.nodes` 做 `remove()` 之后,之前持有的节点引用会失效**:`out.name` 读出**乱码**直接抛 `UnicodeDecodeError`,`out.inputs["Volume"]` 抛 `KeyError: key "Volume" not found`;更阴的是**链接静默丢失**(不报错,但节点根本没接上 —— 本次因此误判过一整轮"密度衰减接上了其实没生效")。**正解:删完节点后重新遍历 `nt.nodes` 取输出节点,绝不跨删除持有引用**
+- **★★ 改自定义属性后依赖图不会自动重算,且驱动器求值有延迟**:脚本里 `sc["X"] = v` 之后必须 `sc.update_tag()`,否则驱动器读到**旧值**;**GUI 拖滑块 Blender 会自动打 tag** ⇒ 用户手上是即时的。驱动器求值**有延迟**:同一次脚本内"改属性 → 立刻读插槽"读到的是**旧值**,要**下一个独立事件**(下一次远程调用)才读到新值 ⇒ **跨事件验证**才是有效核验
+- **★ `NodeSocketFloat` 没有 `.is_driven` 属性**:查某个插槽有没有被驱动,要翻动画数据 `nt.animation_data.drivers` 的 `data_path`(形如 `nodes["羽化指数"].outputs[0].default_value`);`FCURVE.evaluate()` 对驱动器**不返回驱动值**,也不能用来验证
+- **★ 按名字筛对象时别用 `endswith` 拼中文名**:实测 `o.name.endswith("_光锥")` **漏掉**了 `射灯_光_锥`(它结尾是 `光_锥` 不是 `_光锥`)⇒ 我据此向用户**误报"那个对象已不存在"**。中文名里的下划线位置极易踩坑,宁可放宽成 `"锥" in o.name` 或用正则可选组
+- **★ 材质里烘焙了常量 ⇒ 多个物体能否共用一份材质要先验证**:体积光锥的材质把 `R`(`L·tan(spot_size/2)`)与 `L`(`cutoff_distance`)**写死在节点常量里** ⇒ 只有 `spot_size` 与 `cutoff_distance` **完全一致**的灯才能共用一份材质(实测 8 盏射灯全是 10.0°/10.0 ⇒ 共用 1 份 = **同一组驱动器**,改一个数全变,`mat.users` = 8)。不一致就一灯一材质,别硬共用
+
 ## 约定
 
-- 文档用中文;技巧按"场景 → 做法 → 坑"组织;一坑一篇进 DEVELOPMENT.md
+- 文档用中文;技巧按“场景 → 做法 → 坑”组织;一坑一篇进 DEVELOPMENT.md
 - `skills/` 放**给 AI 助手用的作业规范**(`SKILL.md` + 附件脚本);`scripts/` 放**给人用的脚本包**(README + 脚本);**同一套脚本若两边都有,必须两处同步** —— 目前只有 `blender-scene-cleanup`(→ `scripts/scene-cleanup/`)与 `blender-render-blackout-diagnose`(→ `scripts/blackout-diagnose/`)是两边都有,其余 skill 的脚本只随 skill 自带
 - 文档内链接用**相对本文件**的路径;结构改动后跑一次「链接可及性 + 锚点存在性」检查(本地模拟 GitHub 解析)
 

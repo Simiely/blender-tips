@@ -1,5 +1,47 @@
 # CHANGELOG.md
 
+## v1.30.0 · 2026-10-03
+
+- **新增主题 #47「体积光柱羽化系统」** —— 让射灯的光柱在 Cycles/EEVEE 里**可见且边缘柔和**
+  - **`docs/体积光柱羽化系统.md`**(独立文档):场景(三条路对比)/ 原理(为什么看不见 · 为什么硬 ·
+    **Emission 不受 Density 控制** · 径向衰减公式与节点链)/ 做法 / **11 条坑(按严重度)** /
+    参数速查 / 验证要点 / 相关索引
+  - **`scripts/volume-beam-feather/`**(脚本包):`probe_beam.py`(探查灯与几何签名)/
+    `build_feather_material.py`(建材质 + 3 个滑块属性 + 3 条 AVERAGE 驱动器)/
+    `add_cones_all_lights.py`(批量建锥并共享材质,几何不一致会主动中止)/
+    `verify_beam.py`(独立核验,末尾 `VERIFY_RESULT PASS/FAIL`)/ `undo_beam.py`(撤销,含 DRY_RUN)+ README
+  - **`skills/blender-volume-beam-feather/`**(Agent Skill):作业循环、**7 条铁律**、参数速查、核验判据、5.2 API 差异
+  - `README.md`:主题表加 #47、Skill 表新增一行
+  - `docs/技巧速查.md`:索引加 #47、新增 §47 章节、顶部改「累计 47 主题」
+  - `AGENTS.md`:关键坑补 7 条
+- **★★★ 核心结论入库:`Principled Volume` 的 Emission 不受 `Density` 控制**
+  —— 实测 `Density` 接到常量 `Value=0.0`(零浓度)画面**依然亮**(峰值 **19.74**),
+  而且比 0.8 浓度(17.32)**更亮**(浓度低 ⇒ 吸收少 ⇒ 自发光累积更多)。
+  `Density` 只控吸收/散射,自发光是**独立通道** ⇒ **只把渐变接 `Density` 是白费的**,
+  想羽化边缘必须**同时接到 `Emission Strength`**(实测 50%→10% 过渡宽度 **6px → 18px**)。
+  同时入库:体积锥的天然边缘亮度 ∝ 弦长 `2√(R²−d²)`,贴边处导数发散 ⇒ 天生硬边;
+  径向衰减 `1 − ρ^p`(`ρ = √(x²+y²)/radius(z)`,`radius(z)=R/2−R·z/L`),`p` 越小越柔也越暗
+- **★★★ 血泪教训入库:换文件级 operator 绝对不许通过桥送进用户正在用的会话**
+  —— `read_factory_settings` / `read_homefile` / `wm.open_mainfile` 会**重置/卸载当前文件**。
+  实测在用户会话里连调两次 `read_factory_settings` ⇒ **Blender 卡死 → 桥无响应 → 崩溃,
+  未存盘改动全部丢失**(本次丢了两次羽化改造,幸好用户 10 分钟前存过盘)。
+  需要空场景做实验**一律另开 `blender.exe -b --factory-startup --python x.py`**;
+  桥只跑读写当前 .blend 内存的脚本。**识别信号**:桥 `timeout after 120s` + blender.exe **内存长时间不变**
+- **★★ 核心结论入库:5.2 里 `nodes.remove()` 之后旧节点引用会失效**
+  —— `out.name` 读出**乱码**抛 `UnicodeDecodeError`、`out.inputs["Volume"]` 抛 `KeyError`;
+  更阴的是**链接静默丢失**(不报错但没接上,本次因此误判过一整轮"密度衰减接上了其实没生效")。
+  正解:删完节点后**重新遍历 `nt.nodes` 取输出节点**,绝不跨删除持有引用
+- **★★ 核心结论入库:自定义属性驱动器的刷新规则**
+  —— 改自定义属性后依赖图**不会自动重算**,脚本要 `id.update_tag()`(GUI 拖滑块会自动打 tag);
+  驱动器求值**有延迟**(同一脚本内"改属性→读插槽"读到旧值)⇒ **跨事件验证**才是有效核验。
+  另外 `NodeSocketFloat` **没有 `.is_driven`**,查驱动要翻 `animation_data.drivers` 的 `data_path`
+- **★ 工艺入库:材质里烘焙常量 ⇒ 多物体共用前提要先验证**
+  —— 体积光锥材质把 `R`/`L` 写死在节点常量里 ⇒ 只有 `spot_size`/`cutoff_distance` **完全一致**的灯
+  才能共用一份材质(实测 8 盏射灯全 10.0°/10.0 ⇒ 共用 1 份 = **同一组驱动器**,`mat.users` = 8)
+- **★ 误报教训入库:按名字筛对象别用 `endswith` 拼中文名**
+  —— `o.name.endswith("_光锥")` 漏掉了 `射灯_光_锥`(结尾是 `光_锥`),
+  据此向用户**误报"那个对象已不存在"**。宁可放宽成 `"锥" in o.name`
+
 ## v1.29.0 · 2026-10-03
 
 - **新增主题 #46「射灯阵列径向摆动绽放系统」** —— 一圈射灯各自**锁在自己的竖直径向平面**内摆动,像花开合
