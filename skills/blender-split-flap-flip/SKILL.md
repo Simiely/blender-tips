@@ -21,7 +21,11 @@ agent_created: true
    根级轴的世界变换用 `Matrix.Translation(center)` **解析构造**;只有加载后从未动过的对象读才可信。
 6. **保存前必须停到静止帧或跑 `reset_flip_rest.py`**。`bpy.app.handlers` 不写进 .blend,
    存盘会把"当时那一帧的角度"冻结进文件,重开即僵在半翻姿态。
-7. **改前快照、改后核验**: 改前记每张卡世界包围盒 min,改后逐张比对,有偏移立刻中止并报告。
+7. **★ 挂父级必须「先 `parent`,再设 `matrix_parent_inverse`」**。
+   顺序反了补偿矩阵会被 Blender 重置成单位矩阵,整组多叠一个 `+父级位置` 的位移
+   (实测把 35 个轴收进总控时,全部卡片平移 `(-59.44, -15.90, +2.08)`)。
+8. **改前快照、改后核验**: 改前记每张卡世界包围盒 min,改后逐张比对,有偏移立刻中止并报告。
+   链完整性最强判据:**每张卡的中心严格等于其中缝轴的世界位置**(误差 < 1e-4)。
 
 ## 标准作业循环
 
@@ -29,8 +33,10 @@ agent_created: true
 2. 批量挂轴(`attach_flip_axes.py`):内置快照/核验,位置偏移会中止
 3. 呈报:卡片数、静止帧、参数表
 4. 调参(`retune_flip.py`):圈数/时长/周期/波浪步长
-5. 存盘前 `reset_flip_rest.py` → Ctrl+S
-6. 不想要了 `detach_flip_axes.py`(卡片自动回到世界原位,因为 basis 就是原世界矩阵)
+5. 要整体搬运/复用到别的工程 → `group_under_master.py`:全部轴收进一个**总控 Empty**(放在轴群中心、
+   `rotation` 保持 0)+ 单一集合;移动/旋转总控即整体跟随,别的工程 Append 该集合即可
+6. 存盘前 `reset_flip_rest.py` → Ctrl+S
+7. 不想要了 `detach_flip_axes.py`(卡片自动回到世界原位,因为 basis 就是原世界矩阵)
 
 ## 免信任实时方案(★ 本 skill 的核心)
 
