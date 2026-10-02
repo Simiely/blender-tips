@@ -19,7 +19,11 @@ agent_created: true
    (= 61879°),全部卡片歪成随机角度。一律 `radians(1080.0)`。
 5. **新建/刚改父级的对象不要回读 `matrix_world`**(可能拿到 basis 或过期值)。
    根级轴的世界变换用 `Matrix.Translation(center)` **解析构造**;只有加载后从未动过的对象读才可信。
-6. **保存前必须停到静止帧或跑 `reset_flip_rest.py`**。`bpy.app.handlers` 不写进 .blend,
+6. **★ 要跨工程复制 / 存盘自愈,必须烘焙成关键帧**。`bpy.app.handlers` 是**运行时**状态,
+   既**不写进 .blend 也不随跨实例复制**,驱动又被信任机制屏蔽 ⇒ 复制到另一个 Blender 后动画全没了。
+   **fcurve 是纯数据**,复制/存盘/重开/Append 全带走,且不需要 Python 执行权限。
+   改参数后重跑 `bake_flip_keys.py` 即可(自定义属性保留)。
+7. **保存前必须停到静止帧或跑 `reset_flip_rest.py`**(未烘焙时才有这条;烘焙后不受影响)。`bpy.app.handlers` 不写进 .blend,
    存盘会把"当时那一帧的角度"冻结进文件,重开即僵在半翻姿态。
 7. **★ 挂父级必须「先 `parent`,再设 `matrix_parent_inverse`」**。
    顺序反了补偿矩阵会被 Blender 重置成单位矩阵,整组多叠一个 `+父级位置` 的位移
@@ -35,8 +39,9 @@ agent_created: true
 4. 调参(`retune_flip.py`):圈数/时长/周期/波浪步长
 5. 要整体搬运/复用到别的工程 → `group_under_master.py`:全部轴收进一个**总控 Empty**(放在轴群中心、
    `rotation` 保持 0)+ 单一集合;移动/旋转总控即整体跟随,别的工程 Append 该集合即可
-6. 存盘前 `reset_flip_rest.py` → Ctrl+S
-7. 不想要了 `detach_flip_axes.py`(卡片自动回到世界原位,因为 basis 就是原世界矩阵)
+6. **要复制到别的工程 → 先 `bake_flip_keys.py` 烘焙**(处理器不随复制走,见铁律 6),再复制/Append
+7. 存盘前 `reset_flip_rest.py` → Ctrl+S(已烘焙则不需要)
+8. 不想要了 `detach_flip_axes.py`(卡片自动回到世界原位,因为 basis 就是原世界矩阵)
 
 ## 免信任实时方案(★ 本 skill 的核心)
 
