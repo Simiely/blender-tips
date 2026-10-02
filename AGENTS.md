@@ -1,6 +1,8 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-10-02 v1.26.0(commit `94e6a5ee`) —— 新增 Skill `blender-blend-append-merge`「追加合并两个工程」(#44)
+> 📌 **文档基线**:2026-10-03 v1.27.0(commit `62e90b1`) —— 新增 #45「分体翻页牌驱动翻页系统」(文档 + 脚本包 + Skill `blender-split-flap-flip`)
+> (**★ 非受信任打开的 .blend 里 SCRIPTED 驱动静默不求值**,运行时开 `use_scripts_auto_execute` 也救不活 ⇒ 改走 `frame_change_post` 处理器 · **★ 驱动表达式必须返回 `radians()`**,`rotation_euler` 是弧度,写度数 1080 → 61879° 卡片全歪 · **★ 处理器不写进 .blend,存盘前必须停静止帧**否则重开僵在半翻姿态 · **总转角必须是 360 的整数倍**(半圈停在背面看不到字) · **keep-transform 只补偿一次**,两处都乘 `T⁻¹` 会把物体平移到 `T(-center)@orig` · **新建/刚改父级的对象别回读 `matrix_world`** · 波浪相位 `((列+行)%8)×2`)
+> 前序 2026-10-02 v1.26.0(commit `94e6a5ee`) —— 新增 Skill `blender-blend-append-merge`「追加合并两个工程」(#44)
 > (**append 耗时 ≈ 15 ms × 被追加对象数,与几何/贴图量无关 ⇒ 以对象少的一边为底实测差 80 倍** · **重名去重按最后一个 `.NNN` 续号链式挪号、3.4% 对象被改名(链接/变换/几何全对,只是名字不可靠)** · **挂在场景根下、不属任何集合的游离对象会整批漏掉** · **世界/场景设置不随集合追加** · **对账口径用多重集而非名字** · **存盘必须先于对账**)
 > 前序 v1.25.0(commit `5dfd3112`) 新增 #43「按材质合并为单个网格体」(文档 + 脚本包 + Skill `blender-headless-batch`)+ 后续「大组」加固
 > 前序 v1.24.12(commit `17374d2`) 关联效果互相索引 + 修「贴到别的对象没动态」两大真因
@@ -45,6 +47,11 @@
 - **bash heredoc 会吃掉成对反斜杠**:`python - <<'PY'` 里写 `'C:\\path\\to'`,Python 实际收到 `C:\path<TAB>o`(因为 `\t` 被解释成制表符)→ 字符串 `in` / `replace` **静默失败**(返回 False 而不是报错)。构造含反斜杠的路径一律用 `chr(92)` 拼接,或用 `split(chr(10))` 这类不依赖反斜杠字面的写法。**判据:替换后必须回读并打印结果核对,别信 `replace` 的返回值**
 - **重复网格合并指纹必须含材质+UV**(几何相同≠可合并);合并前抽检真实顶点坐标;合并后同组对象共享数据,编辑一个全部同步
 - **parent 赋值后手动设 mpi**:`child.parent = empty` 在 5.x 不自动更新 matrix_parent_inverse → 世界位置 = 父位置+局部(翻倍)!必须 `child.matrix_parent_inverse = empty.matrix_world.inverted()`;空对象先定位到目标位置再挂载;设置 location 后 view_layer.update() 刷新
+- **★ keep-transform 只能补偿一次**:`world = parent.mw @ parent_inverse @ basis`,保持世界不变 = `parent_inverse = T⁻¹` **且** `basis` 保持原世界矩阵;两处都乘 `T⁻¹` ⇒ 净效果 `T(-center) @ orig`,物体被平移到世界原点附近(实测 bbox `-57.9783` → `±0.005`)
+- **★ 非受信任打开的 .blend 里 SCRIPTED 驱动静默不求值**:不报错、不动。判据 `preferences.filepaths.use_scripts_auto_execute`(属性名不是 `use_auto_scripts`);**运行时临时置 True 无效**(信任标记在加载时确定)⇒ 用 `bpy.app.handlers.frame_change_post` 处理器按公式写属性;判活读 `obj.evaluated_get(depsgraph).matrix_world`(驱动只写 evaluated 数据,读 `obj.matrix_world` 永远 0)
+- **★ 驱动表达式必须返回弧度**:`rotation_euler` 单位是弧度,写 `1080.0` 会存成 1080 弧度 = **61879°**(实测 35 个轴全歪)。用 `radians(1080.0)`;`%` 格式化写 `%%`、`.format()` 写 `%`,混用把 `%%` 留在表达式里是语法错误且被屏蔽不报错
+- **★ `bpy.app.handlers` 不写进 .blend**:处理器是运行时注册,存盘会把"当时那一帧"的值冻结进文件,重开即僵在中间态 ⇒ 保存前先停到静止帧或把属性归零(见 `scripts/flip-card/reset_flip_rest.py`)
+- **新建 / 刚改父级的对象别回读 `matrix_world`**:可能拿到 basis 或过期值(实测根级轴 location 设为 `(-57.97,-16.17,2.22)` 却读回 `(-0.005,0.445,0.445)`);根级对象用 `Matrix.Translation(center)` 解析构造,只有加载后从未动过的对象读才可信
 - **循环渐变 ColorRamp**:等分数=颜色数×4;同色连标=平台,删过渡中点=线性过渡,首尾同色=无缝循环;插值必须 LINEAR(EASE 会抖);滚动用 Mapping Location 关键帧,勿移动空对象
 - **Object 坐标只跟随平移,不跟随旋转**:转空物体不会让纹理旋转!旋转类动画用材质节点内偏移(ADD + driver);循环取模用 FLOORED_MODULO(负数正确,普通 MODULO 负值裁剪);材质节点 driver/keyframe 路径必须 inputs[N] 数字索引(名称形式报 not found)
 - 直接改 IDProperty(如 `obj['vis']=[0]`)后驱动不重算 → 必须 `obj.update_tag()` + `bpy.context.view_layer.update()`
