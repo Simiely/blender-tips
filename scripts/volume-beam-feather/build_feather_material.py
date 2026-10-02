@@ -1,9 +1,18 @@
 """建 / 重建「羽化体积光锥」材质(含参数滑块与驱动器)
 
 核心链(缺一不可):
-    fall = 长度衰减 × 径向衰减(1 − ρ^p)
+    u      = MapRange(z → 0..1)
+    轴向项  = MapRange(u, 0 … 尾部羽化 → 0..1, SMOOTHSTEP)   ★ 端点必须精确到 0
+    径向项  = 1 − ρ^p
+
+    fall = 轴向项 × 径向项
+
     Density           ← fall × 浓度
     Emission Strength ← fall × 亮度      ★ 少了这条羽化完全不生效
+
+为什么轴向要用 "MapRange + SMOOTHSTEP" 而不是 ColorRamp:
+    需求是「羽化距离可调」= 渐变终点可调。
+    ColorRamp 的色标位置没有输入插槽,连不上 Value 节点;MapRange 的 From Max 是 socket。
 
 几何常量 R / L 会被**烘焙**进材质,所以:
     **只有几何完全一致的锥体才能共用这一份材质**(不一致就换 MAT_NAME 再跑一次)
@@ -20,16 +29,17 @@ import traceback
 SAMPLE_CONE = "射灯_光.001_光锥"      # 样板锥:用它实测 L / R
 MAT_NAME = "光锥_羽化材质"
 
-LEN_MIN = 0.05                        # 长度衰减:远端值(近端恒为 1.0)
+LEN_MIN_UNUSED = None                 # (旧参数,已废弃:线性衰减底值不是 0 会让远端变成平切硬边)
 ANISOTROPY = 0.40                     # 轻微前向散射
 EMISSION_COLOR = (1.0, 0.88, 0.68)    # 暖白
-WITH_DRIVERS = True                   # 是否把三个参数挂成场景属性滑块
+WITH_DRIVERS = True                   # 是否把四个参数挂成场景属性滑块
 
-#           Value节点名   场景属性键    默认值  描述                                min   max   soft_min soft_max
+#           Value节点名   场景属性键    默认值  描述                                          min   max   soft_min soft_max
 PARAMS = [
-    ("羽化指数", "光锥羽化", 1.00, "光锥边缘羽化:越小越柔(0.1 极柔 / 4.0 亮芯集中)", 0.10, 8.0, 0.50, 4.0),
-    ("浓度",     "光锥浓度", 0.80, "体积浓度(只影响吸收/散射,不影响自发光亮度)",     0.00, 3.0, 0.20, 1.5),
-    ("亮度",     "光锥亮度", 2.50, "自发光亮度(主要亮度旋钮)",                     0.00, 20.0, 0.50, 8.0),
+    ("羽化指数", "光锥羽化",     1.00, "径向羽化:越小越柔(0.1 极柔 / 4.0 亮芯集中)", 0.10, 8.0, 0.50, 4.0),
+    ("尾部羽化", "光锥尾部羽化", 1.00, "轴向收尾渐变长度:越大→渐变越长、远端越柔(1.0 最柔)", 0.15, 1.0, 0.50, 1.0),
+    ("浓度",     "光锥浓度",     0.80, "体积浓度(只影响吸收/散射,不影响自发光亮度)", 0.00, 3.0, 0.20, 1.5),
+    ("亮度",     "光锥亮度",     2.50, "自发光亮度(主要亮度旋钮)",                 0.00, 20.0, 0.50, 8.0),
 ]
 # ================================================================
 
@@ -115,14 +125,30 @@ def main():
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     nt.links.new(tc.outputs["Object"], sep.inputs["Vector"])
 
-    # ---------- 长度衰减:近灯浓、远端稀 ----------
-    mrl = nt.nodes.new("ShaderNodeMapRange")
-    mrl.inputs["From Min"].default_value = zmin
-    mrl.inputs["From Max"].default_value = zmax
-    mrl.inputs["To Min"].default_value = LEN_MIN
+    # ---------- 轴向(长度)衰减:归一化 + 平滑黑白渐变,端点精确到 0 ----------
+    # ★ 不要用线性 MapRange 直接映到 0.05..1.0:底值不是 0 ⇒ 端面圆盘带残余亮度被几何硬切
+    # ★ 不要用 ColorRamp 做"终点可调":色标 position 没有插槽,连不上 Value 节点;
+    #   MapRange 的 From Max 是 socket,可以直接接滑块
+    mru = nt.nodes.new("ShaderNodeMapRange")
+    mru.inputs["From Min"].default_value = zmin
+    mru.inputs["From Max"].default_value = zmax
+    mru.inputs["To Min"].default_value = 0.0
+    mru.inputs["To Max"].default_value = 1.0
+    mru.clamp = True
+    nt.links.new(sep.outputs["Z"], mru.inputs["Value"])
+
+    mrl = nt.nodes.new("ShaderNodeMapRange")      # ← 黑白渐变本体
+    mrl.label = "轴向收尾渐变(黑→白)"
+    mrl.interpolation_type = 'SMOOTHSTEP'
+    mrl.inputs["From Min"].default_value = 0.0
+    mrl.inputs["To Min"].default_value = 0.0
     mrl.inputs["To Max"].default_value = 1.0
     mrl.clamp = True
-    nt.links.new(sep.outputs["Z"], mrl.inputs["Value"])
+    nt.links.new(mru.outputs["Result"], mrl.inputs["Value"])
+    if WITH_DRIVERS:
+        nt.links.new(vals["尾部羽化"].outputs[0], mrl.inputs["From Max"])   # ← 滑块进来
+    else:
+        mrl.inputs["From Max"].default_value = 1.0
 
     # ---------- 径向衰减 1 − ρ^p ----------
     # ρ = √(x²+y²) / radius(z),  radius(z) = R/2 − R·z/L
@@ -200,9 +226,13 @@ def main():
     n_d = len([lk for lk in nt.links if lk.to_socket == pv.inputs["Density"]])
     n_e = len([lk for lk in nt.links if lk.to_socket == pv.inputs["Emission Strength"]])
     n_v = len([lk for lk in nt.links if lk.to_socket == out.inputs["Volume"]])
-    print("LINK  Density=%d  EmissionStrength=%d  Volume=%d   (都要 = 1)" % (n_d, n_e, n_v))
+    n_f = len([lk for lk in nt.links if lk.to_socket == mrl.inputs["From Max"]]) \
+        if WITH_DRIVERS else -1
+    print("LINK  Density=%d  EmissionStrength=%d  Volume=%d  尾部羽化→FromMax=%d   (都要 = 1)" % (
+        n_d, n_e, n_v, n_f))
     if n_e != 1:
         print("⚠️ Emission Strength 没接上 —— 羽化不会生效!检查 out 引用是否失效")
+    print("轴向渐变 interpolation=%s  (必须是 SMOOTHSTEP)" % mrl.interpolation_type)
 
     sc.update_tag()
     for node_name in vals:
