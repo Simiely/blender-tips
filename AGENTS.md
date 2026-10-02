@@ -1,6 +1,8 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-10-03 v1.27.2(commit `632b0e5`) —— #45「分体翻页牌驱动翻页系统」+ 增补**整体搬运**(总控 Empty + 单一集合)+ **烘焙成关键帧**
+> 📌 **文档基线**:2026-10-03 v1.28.0(commit `8784455`) —— #45「分体翻页牌驱动翻页系统」+ **几何节点版(首选)**:不烘焙也能随复制/存盘带走,且免 Python 权限
+> (**★ GN 修改器输入在 `mod.properties.inputs[identifier]` 且是 Group IDProperty**:`ins['Socket_2']['value'] = 4.0`,直接 `ins[id]=4.0` 报 TypeError;**★ 改完必须 `obj.update_tag()` + `view_layer.update()`** 否则读到缓存网格(表现为"参数写了读回也对但画面不动/全部同步");旧的 `mod["Socket_2"]` 已彻底失效)
+> 前序 v1.27.2(commit `632b0e5`) —— #45 增补**整体搬运**(总控 Empty + 单一集合,**先 parent 后设补偿**)+ **烘焙成关键帧**
 > (**★ 运行时处理器既不写进 .blend 也不随跨实例复制** —— 复制到另一个 Blender 后动画全没;只有 **fcurve 是纯数据**,复制/存盘/重开/Append 全带走且不依赖 Python 执行权限 ⇒ **跨工程复用必须烘焙**;5.x 写曲线用 `action.fcurve_ensure_for_datablock(obj, path, index=i)`,键值**弧度**;实测 35 轴 × 0~311 帧 = 3430 关键帧)
 > (**★ 挂父级必须先 `p.parent = x` 再设 `matrix_parent_inverse`** —— 顺序反了补偿被 Blender 重置成单位矩阵,整组多叠一个 `+父级位置` 位移,实测 35 张卡平移 `(-59.44,-15.90,+2.08)`;总控 `rotation` 必须保持 0,否则轴的本地 Y ≠ 世界 Y、翻页轴会歪;链完整性最强判据 = **卡片中心严格等于其轴的世界位置**)
 > (**★ 非受信任打开的 .blend 里 SCRIPTED 驱动静默不求值**,运行时开 `use_scripts_auto_execute` 也救不活 ⇒ 改走 `frame_change_post` 处理器 · **★ 驱动表达式必须返回 `radians()`**,`rotation_euler` 是弧度,写度数 1080 → 61879° 卡片全歪 · **★ 处理器不写进 .blend,存盘前必须停静止帧**否则重开僵在半翻姿态 · **总转角必须是 360 的整数倍**(半圈停在背面看不到字) · **keep-transform 只补偿一次**,两处都乘 `T⁻¹` 会把物体平移到 `T(-center)@orig` · **新建/刚改父级的对象别回读 `matrix_world`** · 波浪相位 `((列+行)%8)×2`)
