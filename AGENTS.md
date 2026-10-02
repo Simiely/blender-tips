@@ -1,6 +1,8 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-10-03 v1.29.0(commit `a4c3caa`) —— #46「射灯阵列径向摆动绽放系统」:一圈射灯各自**锁在自己的竖直径向平面**内摆动,像花开合
+> 📌 **文档基线**:2026-10-03 v1.30.0(commit `a4ae155`) —— #47「体积光柱羽化系统」:射灯光柱在真空里**看不见**,用闭合锥体 + 局部体积当假体积
+> (**★ 决定性发现 `Principled Volume` 的 Emission 不受 `Density` 控制** —— `Density` 接 `Value=0` 画面**依然亮**且比 0.8 浓度**更亮** ⇒ **只接 Density 是白费的**,必须**同时接 `Emission Strength`**(过渡宽度 6px→18px);体积锥边缘亮度 ∝ 弦长 `2√(R²−d²)` 贴边发散 ⇒ 天生硬边,径向衰减 `1 − ρ^p`、`ρ=√(x²+y²)/radius(z)` · **★ 5.2 `nodes.remove()` 后旧节点引用失效**(`out.name` 读乱码 / `out.inputs["Volume"]` KeyError / **链接静默丢失**)⇒ 删完重新遍历取输出节点 · **★ 改自定义属性后依赖图不重算**,脚本要 `update_tag()`(GUI 拖滑块自动打 tag),且驱动器求值**有延迟**(同脚本内读到旧值)⇒ **跨事件验证** · **★ 材质烘焙 R/L** ⇒ 只有 `spot_size`/`cutoff_distance` 一致的灯才能共用一份材质 · **★★★ 换文件级 operator(`read_factory_settings`/`read_homefile`/`wm.open_mainfile`)绝不许通过桥送进用户会话** —— 实测卡死崩溃、未存盘改动全丢)
+> 前序 v1.29.0(commit `a4c3caa`) —— #46「射灯阵列径向摆动绽放系统」:一圈射灯各自**锁在自己的竖直径向平面**内摆动,像花开合
 > (**★ 拍频公式** `θ_i = 2π(t·f_i − sync·(f_i−1))/period`、`f_i = 1 + spread·i/7` ⇒ **sync 帧精确同步**,同步时展开角由 **`sync/period` 的小数部分**决定(2.0→全闭合 / 2.5→全开),对齐周期 `7×period/spread` · **★ XYZ 欧拉下「X 轴水平 ⇒ Z 轴必竖直」** ⇒ 让灯锁在径向平面内摆动**不能一步到位**,必须插**铰链空物体**(`定位 → 铰链(α,0,rz) → 灯(π/2+elev,0,0)`),按 `基=[t̂,ẑ,r̂]` 造矩阵直接赋 `rotation_euler` 会**静默歪掉** · **★ 5.2 `DriverTarget.id` 必须先 `tg.id_type='SCENE'`** 否则只接受 Object · **★ 批量改造脚本中途失败会留半改造状态**(实测 8 盏只改了 1 盏) · **★ 桥 exec 整段代码,异常让前面所有 print 全丢** ⇒ 先探 API · **★ 定位空对象常无旋转,朝向必须问用户** · `ActionSlot.name` / `UnitSettings.length_system` / `Light.power` **均不存在**,`Light.show_cone` **默认 False**)
 > 前序 v1.28.0(commit `8784455`) —— #45「分体翻页牌驱动翻页系统」+ **几何节点版(首选)**:不烘焙也能随复制/存盘带走,且免 Python 权限
 > (**★ GN 修改器输入在 `mod.properties.inputs[identifier]` 且是 Group IDProperty**:`ins['Socket_2']['value'] = 4.0`,直接 `ins[id]=4.0` 报 TypeError;**★ 改完必须 `obj.update_tag()` + `view_layer.update()`** 否则读到缓存网格(表现为"参数写了读回也对但画面不动/全部同步");旧的 `mod["Socket_2"]` 已彻底失效)
