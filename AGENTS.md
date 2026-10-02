@@ -1,6 +1,8 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-10-03 v1.28.0(commit `8784455`) —— #45「分体翻页牌驱动翻页系统」+ **几何节点版(首选)**:不烘焙也能随复制/存盘带走,且免 Python 权限
+> 📌 **文档基线**:2026-10-03 v1.29.0(commit `a4c3caa`) —— #46「射灯阵列径向摆动绽放系统」:一圈射灯各自**锁在自己的竖直径向平面**内摆动,像花开合
+> (**★ 拍频公式** `θ_i = 2π(t·f_i − sync·(f_i−1))/period`、`f_i = 1 + spread·i/7` ⇒ **sync 帧精确同步**,同步时展开角由 **`sync/period` 的小数部分**决定(2.0→全闭合 / 2.5→全开),对齐周期 `7×period/spread` · **★ XYZ 欧拉下「X 轴水平 ⇒ Z 轴必竖直」** ⇒ 让灯锁在径向平面内摆动**不能一步到位**,必须插**铰链空物体**(`定位 → 铰链(α,0,rz) → 灯(π/2+elev,0,0)`),按 `基=[t̂,ẑ,r̂]` 造矩阵直接赋 `rotation_euler` 会**静默歪掉** · **★ 5.2 `DriverTarget.id` 必须先 `tg.id_type='SCENE'`** 否则只接受 Object · **★ 批量改造脚本中途失败会留半改造状态**(实测 8 盏只改了 1 盏) · **★ 桥 exec 整段代码,异常让前面所有 print 全丢** ⇒ 先探 API · **★ 定位空对象常无旋转,朝向必须问用户** · `ActionSlot.name` / `UnitSettings.length_system` / `Light.power` **均不存在**,`Light.show_cone` **默认 False**)
+> 前序 v1.28.0(commit `8784455`) —— #45「分体翻页牌驱动翻页系统」+ **几何节点版(首选)**:不烘焙也能随复制/存盘带走,且免 Python 权限
 > (**★ GN 修改器输入在 `mod.properties.inputs[identifier]` 且是 Group IDProperty**:`ins['Socket_2']['value'] = 4.0`,直接 `ins[id]=4.0` 报 TypeError;**★ 改完必须 `obj.update_tag()` + `view_layer.update()`** 否则读到缓存网格(表现为"参数写了读回也对但画面不动/全部同步");旧的 `mod["Socket_2"]` 已彻底失效)
 > 前序 v1.27.2(commit `632b0e5`) —— #45 增补**整体搬运**(总控 Empty + 单一集合,**先 parent 后设补偿**)+ **烘焙成关键帧**
 > (**★ 运行时处理器既不写进 .blend 也不随跨实例复制** —— 复制到另一个 Blender 后动画全没;只有 **fcurve 是纯数据**,复制/存盘/重开/Append 全带走且不依赖 Python 执行权限 ⇒ **跨工程复用必须烘焙**;5.x 写曲线用 `action.fcurve_ensure_for_datablock(obj, path, index=i)`,键值**弧度**;实测 35 轴 × 0~311 帧 = 3430 关键帧)
