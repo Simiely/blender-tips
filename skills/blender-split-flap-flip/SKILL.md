@@ -39,7 +39,8 @@ agent_created: true
 4. 调参(`retune_flip.py`):圈数/时长/周期/波浪步长
 5. 要整体搬运/复用到别的工程 → `group_under_master.py`:全部轴收进一个**总控 Empty**(放在轴群中心、
    `rotation` 保持 0)+ 单一集合;移动/旋转总控即整体跟随,别的工程 Append 该集合即可
-6. **要复制到别的工程 → 先 `bake_flip_keys.py` 烘焙**(处理器不随复制走,见铁律 6),再复制/Append
+6. **要复制到别的工程 → 首选 `build_gn_flip.py` 走几何节点**(纯数据 + 免 Python 权限 + 参数仍可调);
+   不想改结构才退而用 `bake_flip_keys.py` 烘焙(处理器不随复制走,见铁律 6),再复制/Append
 7. 存盘前 `reset_flip_rest.py` → Ctrl+S(已烘焙则不需要)
 8. 不想要了 `detach_flip_axes.py`(卡片自动回到世界原位,因为 basis 就是原世界矩阵)
 
@@ -83,6 +84,20 @@ card.parent = pivot
 card.matrix_parent_inverse = Matrix.Translation(-center)   # 唯一的补偿
 card.matrix_basis = mw                                     # 原世界矩阵
 ```
+
+## 几何节点版(首选方案)的两个 5.2 专属坑
+
+- **① 修改器输入在 `mod.properties.inputs[identifier]`,且是 Group IDProperty**:
+  ```python
+  ins['Socket_2']['value'] = 4.0     # ✓
+  ins['Socket_2']          = 4.0     # ✗ TypeError（Cannot assign a 'float' value to existing Group）
+  ```
+- **② 改完输入必须 `obj.update_tag()` + `view_layer.update()`**,否则读到的是**缓存网格**。
+  表现极具迷惑性:参数写了、读回也对,但画面不动 / 所有卡片整齐同步。
+  (判活:改单张卡输入 → 加标记 → 看它是否立刻变化)
+- 节点: `Scene Time → Frame`(别用 Seconds)· 取模用 `FLOORED_MODULO` ·
+  中心用 **Bounding Box** 算(物体原点在角上)· 旋转轴选**本地 X**(→ 世界 Y 沿牌宽);
+  判别:**绕 Y 转时宽度方向跨度恒定**,变了就是轴选错
 
 ## 其他已踩坑
 
