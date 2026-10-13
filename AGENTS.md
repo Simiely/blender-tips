@@ -281,6 +281,11 @@
 - **★ `NodeSocketFloat` 没有 `.is_driven` 属性**:查某个插槽有没有被驱动,要翻动画数据 `nt.animation_data.drivers` 的 `data_path`(形如 `nodes["羽化指数"].outputs[0].default_value`);`FCURVE.evaluate()` 对驱动器**不返回驱动值**,也不能用来验证
 - **★ 按名字筛对象时别用 `endswith` 拼中文名**:实测 `o.name.endswith("_光锥")` **漏掉**了 `射灯_光_锥`(它结尾是 `光_锥` 不是 `_光锥`)⇒ 我据此向用户**误报"那个对象已不存在"**。中文名里的下划线位置极易踩坑,宁可放宽成 `"锥" in o.name` 或用正则可选组
 - **★ 材质里烘焙了常量 ⇒ 多个物体能否共用一份材质要先验证**:体积光锥的材质把 `R`(`L·tan(spot_size/2)`)与 `L`(`cutoff_distance`)**写死在节点常量里** ⇒ 只有 `spot_size` 与 `cutoff_distance` **完全一致**的灯才能共用一份材质(实测 8 盏射灯全是 10.0°/10.0 ⇒ 共用 1 份 = **同一组驱动器**,改一个数全变,`mat.users` = 8)。不一致就一灯一材质,别硬共用
+- **★★ 世界空间材质里「方向」旋钮必须只进角项,进时间项会静默失效**(雷达扫描材质实测):让扫描头反向的相位写成 `D = frac(条数×时刻 − 方向×条数×u)`。写成 `frac(方向×条数×(时刻−u))` 时,`frac(−x)` 与 `frac(x)` 的**头位置集合完全相同**(值域只差一个补数)⇒ **方向旋钮按了不反向**,只有拖尾换边 —— **纯结构断言完全看不出来,只有渲染出来量像素才抓得到**。配套红线:**别用连线把「有向条数」接进「时间项」**(连线会**盖过** socket 上的驱动值,方向又退回只进时间项 ⇒ 复现症状)
+- **★ 世界空间材质的"投射" = 悬空一个坐标分量,但半径不能直接取 `LENGTH`**:图案沿世界某轴投射就是坐标只取**另两个分量**(沿 Y 投射就只连 `X`/`Z`,`Y` 输出悬空);此时半径若直接对 Object 坐标取 `VectorMath(LENGTH)` 会**带上被丢弃的分量 ⇒ 半径错**,必须 `CombineXYZ` 把该分量填 0 再取长度
+- **★ Blender 5.2 没有 `ShaderNodeSceneTime`**:`bpy.types` 全量探查,5.2 无任何 `ShaderNode*Time*`(只有 `CompositorNodeSceneTime` / `GeometryNodeInputSceneTime`)⇒ 材质里的"当前时刻"要用 **`ShaderNodeValue` 输出 + 驱动**(如 `frame / fps * 速度 / 360.0`),不是场景时间节点
+- **★ `nt.driver_add(path)` 对非数组属性不能传 index**:`driver_add('nodes["X"].outputs[0].default_value', 0)` 报 `index 0 was given while property ... is not an array`;标量属性**不传 index**。另 **`MapRange` 有两套同名插槽(VALUE / VECTOR)** ⇒ 按名字取值会撞,一律用**索引**取 VALUE 的 6 个口(`0..5` = Value / From Min / From Max / To Min / To Max / Steps)
+- **★ 测"图案是否沿某轴投射"用 md5 比像素**:沿该轴平移物体、沿法线正交正视渲染,两张 PNG **逐像素一致**(md5 同值)即证明"图案与该轴无关",比肉眼硬。前提:`view_transform='Standard'`(**AgX 会压平对比**)、测前把发光强度调低(**默认高发光会过曝到全 1.0 ⇒ 亮度剖面的 argmax 随机**)
 
 ## 约定
 

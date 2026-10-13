@@ -1,5 +1,25 @@
 # CHANGELOG.md
 
+## v1.33.0 · 2026-10-14
+
+- **新增主题 #49「空间雷达扫描材质」** —— 把一份 **Canvas 雷达扫描动画**复刻成 Blender **空间材质**（**不用 UV**，**沿世界 Y 轴投射**），文档 + 脚本包 + Skill `blender-radar-scan-material`
+  - **数学核心**:极坐标角度场 `u = (atan2(世界Z, 世界X) + π)/2π`(**只取两个分量** ⇒ 天然沿第三轴投射);
+    多扫描条相位 `D = frac(条数×时刻 − 方向×条数×u)` ⇒ 头位置 `u = 方向×时刻`
+  - **★★ 最值钱的一节 —— 方向只准进「角项」**:写成 `frac(方向×条数×(时刻−u))` 时因 `frac(−x)` 的
+    **头位置集合与正向完全相同** ⇒ **方向旋钮按了不反向**(只有拖尾换边)。
+    正解 = 时间项 `时刻×条数`(**不含方向**)+ 角项 `u×(方向×条数)`;
+    且 **「有向条数 → 时间项」这条连线绝不能连**(连线会**盖过** `inputs[1]` 上的驱动值)
+  - **★ 必须 `FLOORED_MODULO`**:普通 `MODULO` 对负值裁剪 ⇒ 扫描头跨 0° 时拖尾**断头**
+  - **★ 波形走 Math 域**(`MapRange` + `POWER 1.8`),**不让 ColorRamp 兼职**(与 #cylinder-spiral 同结论);本例只有一个颜色,节点树里**一个 ColorRamp 都没有**
+  - **★ 半径**:`CombineXYZ` 把 Y 填 0 再 `VectorMath(LENGTH)` ⇒ `r=√(X²+Z²)`(直接对 Object 坐标取 length 会带上被投射轴分量 ⇒ 半径错)
+  - **★ 5.2 环境事实**:**无 `ShaderNodeSceneTime`**(`bpy.types` 全量探查:5.2 无任何 `ShaderNode*Time*`)⇒ 时间源用 `ShaderNodeValue` 输出 + 驱动 `fr / fps * sp / 360.0`;`nt.driver_add(path)` **标量属性不能传 index**;`MapRange` 有 **VALUE/VECTOR 两套同名插槽**(取值用索引 `0..5`)
+  - **★ 可证伪核验**:沿法线**正交正视渲染**(临时 ORTHO 相机 + `film_transparent` + `view_transform='Standard'`,**别用 AgX**)+ 按 `u=i/N` 反演 `X=r·cos(2πu−π)` / `Z=r·sin(2πu−π)` 采样亮度剖面 ⇒ **测转角**(argmax)/ **测反向** / **数亮峰**;**平面沿世界 Y 平移 2m 比 md5** 证 Y 投射。★ 核验别用 `fcurve.evaluate(frame)` 读驱动真值(**读到帧号**),要读被驱动插槽 `default_value`;★ 测量前把发光强度降到 `CHECK_GAIN=1.0`(默认 8 过曝 ⇒ argmax 随机)
+  - **脚本包**:`scripts/radar-scan-material/`(`probe_plane.py` 只读侦察 / `build_radar_material.py` 幂等构建 / `verify_radar_material.py` 独立核验 + README)
+  - **文档**:`docs/空间雷达扫描材质.md`;**Skill**:`skills/blender-radar-scan-material/SKILL.md`(铁律 7 条 + §2 方向只进角项 + §7 坑表 15 条)
+  - **实测(Blender 5.2.2 LTS / Windows,「平面」法线朝 −Y,世界中心 `(0.03,0.14,−1.66)`,面内半宽 ≈1.77)**:节点 **33** / 连线 **39** / 驱动 **13**;
+    驱动真值帧 1 / 31 = `0.01019 / 0.31574`(与期望**逐位一致**);单条转角实测 **+109°** vs 期望 +110°(误差 **1°**);
+    反向 **−110°**;数到 **5** 个亮峰;Y 投射 md5 **`5a72afe178`** 逐像素一致;`verify` 收尾已复原(引擎/相机/渲染/参数/帧号)
+
 ## v1.32.2 · 2026-10-13
 
 - **主题 #36「径向内收多脉冲材质」增补「出场（出生门）」** —— 做出「黑场起步 → 逐圈跟上 → 无缝循环」的**环形出场动画**（实测来自「烟花灯」）
