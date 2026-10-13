@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>长任务实时进度</title>
+<style>
+  :root{
+    --bg:#0b0d10; --panel:#14171c; --panel2:#1b1f26; --line:#252b34;
+    --text:#e7ecf3; --muted:#8b96a5; --dim:#5d6673;
+    --gold:#e6b455; --gold2:#f6dfa8; --green:#4fd18b; --red:#ef6a6a; --cyan:#55c3e6;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Cascadia Mono","Microsoft YaHei",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 480px at 12% -12%, rgba(230,180,85,.10), transparent 62%),
+      radial-gradient(900px 420px at 96% 4%, rgba(85,195,230,.07), transparent 60%),
+      var(--bg);
+    color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",Roboto,sans-serif;
+    min-height:100vh; padding:26px 20px 60px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+  h1{font-size:21px;margin:0 0 6px;letter-spacing:.2px;font-weight:650}
+  h1 .accent{color:var(--gold)}
+  .sub{font-size:12.5px;color:var(--muted);font-family:var(--mono);line-height:1.6;word-break:break-all}
+  .sub b{color:#b9c3d1;font-weight:500}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:999px;
+    background:var(--panel);border:1px solid var(--line);font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex:none}
+  .dot.run{background:var(--gold);animation:pulse 1.6s infinite}
+  .dot.ok{background:var(--green)} .dot.bad{background:var(--red)}
+  @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(230,180,85,.55)}50%{opacity:.55;box-shadow:0 0 0 6px rgba(230,180,85,0)}}
+
+  .stages{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 8px;margin-bottom:18px;overflow-x:auto}
+  .st{flex:1 0 auto;min-width:118px;display:flex;flex-direction:column;align-items:center;gap:7px;position:relative;padding:0 6px}
+  .st .bar{position:absolute;top:9px;left:0;right:0;height:2px;background:var(--line);z-index:0}
+  .st:first-child .bar{left:50%} .st:last-child .bar{right:50%}
+  .st .bar.f{background:linear-gradient(90deg,var(--green),rgba(79,209,139,.35))}
+  .st .n{width:19px;height:19px;border-radius:50%;background:var(--panel2);border:2px solid var(--line);z-index:1;
+    display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--dim);font-family:var(--mono)}
+  .st.done .n{background:var(--green);border-color:var(--green);color:#07210f}
+  .st.active .n{background:var(--gold);border-color:var(--gold);color:#241a04;animation:pulse 1.6s infinite}
+  .st .lb{font-size:11.5px;color:var(--dim);white-space:nowrap}
+  .st.done .lb{color:#a8b3c1} .st.active .lb{color:var(--gold);font-weight:600}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+  .card .hd{padding:13px 18px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);
+    display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .card .bd{padding:18px}
+
+  .banner{margin-bottom:18px;padding:14px 18px;border-radius:14px;font-size:13.5px;display:none;line-height:1.6;word-break:break-all}
+  .banner.show{display:block}
+  .banner.ok{background:rgba(79,209,139,.10);border:1px solid rgba(79,209,139,.35);color:#b6f0d2}
+  .banner.bad{background:rgba(239,106,106,.10);border:1px solid rgba(239,106,106,.35);color:#ffc9c9}
+  .banner.warn{background:rgba(230,180,85,.09);border:1px solid rgba(230,180,85,.32);color:#f4dcae}
+
+  .prog{margin-bottom:18px}
+  .prog-top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .big{font-family:var(--mono);font-size:52px;font-weight:600;line-height:1;letter-spacing:-1px;color:var(--gold2)}
+  .big small{font-size:22px;color:var(--gold);margin-left:2px}
+  .frac{font-family:var(--mono);font-size:14.5px;color:#c3ccd8}
+  .frac em{color:var(--dim);font-style:normal}
+  .bar{height:16px;border-radius:9px;background:#0a0c0f;border:1px solid var(--line);overflow:hidden;margin-top:16px;position:relative}
+  .fill{height:100%;width:0;border-radius:8px;transition:width .5s ease;
+    background:linear-gradient(90deg,#8a6a25,var(--gold),var(--gold2));background-size:200% 100%;animation:sheen 3.2s linear infinite}
+  @keyframes sheen{0%{background-position:0 0}100%{background-position:200% 0}}
+  .fill.idle{animation:none;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+  .fill.fin{background:linear-gradient(90deg,#2c9c66,var(--green))}
+  .ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:7px}
+  .prog-sub{display:flex;gap:26px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:14px}
+  .prog-sub span b{color:#d6dee8;font-family:var(--mono);font-weight:500}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:18px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 15px}
+  .kpi .k{font-size:11.5px;color:var(--dim);margin-bottom:8px;letter-spacing:.3px}
+  .kpi .v{font-family:var(--mono);font-size:22px;color:#eef3f8;line-height:1.15;word-break:break-all}
+  .kpi.g .v{color:var(--green)} .kpi.y .v{color:var(--gold)} .kpi.c .v{color:var(--cyan)}
+
+  .chart{margin-bottom:18px}
+  .chart .bd{padding:8px 10px 4px}
+  svg{display:block;width:100%;height:auto}
+  .log .bd{padding:0}
+  pre{margin:0;padding:15px 18px;font-family:var(--mono);font-size:11.8px;line-height:1.72;color:#9fb3c4;
+    max-height:290px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+  pre .hl{color:var(--gold2)} pre .ok{color:var(--green)} pre .er{color:var(--red)}
+  footer{margin-top:22px;font-size:11.5px;color:var(--dim);font-family:var(--mono);
+    display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  ::-webkit-scrollbar{height:9px;width:9px}
+  ::-webkit-scrollbar-thumb{background:#2c333d;border-radius:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>长任务 · <span class="accent">实时进度</span></h1>
+      <div class="sub" id="sub">日志源读取中…</div>
+    </div>
+    <div class="pill"><span id="sdot" class="dot run"></span><span id="stxt">连接中…</span></div>
+  </header>
+
+  <div id="banner" class="banner"></div>
+  <section class="stages" id="stages"></section>
+
+  <section class="card prog">
+    <div class="bd">
+      <div class="prog-top">
+        <div class="big"><span id="pct">0.00</span><small>%</small></div>
+        <div class="frac"><span id="rmv">0</span> <em>/</em> <span id="den">—</span> 个对象已删除</div>
+      </div>
+      <div class="bar"><div class="fill" id="fill"></div></div>
+      <div class="ticks"><span>0</span><span id="t25">25%</span><span>50%</span><span>75%</span><span id="tend">100%</span></div>
+      <div class="prog-sub">
+        <span>阶段 <b id="stage">—</b></span>
+        <span>耗时 <b id="elapsed">—</b></span>
+        <span>速率 <b id="rate">—</b></span>
+        <span>剩余 <b id="eta">—</b></span>
+        <span>预计完成 <b id="finish">—</b></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="kpi"><div class="k">工程总对象</div><div class="v" id="k0">—</div></div>
+    <div class="kpi y"><div class="k">待删除（覆盖区内）</div><div class="v" id="k1">—</div></div>
+    <div class="kpi g"><div class="k">已删除</div><div class="v" id="k2">—</div></div>
+    <div class="kpi"><div class="k">剩余未处理</div><div class="v" id="k3">—</div></div>
+    <div class="kpi c"><div class="k">冻结父级（保持坐标）</div><div class="v" id="k4">—</div></div>
+    <div class="kpi"><div class="k">删除后对象数</div><div class="v" id="k5">—</div></div>
+  </section>
+
+  <section class="card chart">
+    <div class="hd"><span>删除进度曲线</span><span id="chartNote">—</span></div>
+    <div class="bd"><svg id="chart" viewBox="0 0 860 244" preserveAspectRatio="xMidYMid meet"></svg></div>
+  </section>
+
+  <section class="card log">
+    <div class="hd"><span>后台日志</span><span id="logAge">—</span></div>
+    <div class="bd"><pre id="log">等待数据…</pre></div>
+  </section>
+
+  <footer>
+    <span id="fSource">日志源读取中…</span>
+    <span id="fSaved"></span>
+  </footer>
+
+</div>
+
+<script>
+const POLL = 1500;
+const STAGES = [
+  {k:'loading',  l:'读取工程'}, {k:'scanning', l:'扫描判定'}, {k:'freezing', l:'冻结父级'},
+  {k:'deleting', l:'删除对象'}, {k:'purging',  l:'清理孤立'}, {k:'saving',   l:'另存文件'}
+];
+const IDX = {loading:0, scanning:1, freezing:2, deleting:3, purging:4, saving:5};
+
+const $ = id => document.getElementById(id);
+const nf = n => (n === null || n === undefined) ? '—' : Number(n).toLocaleString('en-US');
+const p2 = n => String(Math.floor(n)).padStart(2,'0');
+const hms = s => {
+  if (s === null || s === undefined || !isFinite(s)) return '—';
+  s = Math.max(0, Math.round(s));
+  const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return h ? `${h} 时 ${m} 分` : (m ? `${m} 分 ${p2(x)} 秒` : `${x} 秒`);
+};
+const clock = e => {
+  if (!e || !isFinite(e)) return '—';
+  const d = new Date(e*1000);
+  return `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+};
+
+function renderStages(stage, done){
+  const cur = done ? STAGES.length : (IDX[stage] ?? 0);
+  $('stages').innerHTML = STAGES.map((s,i) => {
+    const cls = (done || i < cur) ? 'done' : (i === cur ? 'active' : '');
+    return `<div class="st ${cls}"><div class="bar ${(done||i<cur)?'f':''}"></div>
+      <div class="n">${(done || i < cur) ? '✓' : i+1}</div><div class="lb">${s.l}</div></div>`;
+  }).join('');
+}
+
+function chartSVG(d){
+  const S = d.samples || [], W=860,H=244,L=62,R=22,T=18,B=34, iw=W-L-R, ih=H-T-B, base=T+ih;
+  if (!S.length){
+    return `<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="#5d6673" font-size="13" font-family="sans-serif">等待第一批进度数据…</text>`;
+  }
+  const den = d.denom || 1, lastS = S[S.length-1];
+  const proj = (d.rate > 0 && lastS.removed < den) ? (den - lastS.removed)/d.rate : 0;
+  const xEnd = Math.max(lastS.elapsed*1.25, (lastS.elapsed+proj)*1.03, 60);
+  const X = e => L + (e/xEnd)*iw, Y = r => base - (r/den)*ih;
+  let g = '';
+  for (let i=0;i<=4;i++){
+    const y = Y(den*i/4);
+    g += `<line x1="${L}" y1="${y}" x2="${L+iw}" y2="${y}" stroke="#252b34"/>`;
+    g += `<text x="${L-9}" y="${y+4}" text-anchor="end" fill="#5d6673" font-size="10.5" font-family="monospace">${Math.round(den*i/4/1000)}k</text>`;
+  }
+  for (let i=0;i<=5;i++){
+    const e = xEnd*i/5;
+    g += `<text x="${X(e)}" y="${H-12}" text-anchor="middle" fill="#5d6673" font-size="10.5" font-family="monospace">${hms(e)}</text>`;
+  }
+  const pts = [[0,0]].concat(S.map(s => [s.elapsed, s.removed]));
+  const line = pts.map(([e,r],i) => `${i?'L':'M'}${X(e).toFixed(2)},${Y(r).toFixed(2)}`).join(' ');
+  const area = `M${X(0).toFixed(2)},${base} ` + pts.map(([e,r]) => `L${X(e).toFixed(2)},${Y(r).toFixed(2)}`).join(' ') + ` L${X(lastS.elapsed).toFixed(2)},${base} Z`;
+  g += `<defs>
+      <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e6b455" stop-opacity=".40"/><stop offset="100%" stop-color="#e6b455" stop-opacity="0"/></linearGradient>
+      <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#8a6a25"/><stop offset="60%" stop-color="#e6b455"/><stop offset="100%" stop-color="#f6dfa8"/></linearGradient>
+    </defs>`;
+  g += `<path d="${area}" fill="url(#ag)"/>`;
+  g += `<path d="${line}" fill="none" stroke="url(#lg)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if (proj > 0){
+    g += `<path d="M${X(lastS.elapsed).toFixed(2)},${Y(lastS.removed).toFixed(2)} L${X(lastS.elapsed+proj).toFixed(2)},${Y(den).toFixed(2)}" fill="none" stroke="#4a5563" stroke-width="1.6" stroke-dasharray="5 5"/>`;
+    g += `<text x="${X(lastS.elapsed+proj).toFixed(2)}" y="${Y(den)-7}" text-anchor="end" fill="#6d7885" font-size="10.5" font-family="monospace">预计终点</text>`;
+  }
+  g += `<circle cx="${X(lastS.elapsed).toFixed(2)}" cy="${Y(lastS.removed).toFixed(2)}" r="4.6" fill="#0b0d10" stroke="#f6dfa8" stroke-width="2.4"/>`;
+  g += `<text x="${Math.min(X(lastS.elapsed)+12, L+iw-84).toFixed(2)}" y="${(Y(lastS.removed)-12).toFixed(2)}" fill="#f6dfa8" font-size="12" font-family="monospace">${nf(lastS.removed)}</text>`;
+  g += `<line x1="${L}" y1="${Y(den)}" x2="${L+iw}" y2="${Y(den)}" stroke="#4fd18b" stroke-width="1.2" stroke-dasharray="3 4" stroke-opacity=".8"/>`;
+  g += `<text x="${L+iw}" y="${Y(den)-7}" text-anchor="end" fill="#4fd18b" font-size="10.5" font-family="monospace">目标 ${nf(den)}</text>`;
+  return g;
+}
+
+function render(d){
+  const done = !!d.done, err = d.stage === 'error' || !!d.error;
+  $('sub').innerHTML = (d.src ? `源文件 <b>${d.src}</b><br>` : '') + (d.new_path || d.saved_path ? `输出 <b>${d.saved_path || d.new_path}</b>` : '标记矩形并集内的对象将被删除（俯视 Z 轴）');
+
+  $('sdot').className = 'dot ' + (err ? 'bad' : done ? 'ok' : 'run');
+  $('stxt').textContent = err ? '出错' : done ? '已完成' : ('运行中 · ' + (d.stage_label || d.stage));
+
+  const b = $('banner'); b.className = 'banner';
+  if (err){
+    b.classList.add('show','bad');
+    b.innerHTML = '⚠ 任务异常：' + (d.error || '未知错误') +
+      (d.exit_code !== null && d.exit_code !== undefined ? `（exit_code=${d.exit_code}）` : '');
+  } else if (done){
+    b.classList.add('show','ok');
+    const a = d.after;
+    b.innerHTML = `✓ 全部完成：已删除 <b>${nf(d.removed)}</b> 个对象` +
+      (a ? `，余 <b>${nf(a.objects)}</b> 个对象（meshes ${nf(a.meshes)} / materials ${nf(a.materials)} / images ${nf(a.images)}）` : '') +
+      (d.saved_path ? `<br>输出文件：<span style="font-family:var(--mono)">${d.saved_path}</span>` : '');
+  } else if (d.log_age !== null && d.log_age > 600){
+    b.classList.add('show','warn');
+    b.innerHTML = `日志已 ${Math.round(d.log_age/60)} 分钟没有新增输出 —— 可能在执行「另存为大文件」等耗时操作（正常）；若长时间无变化请检查进程。`;
+  }
+
+  renderStages(d.stage, done);
+
+  const den = d.denom || 0;
+  $('pct').textContent = (d.percent || 0).toFixed(2);
+  $('rmv').textContent = nf(d.removed);
+  $('den').textContent = den ? nf(den) : '—';
+  const f = $('fill');
+  f.style.width = Math.min(100, d.percent || 0) + '%';
+  f.className = 'fill' + (done ? ' fin' : (d.stage === 'deleting' ? '' : ' idle'));
+  $('t25').textContent = den ? ('25% ' + nf(Math.round(den*0.25))) : '25%';
+  $('tend').textContent = den ? nf(den) : '100%';
+
+  $('stage').textContent = d.stage_label || d.stage;
+  $('elapsed').textContent = hms(d.last_elapsed);
+  $('rate').textContent = d.rate > 0 ? (d.rate.toFixed(1) + ' 个/秒') : '—';
+  $('eta').textContent = (den && d.removed < den) ? hms(d.eta_seconds) : '—';
+  $('finish').textContent = (den && d.removed < den && d.rate > 0) ? clock(d.now + d.eta_seconds) : '—';
+
+  $('k0').textContent = nf(d.total_objects);
+  $('k1').textContent = nf(d.victims);
+  $('k2').textContent = nf(d.removed);
+  $('k3').textContent = den ? nf(Math.max(0, den - d.removed)) : '—';
+  $('k4').textContent = nf(d.frozen);
+  $('k5').textContent = nf(d.remaining ?? (d.after ? d.after.objects : null));
+
+  $('chart').innerHTML = chartSVG(d);
+  $('chartNote').textContent = d.rate > 0 ? `实测 ${d.rate.toFixed(1)} 个/秒 · 采样 ${(d.samples||[]).length} 点` : '—';
+
+  const pre = $('log');
+  const atBottom = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 24;
+  pre.innerHTML = (d.lines || []).map(l => {
+    const esc = l.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    const cls = /DONE|saved/i.test(l) ? 'ok' : (/FATAL|Traceback/i.test(l) ? 'er' : (/victims|loaded|frozen/i.test(l) ? 'hl' : ''));
+    return `<span class="${cls}">${esc}</span>`;
+  }).join('\n');
+  if (atBottom) pre.scrollTop = pre.scrollHeight;
+
+  $('logAge').textContent = d.log_age === null ? '—' : (d.log_age < 3 ? '刚刚更新' : `最后更新 ${hms(d.log_age)} 前`);
+  $('fSource').textContent = '日志：' + (d.job_status || '?') + (d.exit_code !== null && d.exit_code !== undefined ? ` (exit ${d.exit_code})` : '');
+  $('fSaved').textContent = d.saved_path ? ('输出：' + d.saved_path) : '';
+}
+
+let fails = 0;
+async function tick(){
+  try{
+    const r = await fetch('/api/progress', {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    render(await r.json());
+    fails = 0;
+  }catch(e){
+    fails++;
+    $('sdot').className = 'dot bad';
+    $('stxt').textContent = '无法连接本地服务 (' + fails + ')';
+  }
+}
+tick();
+setInterval(tick, POLL);
+</script>
+</body>
+</html>

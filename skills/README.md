@@ -32,8 +32,9 @@
 | `blender-project-prescan` | **动手整理前的只读体检**（三段扫描：结构 → 定向 → 精查）：工程画像 / 目标材质与目标件清单 / **分组口径对比**（按材质 · 按材质+父级 · 按材质+顶层祖先）/ 红线与风险项（多实例、join 丢修改器、父级摘除）/ 顺带可清项，落成一份可交付的「意见清单」。**只读，绝不改工程**；扫完直接交给 `blender-headless-batch` 执行。含三条最易被忽略的判据：`join` 只保留活动对象的修改器、**有面槽** vs 槽总数、单件组无收益 | Skill `blender-headless-batch`；前置分析脚本 [`../scripts/merge-by-material/analyze_materials.py`](../scripts/merge-by-material/analyze_materials.py) |
 | `blender-headless-batch` | **不开 GUI、用命令行无头处理巨型工程**（`--background`）：按材质合并海量网格降对象数、工程结构扫描、删除集合。含**四个实测致命的坑**（共享 mesh 数据块 + 多段 join 让几何**重复计入**、一次性 join 几千对象 **Calloc 溢出崩溃**、**跨组选中状态泄漏**、excluded 集合里对象的 `matrix_world` 不被求值）、**两级 join**（大组必用）、**网格数据独立化**、活动对象必须挑带「按角度平滑」的、**风险组判定**（跨集合 / 不在视图层 / 修改器不一致 ⇔ 整组跳过）、**世界变换烘焙**（不烘焙模型会散架）、join 性能真相（开销看**对象数**而非几何量）、后台跑与 CPU 判定法、**重开复核**铁律、**性能验收四口径**（会更快、但快在操作响应而非渲染帧率）、以及「重名是假警报」的几何指纹判据（**两个工程合并另见下条 `blender-blend-append-merge`**） | [按材质合并为单个网格体](../docs/按材质合并为单个网格体.md) / [`../scripts/merge-by-material/`](../scripts/merge-by-material/) |
 | `blender-blend-append-merge` | **把两个 `.blend` 追加合并成一个**：核心结论是 **append 耗时 ≈ 15 ms × 被追加的对象数**（与几何/贴图量几乎无关）⇒ **以对象少的一边为底、追加对象多的那边**（实测 458 s vs 7 s，差 **80 倍**）；含三个必踩的坑（**重名去重「按 `.NNN` 数字后缀续号」会链式挪号、3.4% 的对象被改名**、**直接挂在场景根下、不属任何集合的游离对象会整批漏掉**、**世界与场景设置不随集合追加**）与**不依赖名字的多重集（Counter）对账口径** | [追加合并两个工程](../docs/追加合并两个工程.md) / 脚本包随 skill 自带 `scripts/`（`merge_append.py` / `verify_append.py` / `dump_b_baseline.py` / `probe_append_speed.py` / `probe_missing.py` / `smoke/`） |
+| `blender-region-batch-delete` | **按覆盖区框选批量删除对象**（俯视 Z 轴，走 `--background` 无头通道）：用户放好带关键字（如「Z轴覆盖范围」）的网格体当"区域标记"，**俯视 = 忽略 Z** ⇒ 世界 XY 二维矩形包含。★★ **退化矩形（EMPTY/CAMERA/LIGHT 零尺寸）走四角点分流**（面积判据对它们恒真 ⇒ 会把全工程空物体与相机全删）、★★ **并集格网分解**（不能拆成"在 R1 或 R2"）、★★ **区外子级先冻结 keep-transform**（否则被连带删除/瞬移）；含**删除方法实测选型表**（`batch_remove` 23 ms/对象 vs 逐个 `remove` 124 ms，换参数零收益）、**三重闸**（只写新文件 / 干跑数不符即退 / 冻结外部子级）+ **重开复核**（硬判据"区内残留 = 0"，对象数带容差） | [覆盖区框选批量删除对象](../docs/覆盖区框选批量删除对象.md) / [`../scripts/region-batch-delete/`](../scripts/region-batch-delete/) |
 
-十五个是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+十六个是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
 其余十一个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
 `blender-overlap-difference` 去重叠、`blender-procedural-emission-material` 做程序化发光材质与控件、
 `blender-plane-procedural-material` 用平面验收材质、`blender-radial-pulse-material` 做径向距离场脉冲材质、
@@ -47,9 +48,9 @@
 `blender-loop-keyframe-anim` 是**动画写入类**（继承 bridge 传输层，管关键帧而非材质）；
 各 skill 开头均引用 `blender-bridge-ops`。
 
-剩下三个 —— `blender-project-prescan`、`blender-headless-batch` 与
-`blender-blend-append-merge` —— 走**另一条通道**，
-按「**先扫描 → 后执行 → 两个工程合并另起一条**」配成一组，且都不引用 `blender-bridge-ops`：
+剩下四个 —— `blender-project-prescan`、`blender-headless-batch`、
+`blender-blend-append-merge` 与 `blender-region-batch-delete` —— 走**另一条通道**，
+按「**先扫描 → 后执行 → 两个工程合并另起一条 → 覆盖区批量删除**」配成一组，且都不引用 `blender-bridge-ops`：
 
 > ⚠️ 它们用的是 `blender.exe --background --python <脚本>` 的**系统命令行**，不是 9877 桥。
 > 区别在于：桥有 **120s 超时**且要求 Blender 正在运行；合并这类改动动辄几分钟，
@@ -68,7 +69,7 @@
 
 ```powershell
 $dst = "$env:USERPROFILE\.workbuddy\skills"
-# 1) 15 个技能本体
+# 1) 16 个技能本体
 Copy-Item .\skills\* $dst -Recurse -Force
 # 2) 共享脚本包 —— 供 SKILL.md 里的 ../scripts/<包>/ 解析
 Copy-Item .\scripts   $dst -Recurse -Force
@@ -145,14 +146,16 @@ PY
     └── scripts/{scan_project.py, scan2.py, scan3.py}
 └── blender-radar-scan-material/
     └── SKILL.md                  # 脚本包在 ../scripts/radar-scan-material/(与本目录不重复)
+└── blender-region-batch-delete/
+    └── SKILL.md                  # 脚本包在 ../scripts/region-batch-delete/(与本目录不重复)
 ```
 
 > 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），同一 skill 下的脚本要一致。
 > 脚本位置有两种约定（**不要混用**）：① **自带** `skills/<名>/scripts/`（如 plane / radius-pulse / blend-append-merge）；
 > ② **引用** `../scripts/<名>/`、skill 目录下不放副本（如 `blender-inward-pulse-material` 与
-> `blender-driver-param-maintenance`、`blender-radar-scan-material`、`blender-headless-batch`）—— 后者的脚本**只维护一份**，无需两处同步。
+> `blender-driver-param-maintenance`、`blender-radar-scan-material`、`blender-headless-batch`、`blender-region-batch-delete`）—— 后者的脚本**只维护一份**，无需两处同步。
 
-> **例外：`blender-headless-batch` 与 `blender-blend-append-merge` 的脚本不在桥里跑。**
+> **例外：`blender-headless-batch`、`blender-blend-append-merge` 与 `blender-region-batch-delete` 的脚本不在桥里跑。**
 > 它不用 `send.py`，而是 `blender.exe --background --factory-startup <blend> --python <脚本>.py`，
 > 输出路径由 `--` 之后的命令行参数给（不是改顶部 `OUT_DIR`），日志与排除名单写在**当前工作目录**。
 > `blender-blend-append-merge` 的脚本走**环境变量**传参（`AMB_WORK` / `AMB_SRC_A` / `AMB_SRC_B` /

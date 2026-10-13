@@ -1,5 +1,19 @@
 # CHANGELOG.md
 
+## v1.34.0 · 2026-10-14
+
+- **新增主题 #50「覆盖区框选批量删除对象(俯视 Z 轴)」** —— 用户放好带关键字（如「Z轴覆盖范围」）的网格体当"区域标记"，**俯视 Z 轴删掉被它们完全覆盖的所有对象**，文档 + 脚本包 + Skill `blender-region-batch-delete`
+  - **判定核心**:「俯视 Z 轴」**= 忽略 Z** ⇒ 退化成**世界 XY 二维矩形包含**;判据是**并集格网分解**(按所有 x/y 边界切片、逐格求交面积求和 `area(R∩U)==area(R)`),**不能拆成「在 R1 或 R2」**(两块重叠时会把不属于并集的点算进去);容差用相对量 `1e-6×max(1,w*h)`
+  - **★★ 零尺寸对象必须单独分流**:EMPTY/CAMERA/LIGHT/点数据的 `bound_box` 零尺寸(`w*h==0`),面积判据对它们**恒真** ⇒ 会把**全工程空物体与相机全删掉**。正解 = 退化矩形走**四角点 `point-in-union`** 分支
+  - **★★ 父级在覆盖区内、子级在区外 ⇒ 删父级会连带子级**:必须先把区外子级**冻结保持世界变换**(`mw=matrix_world.copy(); parent=None; matrix_parent_inverse.identity(); matrix_world=mw`),否则子级跟着消失或瞬移
+  - **★ 删除方法实测选型**:`objects.remove()` **123.6 ms** / `collection.objects.unlink()` **26.6 ms** / `bpy.ops.object.delete()` **44.2 ms** / **`bpy.data.batch_remove(list)` 最快 23.0 ms** / `remove(do_id_user=False,do_ui_user=False)` **135.6 ms(零收益)**;成本 ≈ **20 ms/对象**,与 API、视图层、集合大小**无关** ⇒ 大批量一律 `batch_remove` + 分块
+  - **★ 干跑 / 执行 / 复核三处判据必须同源**:各写一套会算出「**干跑 143,318、执行删 143,317**」这类最难查的偏差 ⇒ 抽**共享几何核** `region_geom.py`(`make_judge`)三处同 import
+  - **★ 循环内禁用 `bpy.data.objects.get(name)`**:32 万对象规模下病态慢(曾挂死 **>10 分钟**)⇒ 直接遍历 + `set` 判定
+  - **★ 存盘会丢弃 `users==0` 且无 fake user 的数据块**:内存 **177,156** → 重开 **177,155**(另丢若干无用 mesh/image)⇒ 复核对象数**带容差**,硬判据改成业务不变量(「覆盖区内残留 = 0」);收尾 `orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=False)` 跑 2 遍 ≈ **0.6 s**(`do_recursive=True` 全量 **42.7 s**)
+  - **脚本包**:`scripts/region-batch-delete/`(共享几何核 `region_geom.py` + ① `analyze_region.py` 干跑 / ② `delete_region.py` 执行(三重安全闸 + 分块 `batch_remove` + 另存 `_已删除覆盖区对象.blend`)/ ③ `verify_region.py` 重开复核 + 通用 `progress_dashboard/` 实时看板 + README)
+  - **文档**:`docs/覆盖区框选批量删除对象.md`;**Skill**:`skills/blender-region-batch-delete/SKILL.md`(6 铁律 + 判定三条 + 执行五步与选型表 + 独立核验 + 坑表)
+  - **实测(Blender 5.2.2 LTS / Windows)**:源工程 **320,474** 对象 → 删 **143,318**(2,401.6 s,≈50 个/秒)→ 另存 **177,155** 对象(135.9 MB);重开复核 **`region_objects_left: 0`**;MESH 167,142 / EMPTY 9,987 / CAMERA 25 / LIGHT 1;meshes 7,242 / materials 503 / images 245 / collections 253
+
 ## v1.33.0 · 2026-10-14
 
 - **新增主题 #49「空间雷达扫描材质」** —— 把一份 **Canvas 雷达扫描动画**复刻成 Blender **空间材质**（**不用 UV**，**沿世界 Y 轴投射**），文档 + 脚本包 + Skill `blender-radar-scan-material`

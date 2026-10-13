@@ -288,6 +288,15 @@
 - **★ Blender 5.2 没有 `ShaderNodeSceneTime`**:`bpy.types` 全量探查,5.2 无任何 `ShaderNode*Time*`(只有 `CompositorNodeSceneTime` / `GeometryNodeInputSceneTime`)⇒ 材质里的"当前时刻"要用 **`ShaderNodeValue` 输出 + 驱动**(如 `frame / fps * 速度 / 360.0`),不是场景时间节点
 - **★ `nt.driver_add(path)` 对非数组属性不能传 index**:`driver_add('nodes["X"].outputs[0].default_value', 0)` 报 `index 0 was given while property ... is not an array`;标量属性**不传 index**。另 **`MapRange` 有两套同名插槽(VALUE / VECTOR)** ⇒ 按名字取值会撞,一律用**索引**取 VALUE 的 6 个口(`0..5` = Value / From Min / From Max / To Min / To Max / Steps)
 - **★ 测"图案是否沿某轴投射"用 md5 比像素**:沿该轴平移物体、沿法线正交正视渲染,两张 PNG **逐像素一致**(md5 同值)即证明"图案与该轴无关",比肉眼硬。前提:`view_transform='Standard'`(**AgX 会压平对比**)、测前把发光强度调低(**默认高发光会过曝到全 1.0 ⇒ 亮度剖面的 argmax 随机**)
+- **★ `Object.bound_box` 是「对象/局部空间」,判世界区域必须先过 `matrix_world`**:直接拿 `bound_box` 的 min/max 当世界坐标,只在对象**位于原点且未旋转缩放**时才碰巧对;正解 `[obj.matrix_world @ Vector(c) for c in obj.bound_box]` 再取 min/max。**判据**:把对象挪远/旋转 45° 后判定结果若不变 ⇒ 判定根本没走世界矩阵
+- **★★ 零尺寸对象(EMPTY/CAMERA/LIGHT/点数据)的「面积包含」判据恒真,会误删全工程**:它们 `bound_box` 零尺寸(`w*h == 0`),任何 `area(R∩U) == area(R)` 写法都算出 `0 == 0` ⇒ 恒真 ⇒ 被当成"在覆盖区内"。**必须为退化矩形单开分支**,改用**四角点是否全落在并集内**(`point in union`),而不是比面积
+- **★★ 「落在 R1 或 R2 的并集内」不能拆成 `(在R1) or (在R2)`**:两块标记框重叠时,`or` 会漏判/误判跨缝矩形。正解 = **并集格网分解**:按所有边界 x/y 切格、逐格求交面积求和 `area(R∩U) == area(R)`(两块时等价容斥 `A∩R1 + A∩R2 − A∩R1∩R2`,n 块仍用格网);容差用相对量 `1e-6 × max(1, w*h)`
+- **★ 删除对象成本 ≈ 20 ms/个,且与 API / 视图层 / 集合大小无关**:实测 `bpy.data.objects.remove()` **123.6 ms**、`collection.objects.unlink()` **26.6 ms**、`bpy.ops.object.delete()` **44.2 ms**、**`bpy.data.batch_remove(list)` 最快 23.0 ms**、`remove(do_id_user=False, do_ui_user=False)` **135.6 ms(零收益)** ⇒ 成本在数据块本身,**换 API 省不出量级**;大批量一律 `bpy.data.batch_remove` + 分块(32 万对象工程删 14.3 万个 ≈ 50 个/秒)
+- **★ 循环内绝不用 `bpy.data.objects.get(name)`**:在 **32 万对象**规模下病态慢(曾挂死 **>10 分钟**);批量处理一律**直接遍历 `bpy.data.objects` + `set` 判定**,或先建 `{name: obj}` 字典查
+- **★ 干跑 / 执行 / 复核三处判据必须同源**:各写一套"谁在覆盖区内"的判定,会算出「**干跑 143,318、执行删 143,317**」这类**最难查的一对一偏差**;正解 = 抽一个**共享几何核**(如 `region_geom.py` 的 `make_judge`),三处都 import 它
+- **★ 存盘会丢弃 `users==0` 且无 fake user 的数据块 ⇒ 另存后对象数可能少 1**:实测内存 177,156 → 重开 177,155(另丢若干无用 mesh/image);复核对象数要**带容差**,硬判据改成**业务不变量**(如「覆盖区内残留 = 0」)。收尾 `orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=False)` 跑 2 遍 ≈ **0.6 s**;**`do_recursive=True` 全量要 42.7 s**,别用
+- **★ 删除后旧引用失效**:`batch_remove` 之后碰被删对象的 `name` / `.data` / 属主关系会抛异常或读乱码(与 5.2 `nodes.remove()` 后旧节点引用失效同源);**正解:删完重新遍历 `bpy.data.*` 取新集合,不跨删除持有引用**
+- **★ 删父级会带走子级 ⇒ 区外子级必须先冻结 keep-transform**:父级在覆盖区内、子级在区外时直接删父级,子级会**连带消失或瞬移**;删前对每个"区外子级"执行 `mw=child.matrix_world.copy(); child.parent=None; child.matrix_parent_inverse.identity(); child.matrix_world=mw`。**判据:冻结后世界矩阵逐位不变**
 
 ## 约定
 
