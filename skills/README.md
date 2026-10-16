@@ -29,21 +29,32 @@
 | `blender-cylinder-spiral-material` | **圆柱面螺旋斜条纹发光材质**（滚筒）：斜纹 = 柱面坐标相位取模 `f = u×K − v×N` + `FLOORED_MODULO`；波形走 **Math 域**（`MapRange(SMOOTHSTEP)×2 + MINIMUM`），**不让 ColorRamp 兼职**（后者会参数耦合 / 色标被驱动锁死 / 拖尾被结构卡在 58%）；ColorRamp 零驱动只管颜色。**两套并列调参方案**（按条数 / 按角度，跑哪个装哪个，避免留幽灵参数）；端盖按**法线**单独分槽（否则条纹摊成扇形风车）；**方向以实测标定**（纸面推导曾推反） | [滚筒斜纹材质](../docs/滚筒斜纹材质.md) / [`../scripts/streak-material/`](../scripts/streak-material/) |
 | `blender-radar-scan-material` | **雷达扫描空间材质**（不用 UV，**沿某世界轴投射**）：极坐标角度场 `u = (atan2(Z, X) + π)/2π`（只取两分量 ⇒ 天然沿第三轴投射）+ 多扫描条相位 `D = frac(条数×时刻 − 方向×条数×u)`（★ **方向只准进角项**：进时间项时 `frac(−x)` 头位置集合与正向相同 ⇒ **旋钮按了不反向**）+ `FLOORED_MODULO`（普通 `MODULO` 负值裁剪 ⇒ **跨 0° 拖尾断头**）；拖尾/头部线/网格环带走 **Math 域**（`MapRange` + `POWER`，**ColorRamp 只管颜色不兼职**）；半径 `CombineXYZ(0 填 Y)` + `LENGTH`；12 参数控制空物体 + `SINGLE_PROP` 驱动；含 5.2 **无 `ShaderNodeSceneTime`** 的时间源替代（`Value` 节点 + 驱动）与**正交正视渲染 + 像素级测转角/反向/条数 + md5 验投射**的可证伪核验 | [空间雷达扫描材质](../docs/空间雷达扫描材质.md) / [`../scripts/radar-scan-material/`](../scripts/radar-scan-material/) |
 | `blender-loop-keyframe-anim` | **给自定义属性批量写「循环三角波关键帧动画」**：一个完整周期进 fcurve + CYCLES 循环修饰器铺满帧范围，贝塞尔自然缓入缓出；含 Slotted Action 正确写入路径、5.x 无 mode 属性、`is_valid=False` 判空、depsgraph 读被驱动值、关键帧值精确写入（绕开属性当前值被驱动干扰） | 传输层 `blender-bridge-ops`；[技巧速查 §3/§4/§5](../docs/技巧速查.md) |
+| `blender-split-flap-flip` | **翻页牌批量翻页动画**（报刊亭/机场翻页牌整块动起来）：每张卡建一个**中缝轴 Empty** 挂几何中心（卡片轴心常在角落，直接转就绕角甩）+ **单重补偿**挂接保持世界位置；**总转角必须是 360 的整数倍**（半圈停在背面看不到字）、缓动用 **smoothstep**、相位 `((列+行)%8)×2` 出斜向波浪。★ 两大真坑：**非受信任打开的 .blend 里 SCRIPTED 驱动静默不求值**（改走 `frame_change_post` 处理器）、**驱动表达式必须返回 `radians()`**（写度数 1080 → 61879°）；★ 处理器不写进 .blend ⇒ **存盘前必须停静止帧** | [分体翻页牌驱动翻页系统](../docs/分体翻页牌驱动翻页系统.md) / [`../scripts/flip-card/`](../scripts/flip-card/) |
+| `blender-spot-bloom-swing` | **射灯阵列径向摆动绽放**（像花开花合）：一圈射灯各自**锁在自己的竖直径向平面**里摆动；起始线 = 灯→中轴线对象连线（中轴抬高时是**倾斜**的）、旋转轴 = 水平切向 `ẑ × r̂`；★ **必须插一层「铰链」空物体**承载摆动（XYZ 欧拉下"X 轴水平 ⇒ Z 轴必竖直"故不能一步到位）；**拍频公式** `θ_i = 2π(t·f_i − sync·(f_i−1))/period`、`f_i = 1 + spread·i/7` ⇒ 依次展开 → **sync 帧精确同步** → 之后错位；★ 5.2 `DriverTarget.id` 必须先 `id_type='SCENE'`、★ **批量脚本中途失败会留半改造状态**、★ 定位空对象常无旋转（朝向必须问用户） | [射灯阵列径向摆动绽放系统](../docs/射灯阵列径向摆动绽放系统.md) / [`../scripts/spot-bloom-swing/`](../scripts/spot-bloom-swing/) |
+| `blender-volume-beam-feather` | **射灯光柱可见 + 边缘羽化**：闭合锥体当体积域 + 局部体积材质。★ **`Principled Volume` 的 Emission 不受 `Density` 控制**（Density 接 `Value=0` 画面**依然亮**且比 0.8 浓度**更亮**）⇒ 渐变**必须同时接 `Emission Strength`**（边缘过渡宽度实测 **6px → 18px**）；★ 轴向收尾的**端点必须精确到 0**（线性底值留 5% ⇒ 远端被几何**平切**一条硬边），要调渐变终点**别用 `ColorRamp`**（色标位置连不上节点）而用 `MapRange` 的 `From Max`；★ **5.2 `nodes.remove()` 后旧节点引用失效**（`out.name` 读乱码 / **链接静默丢失**）⇒ 删完**重新遍历**取输出节点；★ 材质烘焙 R/L ⇒ 只有 `spot_size`/`cutoff_distance` 完全一致的灯才能共用一份材质；★★★ **换文件级 operator 绝不许通过桥送进用户会话**（实测崩会话、未存盘改动全丢） | [体积光柱羽化系统](../docs/体积光柱羽化系统.md) / [`../scripts/volume-beam-feather/`](../scripts/volume-beam-feather/) |
 | `blender-project-prescan` | **动手整理前的只读体检**（三段扫描：结构 → 定向 → 精查）：工程画像 / 目标材质与目标件清单 / **分组口径对比**（按材质 · 按材质+父级 · 按材质+顶层祖先）/ 红线与风险项（多实例、join 丢修改器、父级摘除）/ 顺带可清项，落成一份可交付的「意见清单」。**只读，绝不改工程**；扫完直接交给 `blender-headless-batch` 执行。含三条最易被忽略的判据：`join` 只保留活动对象的修改器、**有面槽** vs 槽总数、单件组无收益 | Skill `blender-headless-batch`；前置分析脚本 [`../scripts/merge-by-material/analyze_materials.py`](../scripts/merge-by-material/analyze_materials.py) |
 | `blender-headless-batch` | **不开 GUI、用命令行无头处理巨型工程**（`--background`）：按材质合并海量网格降对象数、工程结构扫描、删除集合。含**四个实测致命的坑**（共享 mesh 数据块 + 多段 join 让几何**重复计入**、一次性 join 几千对象 **Calloc 溢出崩溃**、**跨组选中状态泄漏**、excluded 集合里对象的 `matrix_world` 不被求值）、**两级 join**（大组必用）、**网格数据独立化**、活动对象必须挑带「按角度平滑」的、**风险组判定**（跨集合 / 不在视图层 / 修改器不一致 ⇔ 整组跳过）、**世界变换烘焙**（不烘焙模型会散架）、join 性能真相（开销看**对象数**而非几何量）、后台跑与 CPU 判定法、**重开复核**铁律、**性能验收四口径**（会更快、但快在操作响应而非渲染帧率）、以及「重名是假警报」的几何指纹判据（**两个工程合并另见下条 `blender-blend-append-merge`**） | [按材质合并为单个网格体](../docs/按材质合并为单个网格体.md) / [`../scripts/merge-by-material/`](../scripts/merge-by-material/) |
 | `blender-blend-append-merge` | **把两个 `.blend` 追加合并成一个**：核心结论是 **append 耗时 ≈ 15 ms × 被追加的对象数**（与几何/贴图量几乎无关）⇒ **以对象少的一边为底、追加对象多的那边**（实测 458 s vs 7 s，差 **80 倍**）；含三个必踩的坑（**重名去重「按 `.NNN` 数字后缀续号」会链式挪号、3.4% 的对象被改名**、**直接挂在场景根下、不属任何集合的游离对象会整批漏掉**、**世界与场景设置不随集合追加**）与**不依赖名字的多重集（Counter）对账口径** | [追加合并两个工程](../docs/追加合并两个工程.md) / 脚本包随 skill 自带 `scripts/`（`merge_append.py` / `verify_append.py` / `dump_b_baseline.py` / `probe_append_speed.py` / `probe_missing.py` / `smoke/`） |
 | `blender-region-batch-delete` | **按覆盖区框选批量删除对象**（俯视 Z 轴，走 `--background` 无头通道）：用户放好带关键字（如「Z轴覆盖范围」）的网格体当"区域标记"，**俯视 = 忽略 Z** ⇒ 世界 XY 二维矩形包含。★★ **退化矩形（EMPTY/CAMERA/LIGHT 零尺寸）走四角点分流**（面积判据对它们恒真 ⇒ 会把全工程空物体与相机全删）、★★ **并集格网分解**（不能拆成"在 R1 或 R2"）、★★ **区外子级先冻结 keep-transform**（否则被连带删除/瞬移）；含**删除方法实测选型表**（`batch_remove` 23 ms/对象 vs 逐个 `remove` 124 ms，换参数零收益）、**三重闸**（只写新文件 / 干跑数不符即退 / 冻结外部子级）+ **重开复核**（硬判据"区内残留 = 0"，对象数带容差） | [覆盖区框选批量删除对象](../docs/覆盖区框选批量删除对象.md) / [`../scripts/region-batch-delete/`](../scripts/region-batch-delete/) |
+| `blender-sweep-angle-material` | **平面上的多角度扫光 + 两层渐变相乘合成**：扫过方向 = **0–360° 的 UV 平面角度**（0° 沿 +U、90° 沿 +V、180° 反向），核心是**二维方向投影** `t = (u·cosθ + v·sinθ)/(\|cosθ\|+\|sinθ\|)` —— ★ **分母是必须的**（值域宽度是 `\|cosθ\|+\|sinθ\|`，45° 时 √2；不归一化则角度一拨条纹凭空多出 1.41 倍），**θ=0° ⇒ t ≡ u，与原版逐点相同**；水平层全白 = 中性（逐像素实测最大差 **0.00392**，等于没接）；5 旋钮挂**空对象**、**ColorRamp 零驱动**留给手调。★ `ShaderNodeMix` 的 **`Factor=0` 不是纯相乘**（退化成只取 A，必须 1.0）、★ 改驱动**变量**必须**原子重建**、★ `SINGLE_PROP` 先 `id_type` 后 `id`（补充变量循环顺序反了 ⇒ **数值减半**）、★★ 核验两个**自证陷阱**：沿 t 的剖面**要先按 1.0 取模再分箱**（否则 180° 的负 t 被丢 ⇒ 条数塌成 1）、**别拿 t 剖面验镜像**（采样方向跟着 t 一起翻，再 `[::-1]` 就翻了两次）⇒ **直接比像素**（镜像差 `0.001884` vs 同向差 `0.273658`） | [渐变扫过材质 · UV 方向角](../docs/渐变扫过材质-UV方向角.md) / [`../scripts/sweep-angle-material/`](../scripts/sweep-angle-material/) |
 
-十六个是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
-其余十一个各管一件事：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
+二十个是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+其余十五个各管一件事（都走桥）：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
 `blender-overlap-difference` 去重叠、`blender-procedural-emission-material` 做程序化发光材质与控件、
 `blender-plane-procedural-material` 用平面验收材质、`blender-radial-pulse-material` 做径向距离场脉冲材质、
 `blender-inward-pulse-material` 做径向**内收多脉冲**材质（环数恒定的约束解算）、
-`blender-driver-param-maintenance` 给**已建成**的参数化系统做维护（引用体检 / 关键帧收敛 / 改名换轴）、
-`blender-loop-keyframe-anim` 给自定义属性批量写**循环三角波关键帧动画**（Slotted Action + CYCLES）、
+`blender-sweep-angle-material` 做**平面多角度扫光**（0–360° UV 角度 + 两层渐变相乘合成）、
 `blender-cylinder-spiral-material` 做圆柱面螺旋斜纹发光材质（滚筒）、
-`blender-radar-scan-material` 做**雷达扫描空间材质**（极坐标角度场 + 拖尾，沿某世界轴投射）。
-后五者**母 skill 均为 `blender-procedural-emission-material`**（通用机制在那边）；
+`blender-radar-scan-material` 做**雷达扫描空间材质**（极坐标角度场 + 拖尾，沿某世界轴投射）、
+`blender-split-flap-flip` 做**翻页牌批量翻页动画**（中缝轴 + 单重补偿，绕开非受信任文件的 SCRIPTED 限制）、
+`blender-spot-bloom-swing` 做**环形射灯径向摆动绽放**（铰链层 + 拍频同步）、
+`blender-volume-beam-feather` 让**射灯光柱可见且边缘羽化**（体积域 + 径向/轴向两层衰减）、
+`blender-driver-param-maintenance` 给**已建成**的参数化系统做维护（引用体检 / 关键帧收敛 / 改名换轴）、
+`blender-loop-keyframe-anim` 给自定义属性批量写**循环三角波关键帧动画**（Slotted Action + CYCLES）。
+其中 `blender-plane-procedural-material` / `blender-radial-pulse-material` / `blender-inward-pulse-material`
+三者的**母 skill 是 `blender-procedural-emission-material`**（通用机制在那边）；
+`blender-cylinder-spiral-material` / `blender-radar-scan-material` / `blender-sweep-angle-material`
+是**同类并列的专项材质**（各自独立、开头互相索引）；
 `blender-driver-param-maintenance` 与之并列，管的是同一套系统的**运维**而非新建；
 `blender-loop-keyframe-anim` 是**动画写入类**（继承 bridge 传输层，管关键帧而非材质）；
 各 skill 开头均引用 `blender-bridge-ops`。
@@ -69,7 +80,7 @@
 
 ```powershell
 $dst = "$env:USERPROFILE\.workbuddy\skills"
-# 1) 16 个技能本体
+# 1) 17 个技能本体
 Copy-Item .\skills\* $dst -Recurse -Force
 # 2) 共享脚本包 —— 供 SKILL.md 里的 ../scripts/<包>/ 解析
 Copy-Item .\scripts   $dst -Recurse -Force
@@ -148,12 +159,15 @@ PY
     └── SKILL.md                  # 脚本包在 ../scripts/radar-scan-material/(与本目录不重复)
 └── blender-region-batch-delete/
     └── SKILL.md                  # 脚本包在 ../scripts/region-batch-delete/(与本目录不重复)
+└── blender-sweep-angle-material/
+    └── SKILL.md                  # 脚本包在 ../scripts/sweep-angle-material/(与本目录不重复)
 ```
 
 > 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），同一 skill 下的脚本要一致。
 > 脚本位置有两种约定（**不要混用**）：① **自带** `skills/<名>/scripts/`（如 plane / radius-pulse / blend-append-merge）；
 > ② **引用** `../scripts/<名>/`、skill 目录下不放副本（如 `blender-inward-pulse-material` 与
-> `blender-driver-param-maintenance`、`blender-radar-scan-material`、`blender-headless-batch`、`blender-region-batch-delete`）—— 后者的脚本**只维护一份**，无需两处同步。
+> `blender-driver-param-maintenance`、`blender-radar-scan-material`、`blender-headless-batch`、
+> `blender-region-batch-delete`、`blender-sweep-angle-material`）—— 后者的脚本**只维护一份**，无需两处同步。
 
 > **例外：`blender-headless-batch`、`blender-blend-append-merge` 与 `blender-region-batch-delete` 的脚本不在桥里跑。**
 > 它不用 `send.py`，而是 `blender.exe --background --factory-startup <blend> --python <脚本>.py`，
