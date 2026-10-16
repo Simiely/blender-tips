@@ -2,12 +2,18 @@
 # 渐变扫过材质 · UV 方向角 —— 独立核验(经 9877 桥执行)
 # ===========================================================================
 # 三层判据,每层都要有【可证伪的读数】:
-#   A. 结构   : 23 条连线逐条比对 + 取模运算类型 + 混合系数 + 色标指纹(只读记录)
+#   A. 结构   : 坐标源必须是 坐标_纹理.UV(不是 Generated)+ 23 条连线逐条比对 +
+#               取模运算类型 + 混合系数 + 色标指纹(只读记录)
 #   B. 驱动   : 行为法 —— 改旋钮 → 强刷新 → 看插座值跟不跟(不看 is_valid)
 #   C. 渲染   : 四个角度各渲一张,量
 #               ① gradX/gradY  朝向读数(>1 竖条 / <1 横条 / ≈1 斜条)
 #               ② 沿 t 方向的条数 —— 四个角度【必须相同】★ 这就是"归一化"的可证伪判据
 #               ③ 180° 与 0° 的逐像素差:镜像差应 ≪ 同向差(不要拿 t 剖面做,见 C 区注释)
+#   另:同目录若存在 baseline_generated_<角度>.png(改前 Generated 版的渲染),
+#       会作为"改前"一并嵌进预览 HTML,方便肉眼对比坐标源换掉前后。
+#   ★ 「材质到底吃不吃 UV」另有一个专门的更硬核判据(临时互换 UV 的 u/v 看朝向翻不翻),
+#     见同目录 verify_uv_source.py —— 结构断言只能证明"线接在 UV 插座上",
+#     证明不了"求值真的走了 UV"。
 # 临时相机 / 分辨率 / 采样 / 帧 / 扫过角度 全部还原。失败只打印,不抛异常(否则桥会吞掉前面的输出)。
 # ===========================================================================
 import bpy, os, math, base64
@@ -71,7 +77,7 @@ print("RECHECK 目标=%r 材质=%r NODES=%d LINKS=%d FPS=%s 帧=%d"
 # ---------------- A. 结构 ----------------
 print("--- A. 结构 ---")
 PAIRS = [
-    ("坐标_纹理", "Generated", "分离_XY", "Vector"),
+    ("坐标_纹理", "UV", "分离_XY", "Vector"),
     ("分离_XY", "X", "数学_方向X", "Value"),
     ("角度_余弦", "Value", "数学_方向X", "Value"),
     ("分离_XY", "Y", "数学_方向Y", "Value"),
@@ -98,6 +104,12 @@ PAIRS = [
 for a, sa, b, sb in PAIRS:
     chk(has_link(a, sa, b, sb), "%s.%s -> %s.%s" % (a, sa, b, sb))
 chk(not has_link("分离_XY", "X", "数学_倍频", "Value"), "旧的一维连线 分离_XY.X -> 数学_倍频 已断开")
+chk(not has_link("坐标_纹理", "Generated", "分离_XY", "Vector"),
+    "★ 坐标源是 UV,不是 Generated(包围盒归一化;材质要跟着网格体自己的 UV 走)")
+chk(len(ob.data.uv_layers) >= 1,
+    "网格体有 UV 层:%r(active=%r) —— 没有 UV 接 UV 会得到全 0、图案会坏"
+    % ([l.name for l in ob.data.uv_layers],
+       ob.data.uv_layers.active.name if ob.data.uv_layers.active else None))
 chk(len([l for l in nt.links if l.to_node.name == "数学_倍频"]) == 2, "数学_倍频 恰好 2 个输入")
 chk(nt.nodes["数学_方向X"].operation == 'MULTIPLY' and nt.nodes["数学_方向Y"].operation == 'MULTIPLY',
     "数学_方向X / 数学_方向Y = MULTIPLY")
@@ -351,10 +363,29 @@ if len(shots) == len(ANGLES):
                 + '</span></figcaption></figure>')
         knobs = " · ".join("%s = %s" % (k, ctrl[k]) for k in
                            ("扫过角度", "扫过速度", "扫过条数", "水平条数", "发光强度"))
+        # 同目录若有改前 Generated 版的渲染,一并嵌进来做肉眼对比(没有就跳过)
+        base_cards = []
+        for a in ANGLES:
+            bp = os.path.join(OUT_DIR, "baseline_generated_%03d.png" % a)
+            if os.path.isfile(bp):
+                b64 = base64.b64encode(open(bp, "rb").read()).decode("ascii")
+                base_cards.append(
+                    '<figure><img src="data:image/png;base64,' + b64 + '" alt="改前 ' + str(a) + '°">'
+                    '<figcaption><b>' + LAB[a] + '</b><span>改前 · 源 = Generated</span>'
+                    '</figcaption></figure>')
+        base_html = ""
+        if base_cards:
+            base_html = ('<h2>改前 —— 坐标源 = <code>坐标_纹理.Generated</code>'
+                         '(按物体包围盒归一化,<b>完全不看 UV</b>)</h2>'
+                         '<div class="grid">' + "\n".join(base_cards) + '</div>'
+                         '<h2>改后 —— 坐标源 = <code>坐标_纹理.UV</code>'
+                         '(跟着网格体自己的 UV 走,材质可整体换网格体)</h2>')
+            print("  (已找到 %d 张改前基线图,一并嵌入预览)" % len(base_cards))
         CSS = """
  body{margin:0;padding:28px 32px;background:#f6f7f9;color:#1a1c1f;
       font:15px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
  h1{font-size:20px;margin:0 0 6px}
+ h2{font-size:16px;margin:24px 0 10px}
  p.sub{margin:0 0 22px;color:#5b6270;font-size:13px}
  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
  figure{margin:0;background:#fff;border:1px solid #e3e6ea;border-radius:10px;overflow:hidden;
@@ -373,14 +404,18 @@ if len(shots) == len(ANGLES):
 <style>__CSS__</style></head><body>
 <h1>扫过角度 · 方向实测</h1>
 <p class="sub">同一个网格体、同一帧、同一套色标,只改空对象 <code>__CTRL__</code> 上的「扫过角度」。
-判据 <code>gradX&divide;gradY</code>:&gt;1 条纹竖着(沿 U 变化),&lt;1 条纹横着(沿 V 变化),&asymp;1 斜条。</p>
+判据 <code>gradX&divide;gradY</code>:&gt;1 条纹竖着(沿 U 变化),&lt;1 条纹横着(沿 V 变化),&asymp;1 斜条。
+坐标源 = <code>坐标_纹理.UV</code>,UV 层 <code>__UVL__</code>。</p>
+__BASE__
 <div class="grid">__CARDS__</div>
 <footer>当前旋钮:__KNOBS__<br>
-渲染:Cycles __RES__&times;__RES__ / __SAMPLES__ 采样,临时正交相机俯视(不留边距 ⇒ 像素与 Generated 一一对应);
+渲染:Cycles __RES__&times;__RES__ / __SAMPLES__ 采样,临时正交相机俯视(不留边距 ⇒ 像素与 Generated/UV 一一对应);
 渲完相机、分辨率、采样、帧、扫过角度均已还原。</footer>
 </body></html>"""
         html = (HTML.replace("__CSS__", CSS).replace("__CARDS__", "\n".join(cards))
-                .replace("__KNOBS__", knobs).replace("__CTRL__", CTRL_NAME)
+                .replace("__BASE__", base_html).replace("__KNOBS__", knobs)
+                .replace("__CTRL__", CTRL_NAME).replace("__UVL__",
+                    ob.data.uv_layers.active.name if ob.data.uv_layers.active else "-")
                 .replace("__RES__", str(RES)).replace("__SAMPLES__", str(SAMPLES)))
         hp = os.path.join(OUT_DIR, HTML_NAME)
         with open(hp, "w", encoding="utf-8") as f:

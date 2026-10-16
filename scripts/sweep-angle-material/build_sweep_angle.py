@@ -7,7 +7,7 @@
 #   另一层静态水平渐变与它相乘合成(水平层全白 = 中性,等于没接);
 #   两个 ColorRamp 上不挂任何驱动 —— 颜色留给用户手调。
 #
-# 主链: Generated → 分离XY
+# 主链: 坐标_纹理.<COORD_SOURCE> → 分离XY            (默认 UV)
 #         t = (u·cosθ + v·sinθ) / (|cosθ| + |sinθ|)      ★ θ=0° ⇒ t ≡ u(与原版逐点相同)
 #         t ×条数 → −相位 → FLOORED_MODULO 1 → ColorRamp_扫过 ─┐
 #       分离XY.Y ×水平条数 → FLOORED_MODULO 1 → ColorRamp_水平 ─┤
@@ -29,6 +29,13 @@ PLANE = "平面"                                  # 目标网格体
 MAT_NAME = "渐变扫过材质"
 CTRL_NAME = "渐变控制"
 FORCE_REBUILD = False                           # True = 明知会抹掉手调色标也要重建
+COORD_SOURCE = "UV"                             # ★ 坐标源:"UV"(默认) 或 "Generated"
+#   "UV"        = 跟着网格体自己的「渲染活动 UV 层」走 ⇒ 材质换到别的网格体上,
+#                 图案跟着那个网格的 UV 走(不要求包围盒一致)。**要求目标网格体有 UV 层**。
+#   "Generated" = 按物体包围盒归一化的局部坐标,不看 UV。适合"不想让用户先展 UV"的场合。
+#   ⚠ 对一块平整、UV 恰好是 0~1 正投影的网格体,这两者**渲染结果逐像素相同**
+#     (实测最大差 = 1/255 的量化步,只有 1~3 个分量)。所以"换没换"**光看画面分不出来**,
+#     要证它必须扰动 UV(见 verify_uv_source.py:临时互换 u/v,k=看朝向翻不翻)。
 # ═════════════════════════
 
 C, D, sc = bpy.context, bpy.data, bpy.context.scene
@@ -67,7 +74,7 @@ NODE_SPEC = [
 
 # 连线规格(逐条核验用): (源节点, 源插座, 目标节点, 目标插座)
 EXPECT_PAIRS = [
-    ("坐标_纹理", "Generated", "分离_XY", "Vector"),
+    ("坐标_纹理", COORD_SOURCE, "分离_XY", "Vector"),
     ("分离_XY", "X", "数学_方向X", "Value"),
     ("角度_余弦", "Value", "数学_方向X", "Value"),
     ("分离_XY", "Y", "数学_方向Y", "Value"),
@@ -161,8 +168,16 @@ def force_refresh(objs=()):
 # ---------------------------------------------------------------- 0. 基线
 ob = D.objects.get(PLANE)
 assert ob is not None and ob.type == 'MESH', "找不到网格体 %r" % PLANE
-print("BASELINE 目标=%r 现有材质槽=%d  空对象已存在=%s"
-      % (ob.name, len(ob.material_slots), CTRL_NAME in D.objects))
+assert COORD_SOURCE in ("UV", "Generated"), "COORD_SOURCE 只能是 'UV' / 'Generated'"
+_uvl = [l.name for l in ob.data.uv_layers]
+print("BASELINE 目标=%r 现有材质槽=%d  空对象已存在=%s  坐标源=%s  UV 层=%r"
+      % (ob.name, len(ob.material_slots), CTRL_NAME in D.objects, COORD_SOURCE, _uvl))
+if COORD_SOURCE == "UV":
+    # ★ 没有 UV 层时 坐标_纹理.UV 会给出全 0 ⇒ 图案整个塌成一种颜色(不是报错,是静默坏掉)
+    assert len(_uvl) > 0, (
+        "%r 没有 UV 层,而 COORD_SOURCE='UV' ⇒ 接 UV 会得到全 0、图案会坏。\n"
+        "  先给网格体展 UV;或把 COORD_SOURCE 改成 'Generated'(按包围盒归一化,不看 UV)。" % PLANE)
+    print("        活动 UV 层 = %r" % ob.data.uv_layers.active.name)
 
 # ---------------------------------------------------------------- 1. 安全闸 + 幂等判定
 # ★ 必须在任何破坏性操作之前 —— 而且这一节只【读】不写
@@ -302,7 +317,7 @@ else:
 
     # 接线
     L = nt.links.new
-    L(N("坐标_纹理").outputs["Generated"], N("分离_XY").inputs[0])
+    L(N("坐标_纹理").outputs[COORD_SOURCE], N("分离_XY").inputs[0])
     L(N("分离_XY").outputs["X"], N("数学_方向X").inputs[0])
     L(N("角度_余弦").outputs[0], N("数学_方向X").inputs[1])
     L(N("分离_XY").outputs["Y"], N("数学_方向Y").inputs[0])
@@ -379,6 +394,13 @@ print("MAT=%r  NODES=%d (期望 %d)  LINKS=%d (期望 %d)"
 missing = [t for t in EXPECT_PAIRS if not has_link(nt, *t)]
 print("缺线=%r" % missing)
 assert not missing, "有连线没建上"
+
+# ★ 坐标源:只能有一路在连(否则"另一路"还会偷偷参与,而且看不出是哪一路在起作用)
+_other = "Generated" if COORD_SOURCE == "UV" else "UV"
+assert not has_link(nt, "坐标_纹理", _other, "分离_XY", "Vector"), \
+    "坐标_纹理.%s 还连着 分离_XY.Vector —— 只允许一路" % _other
+print("坐标源 = 坐标_纹理.%s(另一路 %s 未连)" % (COORD_SOURCE, _other))
+
 for nm in ("数学_循环", "数学_循环Y"):
     assert nt.nodes[nm].operation == 'FLOORED_MODULO', "%s 不是 FLOORED_MODULO" % nm
     assert abs(nt.nodes[nm].inputs[1].default_value - 1.0) < 1e-6, "%s 取模基准不是 1.0" % nm
