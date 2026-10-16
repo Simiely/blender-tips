@@ -37,15 +37,17 @@
 | `blender-blend-append-merge` | **把两个 `.blend` 追加合并成一个**：核心结论是 **append 耗时 ≈ 15 ms × 被追加的对象数**（与几何/贴图量几乎无关）⇒ **以对象少的一边为底、追加对象多的那边**（实测 458 s vs 7 s，差 **80 倍**）；含三个必踩的坑（**重名去重「按 `.NNN` 数字后缀续号」会链式挪号、3.4% 的对象被改名**、**直接挂在场景根下、不属任何集合的游离对象会整批漏掉**、**世界与场景设置不随集合追加**）与**不依赖名字的多重集（Counter）对账口径** | [追加合并两个工程](../docs/追加合并两个工程.md) / 脚本包随 skill 自带 `scripts/`（`merge_append.py` / `verify_append.py` / `dump_b_baseline.py` / `probe_append_speed.py` / `probe_missing.py` / `smoke/`） |
 | `blender-region-batch-delete` | **按覆盖区框选批量删除对象**（俯视 Z 轴，走 `--background` 无头通道）：用户放好带关键字（如「Z轴覆盖范围」）的网格体当"区域标记"，**俯视 = 忽略 Z** ⇒ 世界 XY 二维矩形包含。★★ **退化矩形（EMPTY/CAMERA/LIGHT 零尺寸）走四角点分流**（面积判据对它们恒真 ⇒ 会把全工程空物体与相机全删）、★★ **并集格网分解**（不能拆成"在 R1 或 R2"）、★★ **区外子级先冻结 keep-transform**（否则被连带删除/瞬移）；含**删除方法实测选型表**（`batch_remove` 23 ms/对象 vs 逐个 `remove` 124 ms，换参数零收益）、**三重闸**（只写新文件 / 干跑数不符即退 / 冻结外部子级）+ **重开复核**（硬判据"区内残留 = 0"，对象数带容差） | [覆盖区框选批量删除对象](../docs/覆盖区框选批量删除对象.md) / [`../scripts/region-batch-delete/`](../scripts/region-batch-delete/) |
 | `blender-sweep-angle-material` | **平面上的多角度扫光 + 两层渐变相乘合成**：扫过方向 = **0–360° 的 UV 平面角度**（0° 沿 +U、90° 沿 +V、180° 反向），**坐标源 = 网格体自己的 UV 层**（`坐标_纹理.UV`，可切回 `Generated`；★ 没有 UV 层时该插座**静默返回全 0**、图案塌成一种颜色 ⇒ 有 UV 层守卫），核心是**二维方向投影** `t = (u·cosθ + v·sinθ)/(\|cosθ\|+\|sinθ\|)` —— ★ **分母是必须的**（值域宽度是 `\|cosθ\|+\|sinθ\|`，45° 时 √2；不归一化则角度一拨条纹凭空多出 1.41 倍），**θ=0° ⇒ t ≡ u，与原版逐点相同**；水平层全白 = 中性（逐像素实测最大差 **0.00392**，等于没接）；5 旋钮挂**空对象**、**ColorRamp 零驱动**留给手调。★ `ShaderNodeMix` 的 **`Factor=0` 不是纯相乘**（退化成只取 A，必须 1.0）、★ 改驱动**变量**必须**原子重建**、★ `SINGLE_PROP` 先 `id_type` 后 `id`（补充变量循环顺序反了 ⇒ **数值减半**）、★★★ 核验三个**自证陷阱**：沿 t 的剖面**要先按 1.0 取模再分箱**（否则 180° 的负 t 被丢 ⇒ 条数塌成 1）、**别拿 t 剖面验镜像**（采样方向跟着 t 一起翻，再 `[::-1]` 就翻了两次）⇒ **直接比像素**（镜像差 `0.001884` vs 同向差 `0.273658`）、**渲染分不出坐标源换没换**（`UV` 与 `Generated` 逐像素相同，最大差 = **1/255**）⇒ 必须**扰动 UV**（互换 `(u,v)` 后条纹翻转 **85 倍**：`8.969 → 0.106`，还原偏差 **0**） | [渐变扫过材质 · UV 方向角](../docs/渐变扫过材质-UV方向角.md) / [`../scripts/sweep-angle-material/`](../scripts/sweep-angle-material/) |
+| `blender-post-glare-glow` | **合成器后期辉光(眩光 / Glare)**：节点组 `渲染层 → 眩光 → 合成输出` 挂到 `scene.compositing_node_group`，6 个旋钮（开关 / 强度 / 阈值 / 尺寸 / 饱和度 / 最大亮度）挂**空对象**，`类型`/`质量`/`染色`/`阈值过渡柔度` 留在节点上给手调。★★★ **终结节点必须是 `NodeGroupOutput` 且必须先用 `tree.interface.new_socket(name="Image", in_out='OUTPUT', socket_type='NodeSocketColor')` 声明组输出插座** —— 少了这步整条合成被**静默旁路**（不报错、画面完全不变、**连 PNG 文件字节数都一模一样**，实测 5 个变体全是 220,159 字节）；★★ 别把 `CompositorNodeConvertToDisplay` 当终结节点（色彩管理套两遍，旁路档 `max=0.4039` / 90944/129600 分量被改）；★ 5.2 `scene.node_tree` 已移除、`scene.use_nodes` 恒 True 没用、总闸是 `render.use_compositing`、视口要另设 `shading.use_compositor='ALWAYS'`；★ `Type`/`Quality` 是 MENU 插座且取值是**标题式字符串**（`'Fog Glow'`，全大写 `TypeError`）、**没有 `.enum_items`** 只能试写；`Size`/`Strength`/`Saturation`/`Smoothness` 是 `FloatFactor` ⇒ **0–1**（旧配方 `Size=12` 已死），`Threshold`/`Maximum` 是普通 `Float` 不受限；★ **大尺寸 + 低采样 = 噪点放大器**；★ 自定义属性要**像滑块**必须写**硬 `min`/`max`** + `step=0.01`；★ **紫色插座 = 被驱动不是锁死**（`NodeSocket.description` 上限 **63 字节**、`NodeSocket.label` **只读**，只有 `Node.label` 能改且不影响驱动地址）；★★ 驱动挂**合成器节点树**上时**脚本读插座要手工 `ng.update_tag()`** 否则读到陈旧值，**但渲染路径会自己求值**（⇒ 别把"脚本读到旧值"当成"用户改了没用"）；★★ `drivers.new()` **追加到末尾**、`remove()` 让后续前移 ⇒ **一律按 `data_path` 匹配**，`DriverVariable` 的 `data_path`/`id` 在 **`v.targets[0]`** 上；★★ 判据陷阱：**本类工程的 Cycles 不是逐位确定的**（单像素压在 8bit 量化台阶中点、差值恰好 1/255、再跑一次抖动像素还换一个）⇒ 把「工具自检」的严格判据与「物理结论」的 1 LSB 容差**分层** | [主题 53](../docs/合成器后期辉光-Glare.md) / [`../scripts/post-glare-glow/`](../scripts/post-glare-glow/) |
 
-二十个是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
-其余十五个各管一件事（都走桥）：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
+二十一个是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+其余十六个各管一件事（都走桥）：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
 `blender-overlap-difference` 去重叠、`blender-procedural-emission-material` 做程序化发光材质与控件、
 `blender-plane-procedural-material` 用平面验收材质、`blender-radial-pulse-material` 做径向距离场脉冲材质、
 `blender-inward-pulse-material` 做径向**内收多脉冲**材质（环数恒定的约束解算）、
 `blender-sweep-angle-material` 做**平面多角度扫光**（0–360° UV 角度 + 两层渐变相乘合成）、
 `blender-cylinder-spiral-material` 做圆柱面螺旋斜纹发光材质（滚筒）、
 `blender-radar-scan-material` 做**雷达扫描空间材质**（极坐标角度场 + 拖尾，沿某世界轴投射）、
+`blender-post-glare-glow` 做**渲染之后的合成器后期辉光**（Glare；★ 管的是画面那一层，不是材质）、
 `blender-split-flap-flip` 做**翻页牌批量翻页动画**（中缝轴 + 单重补偿，绕开非受信任文件的 SCRIPTED 限制）、
 `blender-spot-bloom-swing` 做**环形射灯径向摆动绽放**（铰链层 + 拍频同步）、
 `blender-volume-beam-feather` 让**射灯光柱可见且边缘羽化**（体积域 + 径向/轴向两层衰减）、
@@ -55,6 +57,8 @@
 三者的**母 skill 是 `blender-procedural-emission-material`**（通用机制在那边）；
 `blender-cylinder-spiral-material` / `blender-radar-scan-material` / `blender-sweep-angle-material`
 是**同类并列的专项材质**（各自独立、开头互相索引）；
+`blender-post-glare-glow` 与它们**同层但不同阶段** —— 前者改的是**渲染输出之后**的画面，
+后三者改的是**着色器本身**，所以它开头索引的是材质那组而不是继承它们；
 `blender-driver-param-maintenance` 与之并列，管的是同一套系统的**运维**而非新建；
 `blender-loop-keyframe-anim` 是**动画写入类**（继承 bridge 传输层，管关键帧而非材质）；
 各 skill 开头均引用 `blender-bridge-ops`。
@@ -80,7 +84,7 @@
 
 ```powershell
 $dst = "$env:USERPROFILE\.workbuddy\skills"
-# 1) 20 个技能本体
+# 1) 21 个技能本体
 Copy-Item .\skills\* $dst -Recurse -Force
 # 2) 共享脚本包 —— 供 SKILL.md 里的 ../scripts/<包>/ 解析
 Copy-Item .\scripts   $dst -Recurse -Force
@@ -94,17 +98,25 @@ Copy-Item .\docs      $dst -Recurse -Force
 python - <<'PY'
 import os, re
 SK = os.path.expanduser("~/.workbuddy/skills")
-ref = re.compile(r'((?:\.\./)*[A-Za-z0-9_\u4e00-\u9fff-]+(?:/[A-Za-z0-9_\u4e00-\u9fff.-]+)+\.(?:py|md))')
-bad = 0
+# ★ 只取 markdown 链接的【目标】](target)。
+#   早期版本用的是"扫全文里所有像路径的串",那会把反引号里的【显示文本】也算进来
+#   —— 像 [`docs/材质与驱动规范.md`](../docs/材质与驱动规范.md) 这种写法,
+#   显示文本恰好少了 `../` 一级 ⇒ 一个健康的仓库会被【假报 9 处断链】,
+#   判据"断链 = 0" 因此形同虚设。已改为只看 `](...)`。
+LINK = re.compile(r'\]\(([^)\s]+)\)')
+bad = 0; n = 0
 for d in sorted(os.listdir(SK)):
     p = os.path.join(SK, d, "SKILL.md")
     if not os.path.isfile(p): continue
-    for r in sorted(set(ref.findall(open(p, encoding="utf-8").read()))):
-        if r.startswith("http") or r.startswith("_bridge/"): continue
-        if not (os.path.exists(os.path.normpath(os.path.join(os.path.dirname(p), r)))
-                or os.path.exists(os.path.normpath(os.path.join(SK, r)))):
-            print("MISS", d, "->", r); bad += 1
-print("断链:", bad)
+    for t in sorted(set(LINK.findall(open(p, encoding="utf-8").read()))):
+        if t.startswith(("http://", "https://", "#", "mailto:")): continue
+        base = t.partition("#")[0]
+        if not base: continue
+        n += 1
+        if not (os.path.exists(os.path.normpath(os.path.join(SK, base)))
+                or os.path.exists(os.path.normpath(os.path.join(os.path.dirname(p), base)))):
+            print("MISS", d, "->", t); bad += 1
+print("检查了 %d 个相对链接目标, 断链: %d" % (n, bad))
 PY
 ```
 
@@ -161,13 +173,15 @@ PY
     └── SKILL.md                  # 脚本包在 ../scripts/region-batch-delete/(与本目录不重复)
 └── blender-sweep-angle-material/
     └── SKILL.md                  # 脚本包在 ../scripts/sweep-angle-material/(与本目录不重复)
+└── blender-post-glare-glow/
+    └── SKILL.md                  # 脚本包在 ../scripts/post-glare-glow/(与本目录不重复)
 ```
 
 > 跑 `scripts/` 里的脚本前记得改顶部的 `OUT_DIR`（报告 / 名单 / 基线都写那里），同一 skill 下的脚本要一致。
 > 脚本位置有两种约定（**不要混用**）：① **自带** `skills/<名>/scripts/`（如 plane / radius-pulse / blend-append-merge）；
 > ② **引用** `../scripts/<名>/`、skill 目录下不放副本（如 `blender-inward-pulse-material` 与
 > `blender-driver-param-maintenance`、`blender-radar-scan-material`、`blender-headless-batch`、
-> `blender-region-batch-delete`、`blender-sweep-angle-material`）—— 后者的脚本**只维护一份**，无需两处同步。
+> `blender-region-batch-delete`、`blender-sweep-angle-material`、`blender-post-glare-glow`）—— 后者的脚本**只维护一份**，无需两处同步。
 
 > **例外：`blender-headless-batch`、`blender-blend-append-merge` 与 `blender-region-batch-delete` 的脚本不在桥里跑。**
 > 它不用 `send.py`，而是 `blender.exe --background --factory-startup <blend> --python <脚本>.py`，
