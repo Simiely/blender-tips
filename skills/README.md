@@ -38,9 +38,10 @@
 | `blender-region-batch-delete` | **按覆盖区框选批量删除对象**（俯视 Z 轴，走 `--background` 无头通道）：用户放好带关键字（如「Z轴覆盖范围」）的网格体当"区域标记"，**俯视 = 忽略 Z** ⇒ 世界 XY 二维矩形包含。★★ **退化矩形（EMPTY/CAMERA/LIGHT 零尺寸）走四角点分流**（面积判据对它们恒真 ⇒ 会把全工程空物体与相机全删）、★★ **并集格网分解**（不能拆成"在 R1 或 R2"）、★★ **区外子级先冻结 keep-transform**（否则被连带删除/瞬移）；含**删除方法实测选型表**（`batch_remove` 23 ms/对象 vs 逐个 `remove` 124 ms，换参数零收益）、**三重闸**（只写新文件 / 干跑数不符即退 / 冻结外部子级）+ **重开复核**（硬判据"区内残留 = 0"，对象数带容差） | [覆盖区框选批量删除对象](../docs/覆盖区框选批量删除对象.md) / [`../scripts/region-batch-delete/`](../scripts/region-batch-delete/) |
 | `blender-sweep-angle-material` | **平面上的多角度扫光 + 两层渐变相乘合成**：扫过方向 = **0–360° 的 UV 平面角度**（0° 沿 +U、90° 沿 +V、180° 反向），**坐标源 = 网格体自己的 UV 层**（`坐标_纹理.UV`，可切回 `Generated`；★ 没有 UV 层时该插座**静默返回全 0**、图案塌成一种颜色 ⇒ 有 UV 层守卫），核心是**二维方向投影** `t = (u·cosθ + v·sinθ)/(\|cosθ\|+\|sinθ\|)` —— ★ **分母是必须的**（值域宽度是 `\|cosθ\|+\|sinθ\|`，45° 时 √2；不归一化则角度一拨条纹凭空多出 1.41 倍），**θ=0° ⇒ t ≡ u，与原版逐点相同**；水平层全白 = 中性（逐像素实测最大差 **0.00392**，等于没接）；5 旋钮挂**空对象**、**ColorRamp 零驱动**留给手调。★ `ShaderNodeMix` 的 **`Factor=0` 不是纯相乘**（退化成只取 A，必须 1.0）、★ 改驱动**变量**必须**原子重建**、★ `SINGLE_PROP` 先 `id_type` 后 `id`（补充变量循环顺序反了 ⇒ **数值减半**）、★★★ 核验三个**自证陷阱**：沿 t 的剖面**要先按 1.0 取模再分箱**（否则 180° 的负 t 被丢 ⇒ 条数塌成 1）、**别拿 t 剖面验镜像**（采样方向跟着 t 一起翻，再 `[::-1]` 就翻了两次）⇒ **直接比像素**（镜像差 `0.001884` vs 同向差 `0.273658`）、**渲染分不出坐标源换没换**（`UV` 与 `Generated` 逐像素相同，最大差 = **1/255**）⇒ 必须**扰动 UV**（互换 `(u,v)` 后条纹翻转 **85 倍**：`8.969 → 0.106`，还原偏差 **0**） | [渐变扫过材质 · UV 方向角](../docs/渐变扫过材质-UV方向角.md) / [`../scripts/sweep-angle-material/`](../scripts/sweep-angle-material/) |
 | `blender-post-glare-glow` | **合成器后期辉光(眩光 / Glare)**：节点组 `渲染层 → 眩光 → 合成输出` 挂到 `scene.compositing_node_group`，6 个旋钮（开关 / 强度 / 阈值 / 尺寸 / 饱和度 / 最大亮度）挂**空对象**，`类型`/`质量`/`染色`/`阈值过渡柔度` 留在节点上给手调。★★★ **终结节点必须是 `NodeGroupOutput` 且必须先用 `tree.interface.new_socket(name="Image", in_out='OUTPUT', socket_type='NodeSocketColor')` 声明组输出插座** —— 少了这步整条合成被**静默旁路**（不报错、画面完全不变、**连 PNG 文件字节数都一模一样**，实测 5 个变体全是 220,159 字节）；★★ 别把 `CompositorNodeConvertToDisplay` 当终结节点（色彩管理套两遍，旁路档 `max=0.4039` / 90944/129600 分量被改）；★ 5.2 `scene.node_tree` 已移除、`scene.use_nodes` 恒 True 没用、总闸是 `render.use_compositing`、视口要另设 `shading.use_compositor='ALWAYS'`；★ `Type`/`Quality` 是 MENU 插座且取值是**标题式字符串**（`'Fog Glow'`，全大写 `TypeError`）、**没有 `.enum_items`** 只能试写；`Size`/`Strength`/`Saturation`/`Smoothness` 是 `FloatFactor` ⇒ **0–1**（旧配方 `Size=12` 已死），`Threshold`/`Maximum` 是普通 `Float` 不受限；★ **大尺寸 + 低采样 = 噪点放大器**；★ 自定义属性要**像滑块**必须写**硬 `min`/`max`** + `step=0.01`；★ **紫色插座 = 被驱动不是锁死**（`NodeSocket.description` 上限 **63 字节**、`NodeSocket.label` **只读**，只有 `Node.label` 能改且不影响驱动地址）；★★ 驱动挂**合成器节点树**上时**脚本读插座要手工 `ng.update_tag()`** 否则读到陈旧值，**但渲染路径会自己求值**（⇒ 别把"脚本读到旧值"当成"用户改了没用"）；★★ `drivers.new()` **追加到末尾**、`remove()` 让后续前移 ⇒ **一律按 `data_path` 匹配**，`DriverVariable` 的 `data_path`/`id` 在 **`v.targets[0]`** 上；★★ 判据陷阱：**本类工程的 Cycles 不是逐位确定的**（单像素压在 8bit 量化台阶中点、差值恰好 1/255、再跑一次抖动像素还换一个）⇒ 把「工具自检」的严格判据与「物理结论」的 1 LSB 容差**分层** | [主题 53](../docs/合成器后期辉光-Glare.md) / [`../scripts/post-glare-glow/`](../scripts/post-glare-glow/) |
+| `blender-vehicle-speed-brake` | **车速系统 + 结尾刹车**：速度曲线当唯一源 → 积分烘焙位移 → 轮角由位移派生（零滑移）→ 相机补偿钉住末帧构图；刹车「顿一下」靠起刹帧的**手柄斜率拐点**（减速度 1 帧内 −0.3→−7.4 m/s²，行程 32.4 cm）；车身点头拆成「曲线 × 强度」两个属性（一个属性不能既有关键帧又被驱动）。六个坑：**烘焙归一化不能依赖区间长度**、**自定义属性 min/max 会真的钳值**、世界坐标采样点不能跨帧复用、非等比 scale 的保距校验、轮眉间隙必须实测（−2.35° 归零） | [车辆速度驱动与刹车收尾](../docs/车辆速度驱动与刹车收尾.md) / [`../scripts/vehicle-speed-brake/`](../scripts/vehicle-speed-brake/) |
 
-二十一个是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
-其余十六个各管一件事（都走桥）：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
+二十二个是**分层**关系：`blender-bridge-ops` 管「怎么把代码送进正在运行的 Blender」，
+其余十七个各管一件事（都走桥）：`blender-scene-cleanup` 清理、`blender-render-blackout-diagnose` 查画面不对、
 `blender-overlap-difference` 去重叠、`blender-procedural-emission-material` 做程序化发光材质与控件、
 `blender-plane-procedural-material` 用平面验收材质、`blender-radial-pulse-material` 做径向距离场脉冲材质、
 `blender-inward-pulse-material` 做径向**内收多脉冲**材质（环数恒定的约束解算）、
@@ -53,6 +54,7 @@
 `blender-volume-beam-feather` 让**射灯光柱可见且边缘羽化**（体积域 + 径向/轴向两层衰减）、
 `blender-driver-param-maintenance` 给**已建成**的参数化系统做维护（引用体检 / 关键帧收敛 / 改名换轴）、
 `blender-loop-keyframe-anim` 给自定义属性批量写**循环三角波关键帧动画**（Slotted Action + CYCLES）。
+`blender-vehicle-speed-brake` 做**车辆速度系统与结尾刹车**（速度曲线积分烘焙 + 轮角派生 + 相机补偿 + 点头强度参数）。
 其中 `blender-plane-procedural-material` / `blender-radial-pulse-material` / `blender-inward-pulse-material`
 三者的**母 skill 是 `blender-procedural-emission-material`**（通用机制在那边）；
 `blender-cylinder-spiral-material` / `blender-radar-scan-material` / `blender-sweep-angle-material`
@@ -84,7 +86,7 @@
 
 ```powershell
 $dst = "$env:USERPROFILE\.workbuddy\skills"
-# 1) 21 个技能本体
+# 1) 22 个技能本体
 Copy-Item .\skills\* $dst -Recurse -Force
 # 2) 共享脚本包 —— 供 SKILL.md 里的 ../scripts/<包>/ 解析
 Copy-Item .\scripts   $dst -Recurse -Force
