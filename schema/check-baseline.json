@@ -1,0 +1,1025 @@
+{
+  "version": 2,
+  "items": [
+    {
+      "code": "LINK_DIR",
+      "file": "docs/体积光柱羽化系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/volume-beam-feather/",
+      "fingerprint": "0485c31fd2f7b317"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/体积光柱羽化系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-volume-beam-feather/",
+      "fingerprint": "24570988e6432442"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/分体翻页牌驱动翻页系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-bridge-ops/",
+      "fingerprint": "bdf09ab26c6d5b56"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/动画转移到父级空对象.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/anim-transfer-to-empty/",
+      "fingerprint": "ce15ee6a7d1286ec"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/动画转移到父级空对象.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/anim-transfer-to-empty/",
+      "fingerprint": "ce15ee6a7d1286ec"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/动画转移到父级空对象.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/blender-remote-control/",
+      "fingerprint": "e4d2e9161d948d05"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/参数化摆动驱动系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/swing-driver/",
+      "fingerprint": "becff84937bb9996"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/参数化摆动驱动系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-loop-keyframe-anim/",
+      "fingerprint": "cd09986f4334bfab"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/参数化摆动驱动系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-loop-keyframe-anim/",
+      "fingerprint": "cd09986f4334bfab"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/参数化摆动驱动系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-loop-keyframe-anim/",
+      "fingerprint": "cd09986f4334bfab"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/合成器后期辉光-Glare.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/post-glare-glow/",
+      "fingerprint": "6fbbe66e580121de"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/合成器后期辉光-Glare.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-post-glare-glow/",
+      "fingerprint": "c92a280baee05e15"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/射灯阵列径向摆动绽放系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-bridge-ops/",
+      "fingerprint": "1b567908ec6d390f"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/径向内收多脉冲材质.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-radial-pulse-material/",
+      "fingerprint": "38bbab69e5b9e8a2"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/径向内收多脉冲材质.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/radial-inward-pulse/",
+      "fingerprint": "4a1ab6805746dadc"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/径向材质多位置部署与时差.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/radial-inward-pulse/",
+      "fingerprint": "1b6c9b72cea9db67"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/anim-transfer-to-empty/",
+      "fingerprint": "1a879d34245c77a0"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/axis-space-motion/",
+      "fingerprint": "5e48ce538d97573d"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/separate-by-material/",
+      "fingerprint": "df0aea1b9d424113"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/scene-cleanup/",
+      "fingerprint": "81329020cd512f9c"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-scene-cleanup/",
+      "fingerprint": "a99d8e5f2b50a779"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/blackout-diagnose/",
+      "fingerprint": "c0f3a1f87d45807d"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-render-blackout-diagnose/",
+      "fingerprint": "7e6bf7ddb2d11aa1"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/radial-inward-pulse/",
+      "fingerprint": "a4df0cc0c7867813"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-inward-pulse-material/",
+      "fingerprint": "585b23a50ed99ab8"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/radial-inward-pulse/",
+      "fingerprint": "a4df0cc0c7867813"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/driver-param-maintenance/",
+      "fingerprint": "168e49ba11778070"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-driver-param-maintenance/",
+      "fingerprint": "c2d9891c1eae7a26"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/starburst-scatter/",
+      "fingerprint": "6357b234c58093ed"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-loop-keyframe-anim/",
+      "fingerprint": "a214f6cba6992791"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/snowfall-scatter/",
+      "fingerprint": "ab6f7e0b368f758f"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/merge-by-material/",
+      "fingerprint": "83afc6215162f6dd"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-headless-batch/",
+      "fingerprint": "45a6748c91f06d8c"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-blend-append-merge/",
+      "fingerprint": "49584b7491058d91"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/flip-card/",
+      "fingerprint": "b04eb1387ef3e3b5"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-split-flap-flip/",
+      "fingerprint": "93afccdbba62d5a9"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/spot-bloom-swing/",
+      "fingerprint": "9675e19d9f3c66ab"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-spot-bloom-swing/",
+      "fingerprint": "ee878dcea1b6cc5f"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/volume-beam-feather/",
+      "fingerprint": "4982327734114988"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-volume-beam-feather/",
+      "fingerprint": "0238f98efd1e4d4f"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-loop-keyframe-anim/",
+      "fingerprint": "a214f6cba6992791"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/swing-driver/",
+      "fingerprint": "6aee3e6fe5fc785b"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/radar-scan-material/",
+      "fingerprint": "ff0d22796193184c"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-radar-scan-material/",
+      "fingerprint": "5ecfaa56035d7c7a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/region-batch-delete/",
+      "fingerprint": "4e406e20a99b7944"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-region-batch-delete/",
+      "fingerprint": "05ae78a4c269a6ea"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/dispersion-glass/",
+      "fingerprint": "26c2ba9f0f250098"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/vehicle-speed-brake/",
+      "fingerprint": "6ed6f8429fceee83"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-vehicle-speed-brake/",
+      "fingerprint": "b5ef8f465cb9312a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/flip-card/",
+      "fingerprint": "b04eb1387ef3e3b5"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/spot-bloom-swing/",
+      "fingerprint": "9675e19d9f3c66ab"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-spot-bloom-swing/",
+      "fingerprint": "ee878dcea1b6cc5f"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/volume-beam-feather/",
+      "fingerprint": "4982327734114988"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/技巧速查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-volume-beam-feather/",
+      "fingerprint": "0238f98efd1e4d4f"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/按材质合并为单个网格体.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/merge-by-material/",
+      "fingerprint": "2cbbc6674c66330a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/按材质合并为单个网格体.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-headless-batch/",
+      "fingerprint": "d0597345cde6e16b"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/按材质合并为单个网格体.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-project-prescan/",
+      "fingerprint": "5fa19151b7a28183"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/按材质合并为单个网格体.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-blend-append-merge/",
+      "fingerprint": "e683d1eb46ac63ca"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/按材质合并为单个网格体.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-blend-append-merge/",
+      "fingerprint": "e683d1eb46ac63ca"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/按材质合并为单个网格体.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-scene-cleanup/",
+      "fingerprint": "3fe50991f87384d8"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/按材质拆分为多个网格体.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/separate-by-material/",
+      "fingerprint": "37b1bf4290b966de"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/按材质拆分为多个网格体.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/separate-by-material/",
+      "fingerprint": "37b1bf4290b966de"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/星芒散射光效系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-bridge-ops/",
+      "fingerprint": "a91b39933c143174"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/星芒散射光效系统.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/starburst-scatter/",
+      "fingerprint": "ea46cfff79b0352f"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/渐变扫过材质-UV方向角.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/sweep-angle-material/",
+      "fingerprint": "dc77ac47b87eebf6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/渐变扫过材质-UV方向角.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-sweep-angle-material/",
+      "fingerprint": "a826bbe7144cddff"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/渲染发黑与材质不发光排查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/blackout-diagnose/",
+      "fingerprint": "77e1dac79ee01ac6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/渲染发黑与材质不发光排查.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-render-blackout-diagnose/",
+      "fingerprint": "f5f8d414a5411ac2"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/滚筒斜纹材质.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/streak-material/",
+      "fingerprint": "9f31f38981d31467"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/滚筒斜纹材质.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-cylinder-spiral-material/",
+      "fingerprint": "970e0ed93df054de"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/空物体收敛清理.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/scene-cleanup/",
+      "fingerprint": "23d85fb3d8d960ff"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/空物体收敛清理.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-scene-cleanup/",
+      "fingerprint": "098e12fb8b685767"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/空间雷达扫描材质.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-radial-pulse-material/",
+      "fingerprint": "480cbc4c84f82610"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/空间雷达扫描材质.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-cylinder-spiral-material/",
+      "fingerprint": "299638a22895263b"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/空间雷达扫描材质.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-inward-pulse-material/",
+      "fingerprint": "66666636045e4260"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/覆盖区框选批量删除对象.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-region-batch-delete/",
+      "fingerprint": "47f783ec056318f9"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/覆盖区框选批量删除对象.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/region-batch-delete/",
+      "fingerprint": "3e91d85af60883c6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/车辆速度驱动与刹车收尾.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-vehicle-speed-brake/",
+      "fingerprint": "241c58ceed371374"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/车辆速度驱动与刹车收尾.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/vehicle-speed-brake/",
+      "fingerprint": "4c6fc101f2c37838"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/车辆速度驱动与刹车收尾.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-bridge-ops/",
+      "fingerprint": "3b712102522f7f18"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/轴向位移-自身轴与世界轴.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../scripts/axis-space-motion/",
+      "fingerprint": "085c749036a28ca2"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/追加合并两个工程.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-blend-append-merge/scripts/",
+      "fingerprint": "c24e4f6537c023f1"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/追加合并两个工程.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-blend-append-merge/",
+      "fingerprint": "08d0f098700b47ec"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/追加合并两个工程.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-project-prescan/",
+      "fingerprint": "1f5a491d362d2d1a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/追加合并两个工程.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-project-prescan/",
+      "fingerprint": "1f5a491d362d2d1a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/追加合并两个工程.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-headless-batch/",
+      "fingerprint": "07aaa10c20a56150"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "docs/追加合并两个工程.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：../skills/blender-scene-cleanup/",
+      "fingerprint": "a52ae762b29bbead"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/driver-bob/",
+      "fingerprint": "6421240166a5ff89"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/driver-spin/",
+      "fingerprint": "609349c30e73cfe5"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/playblast/",
+      "fingerprint": "5d7c6acda19e8691"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/make-independent/",
+      "fingerprint": "9bfb440aee62a578"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/driver-sky/",
+      "fingerprint": "3c2b9a5535b2d95a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/driver-lights/",
+      "fingerprint": "4f41861d82fca0c6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/glow-scroll-material/",
+      "fingerprint": "b943a139093d6337"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/speed-light/",
+      "fingerprint": "7533cd6b9ab95e15"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/ring-control-panel/",
+      "fingerprint": "34e7eaa1dddb2cf3"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/frame-window-time-switch/",
+      "fingerprint": "723a6553d82cf042"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/firework-confetti/",
+      "fingerprint": "574b2b0817bed1df"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/anim-transfer-to-empty/",
+      "fingerprint": "d36ae4dff56f7c53"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/axis-space-motion/",
+      "fingerprint": "9d969c74032e0656"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/separate-by-material/",
+      "fingerprint": "57d974972cf2ca5e"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/scene-cleanup/",
+      "fingerprint": "258fc5ccc51a40d1"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-scene-cleanup/",
+      "fingerprint": "db260362aea2a2f8"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/blackout-diagnose/",
+      "fingerprint": "3e8a6d9e44d2f69b"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-render-blackout-diagnose/",
+      "fingerprint": "ff783d65d2ce0054"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/radial-inward-pulse/",
+      "fingerprint": "b17e00768eb2d9d0"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-inward-pulse-material/",
+      "fingerprint": "79cb2b3e2a3b972a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/radial-inward-pulse/",
+      "fingerprint": "b17e00768eb2d9d0"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/driver-param-maintenance/",
+      "fingerprint": "daabc7b1d161715b"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-driver-param-maintenance/",
+      "fingerprint": "4d0289d8d1e34bf6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/starburst-scatter/",
+      "fingerprint": "ea9f68ffff11f9be"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-loop-keyframe-anim/",
+      "fingerprint": "3010fe5dd98d2951"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/snowfall-scatter/",
+      "fingerprint": "9f420526b7ca4326"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/merge-by-material/",
+      "fingerprint": "4c0e402df131cdb5"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-headless-batch/",
+      "fingerprint": "407395d7d2759a06"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-blend-append-merge/",
+      "fingerprint": "bd60f904f41b2eb2"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/flip-card/",
+      "fingerprint": "5a8a24e9a5434ad8"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-split-flap-flip/",
+      "fingerprint": "82cfaa8d073f2be1"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/spot-bloom-swing/",
+      "fingerprint": "b4deed3e2d9d5756"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-spot-bloom-swing/",
+      "fingerprint": "53431caac5a4efae"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/volume-beam-feather/",
+      "fingerprint": "a1295d1f56a10fd6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-volume-beam-feather/",
+      "fingerprint": "f5f2cd2918c9ef06"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-loop-keyframe-anim/",
+      "fingerprint": "3010fe5dd98d2951"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/swing-driver/",
+      "fingerprint": "4d9ea3634994322e"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/radar-scan-material/",
+      "fingerprint": "2403647caa80155a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-radar-scan-material/",
+      "fingerprint": "2158fc06ed8f1309"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/region-batch-delete/",
+      "fingerprint": "effc779643ad8952"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-region-batch-delete/",
+      "fingerprint": "18371d7e92ea2fca"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/sweep-angle-material/",
+      "fingerprint": "254816300741cfd8"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-sweep-angle-material/",
+      "fingerprint": "ab1d1b2bfa60cd70"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/streak-material/",
+      "fingerprint": "26f43536933d2190"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-cylinder-spiral-material/",
+      "fingerprint": "9e8a8eb945e6a9e6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/post-glare-glow/",
+      "fingerprint": "aea307a28a5cb4ed"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-post-glare-glow/",
+      "fingerprint": "0b00093ef16c6a11"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/dispersion-glass/",
+      "fingerprint": "ad078fa865843211"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/vehicle-speed-brake/",
+      "fingerprint": "e286895c8cb0fab4"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-vehicle-speed-brake/",
+      "fingerprint": "8ea2bb2ae1e9f6b9"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-bridge-ops/",
+      "fingerprint": "645acab04c021313"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/blender-remote-control/",
+      "fingerprint": "1b0f530ddb34e216"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-scene-cleanup/",
+      "fingerprint": "db260362aea2a2f8"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/scene-cleanup/",
+      "fingerprint": "258fc5ccc51a40d1"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-render-blackout-diagnose/",
+      "fingerprint": "ff783d65d2ce0054"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/blackout-diagnose/",
+      "fingerprint": "3e8a6d9e44d2f69b"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-overlap-difference/",
+      "fingerprint": "b504e7d437956635"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-procedural-emission-material/",
+      "fingerprint": "41402e76d3060395"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-plane-procedural-material/",
+      "fingerprint": "8539aed76447c2b0"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-radial-pulse-material/",
+      "fingerprint": "b6cf57e69748bb92"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-inward-pulse-material/",
+      "fingerprint": "79cb2b3e2a3b972a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/radial-inward-pulse/",
+      "fingerprint": "b17e00768eb2d9d0"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-driver-param-maintenance/",
+      "fingerprint": "4d0289d8d1e34bf6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/driver-param-maintenance/",
+      "fingerprint": "daabc7b1d161715b"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-cylinder-spiral-material/",
+      "fingerprint": "9e8a8eb945e6a9e6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/streak-material/",
+      "fingerprint": "26f43536933d2190"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-headless-batch/",
+      "fingerprint": "407395d7d2759a06"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/merge-by-material/",
+      "fingerprint": "4c0e402df131cdb5"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-blend-append-merge/",
+      "fingerprint": "bd60f904f41b2eb2"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-split-flap-flip/",
+      "fingerprint": "82cfaa8d073f2be1"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/flip-card/",
+      "fingerprint": "5a8a24e9a5434ad8"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-spot-bloom-swing/",
+      "fingerprint": "53431caac5a4efae"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/spot-bloom-swing/",
+      "fingerprint": "b4deed3e2d9d5756"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-volume-beam-feather/",
+      "fingerprint": "f5f2cd2918c9ef06"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/volume-beam-feather/",
+      "fingerprint": "a1295d1f56a10fd6"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-radar-scan-material/",
+      "fingerprint": "2158fc06ed8f1309"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/radar-scan-material/",
+      "fingerprint": "2403647caa80155a"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-region-batch-delete/",
+      "fingerprint": "18371d7e92ea2fca"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/region-batch-delete/",
+      "fingerprint": "effc779643ad8952"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-sweep-angle-material/",
+      "fingerprint": "ab1d1b2bfa60cd70"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/sweep-angle-material/",
+      "fingerprint": "254816300741cfd8"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：skills/blender-post-glare-glow/",
+      "fingerprint": "0b00093ef16c6a11"
+    },
+    {
+      "code": "LINK_DIR",
+      "file": "README.md",
+      "message": "本地链接指向目录（GitHub 可渲染，确认不是误链）：scripts/post-glare-glow/",
+      "fingerprint": "aea307a28a5cb4ed"
+    }
+  ]
+}
