@@ -1,3 +1,17 @@
+---
+id: docs.he-cheng-qi-hou-qi-hui-guang-glare
+title: "合成器后期辉光(Glare)"
+summary: "⚠️ 本主题存在的第一个理由:仓库里旧配方在 5.x 已经失效。"
+type: how-to
+kind: note
+status: active
+owner: "@simiely"
+topics: [materials]
+source_type: doc
+source: "docs/合成器后期辉光-Glare.md"
+last_reviewed: 2026-10-16
+related: []
+---
 # 合成器后期辉光(Glare)
 
 给**已经渲染出来的画面**加一层眩光:灯带/霓虹/LED 的高光向外溢出成柔和光晕。

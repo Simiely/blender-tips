@@ -1,3 +1,17 @@
+---
+id: docs.jian-bian-sao-guo-cai-zhi-uv-fang-xiang-jiao
+title: "渐变扫过材质 · UV 方向角"
+summary: "参数键是中文键名，id_properties_ui 里 min/max 是硬边界、soft_min/soft_max 是滑杆范围。"
+type: how-to
+kind: note
+status: active
+owner: "@simiely"
+topics: [materials]
+source_type: doc
+source: "docs/渐变扫过材质-UV方向角.md"
+last_reviewed: 2026-10-16
+related: []
+---
 # 渐变扫过材质 · UV 方向角
 
 平面上的**黑白渐变宽带横扫**：一条（或多条）亮带沿指定方向扫过去、无缝循环。
