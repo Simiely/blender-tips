@@ -1,3 +1,17 @@
+---
+id: docs.qu-dong-shi-z-zhou-yun-su-xuan-zhuan-xi-tong
+title: "驱动式 Z 轴匀速旋转系统(Blender 5.2)"
+summary: "给指定空物体加匀速 Z 轴旋转驱动:一个控制面板承载 旋转速度 滑块(度/帧),所有目标共用,每个目标可独立设定正向 / 反向;"
+type: how-to
+kind: note
+status: active
+owner: "@simiely"
+topics: [animation]
+source_type: doc
+source: "docs/驱动式Z轴匀速旋转系统.md"
+last_reviewed: 2026-09-15
+related: []
+---
 # 驱动式 Z 轴匀速旋转系统(Blender 5.2)
 
 > 给指定空物体加**匀速 Z 轴旋转**驱动:一个控制面板承载 `旋转速度` 滑块(度/帧),

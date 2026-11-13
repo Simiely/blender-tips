@@ -1,3 +1,17 @@
+---
+id: docs.3dsmax-dao-ru-chang-jing-qing-li-yu-zhou-xin-xiu-fu
+title: "3ds Max 导入场景清理与轴心修复"
+summary: "3ds Max 导入工程的缺失数据诊断、空物体清理与轴心修复。"
+type: how-to
+kind: note
+status: active
+owner: "@simiely"
+topics: [automation]
+source_type: doc
+source: "docs/3dsmax导入场景清理与轴心修复.md"
+last_reviewed: 2026-08-21
+related: []
+---
 # 3ds Max 导入场景清理与轴心修复
 
 > 来源:260820x03.blend 实战(11,961 对象 / 4,073 动画对象 / 3ds Max 导入 / Blender 5.2)

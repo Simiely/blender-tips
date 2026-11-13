@@ -1,3 +1,17 @@
+---
+id: docs.fa-guang-zhe-zhao-xuan-zhou-shi-jie-zhou-yu-uv
+title: "发光遮罩选轴：世界轴 vs UV"
+summary: "想用一条渐变同时控制「哪个面亮」和「面上怎么铺开」，坐标要选 UV 的 V/U，不要选世界轴。"
+type: how-to
+kind: note
+status: active
+owner: "@simiely"
+topics: [materials]
+source_type: doc
+source: "docs/发光遮罩选轴-世界轴与UV.md"
+last_reviewed: 2026-11-12
+related: []
+---
 # 发光遮罩选轴：世界轴 vs UV
 
 > 来源：`261111xJ88G_animation_Extx01_02.blend` 实战（Blender 5.2.2 LTS / Windows，2026-11-11）
