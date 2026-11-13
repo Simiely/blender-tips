@@ -1,346 +1,700 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-11-12 v1.39.0 —— #56「发光遮罩选轴:世界轴 vs UV」**新增主题**:一条黑白渐变要同时管「哪个面亮」+「面上怎么铺开」时,坐标**选 UV 的 V/U、不选世界轴**
+
+
+> 📌 **文档基线**:2026-11-13 v1.40.0 —— #59「灯光链接排除物件:receiver 不是 blocker」**新增主题**:#57 面光渐变发光面 / #58 贴面细节光 / #59 灯光链接排除物件
+> (**★★★ 取灯必须走 `obj.data`** —— 本工程数据块名与对象名错位（对象 `面光.002` 的数据块叫 `面光.004`），按名字取会改到另一盏灯，表现为「怎么调画面都不变」；★★★ 面积光漏接 `灯光输出.Surface` 会静默全黑，开节点后亮度看 `自发光.Strength` 不看 `energy`
+> (**★★★ `blocker_collection` 是「挡光体」不是「不收光」** —— 排除物件只能用 `receiver_collection` 白名单，误用 blocker 画面反而变亮（车身 +5.6%）；实测排除地面 −76.2%
+> (**★★★ 别用瓦数判断细节灯** —— 1 W / 0.3 W 的贴面灯贡献是单像素差 0.50；**★★ 翻转型渐变不能用全幅均值验证**，总光通量不变 ⇒ 均值差恒为 `0.000000`，只看左右半互换)
+> 前序 v1.39.0(commit `2e3ab15`) —— #56「发光遮罩选轴:世界轴 vs UV」**新增主题**:一条黑白渐变要同时管「哪个面亮」+「面上怎么铺开」时,坐标**选 UV 的 V/U、不选世界轴**
+
 > (**★★★ **世界轴对「同一高度 / 同一条等值线」上的面只能全亮/全不亮** —— 地面整片 z≈0.004,按 Z 高度怎么调都做不出由亮到暗铺开;正解 = **UV**(按面自己展的 0..1)。本项目的免费好处:L 形背板(6 顶点/2 面)UV 恰好是「地面 V 0→1 = 近镜头→墙根、墙面 V 恒 1(退化)」⇒ **一套 0..1 同时管两个面**,墙被钉死在满亮端;且**与折角圆角半径完全解耦**(实测半径 2.0 → 0.5,渐变一字未改) · ★★★ **数值对 ≠ 画面对**:先试的 Y 轴「离墙距离」`26.709 − Position.Y` 版 `MapRange` 求值 `From 0..38.49 → To 1..0`、色标、驱动 `is_valid=True` **全部通过**,渲染却**顶暗底亮**(顶 0.063 / 底 0.327)等于把墙压黑;UV 版同一位置 **顶 0.324 / 底 0.037** ⇒ 中间隔着「**哪个面落在画面哪一块**」这一层,**只能靠出图看**,改造前先确认面上位置再谈参数 · ★★ **量背景只能用差分**:贴图坐标是 `Window`(屏幕空间)⇒ 画面亮度主要是**贴图自身的屏幕渐变**贡献,绝对亮度值反映不出渐变在干什么;判据 = 同帧只动一个参数看哪些行变,或把 ColorRamp 设 `CONSTANT` + 白标 0.5 让**分界硬切**暴露 · ★ **没查 UV 层** ⇒ `纹理坐标.UV` 输出全 0 ⇒ 图案**静默塌成单色**零报错(与 #51 同坑)· ★ **别假设 V 的方向** ⇒ 打印 `(顶点, uv, world)` 三列对照 · ★ **拿圆角半径当渐变跨度** ⇒ 可见背景全落在已饱和区,色标形同虚设(本项目为此白调一轮)· ★ **`MixShader` 第一个输入名是 `Factor` 不是 `Fac`** · ★ **`nt.links.remove(l)` 后读 `l.from_node.name`** 抛 `ReferenceError`,删前把名字**冻成字符串** · ★ **别用「两块亮度谁高」判面上位置** —— 混合两支(受光 BSDF vs 自发光)**亮度不等价**,把 Fac 钉到 0/1 各渲一张比大小,差值**非单调**(实测 6 段 = 0.052/−0.027/−0.050/−0.020/−0.007/−0.000)⇒ 要判「哪个面在哪块」只能**给面打纯红/纯绿自发光标签**后出图 · 节点 13 → **10**、材质**零驱动**)
+
 > 前序 v1.38.0(commit `7c1d769`) —— #55「车辆速度驱动与刹车收尾」**新增主题**:车辆镜头做可调车速与结尾刹车——速度曲线当唯一数据源、数值积分后烘焙位移、四轮转角由位移派生(零滑移)、相机补偿把末帧构图钉回原方案;刹车「顿一下」靠起刹关键帧的**手柄斜率拐点**(减速度 1 帧内 −0.3→−7.4 m/s²);车身再叠俯仰点头,幅度走「曲线 × 强度」两个属性
+
 > (**★★★ 烘焙归一化不能用 `D/(F1-F0)`** —— 尾部接 15 帧刹车使区间从 60 帧变 75 帧后,30–90 段的位移被整体压到 **80%**,静默改掉用户已认可的部分且零报错;正解 = 常量 `REF = D/原方案帧数` · ★★ **自定义属性的 `min`/`max` 会真的钳制取值**,不只是限制滑块:`max=0.00` 时往里写 `+0.0045` 读出来恒为 **0**(而 `fcurve.evaluate()` 是 +0.0045)⇒ 症状是"某段动作整体消失但曲线看着完全正常" ⇒ 内部曲线属性范围一律留宽 ±0.10 · ★★ **一个属性不能既有关键帧又被驱动**(`driver_add` 直接顶掉关键帧)⇒ 想乘系数必须拆成「曲线属性 + 强度属性」再 `dive * k` · ★ **强度是相对系数不是绝对角度**:基准曲线峰值从 −0.0314 改到 −0.0100 后,同一强度对应的角度全变,旧滑块上限 1.15 只到 −0.66° ⇒ **改基准必须重量间隙、重设 max**(本项目 1.15 → 3.0) · ★ **世界坐标采样点不能跨帧复用**(车在动):拿旧帧的轮胎顶点量本帧间隙,全是 0.0x mm 的**假穿模**,指纹是"不同幅度结果一模一样且都接近 0" · ★ 非等比 scale 下动 **rotation** 安全(`body.mw · Mp⁻¹ = P·T·R·S · S⁻¹·T⁻¹ = P·T·R·T⁻¹`,绕轴心纯旋转),**动 scale 会立刻拉开车身** ⇒ 用**保距校验**证伪(对角两点 4.803540 → 4.803540,差 −8.7e−8);轴心必须在**轮轴高度** · ★ 刹车行程有硬上限 `REF × 时长 × 起刹倍率`:15 帧只有 0.5 s,起刹倍率 0.10 ⇒ **2.8 cm**(软到被用户否掉),0.68 ⇒ **32.4 cm / 7.4 m/s²** · ★ 观感铁律:**下压宁小勿大**,5.7 km/h 的真实刹车点头 0.3–0.5° 就够,首稿 1.8° 被用户手调到 **0.37°** · 脚本 `set_speed_curve.py` / `bake_speed_to_translation.py` / `body_dive_param.py`)
+
 > 同批订正 `docs/驱动参数化材质维护.md` **§4.1 给节点 socket 挂驱动的三个条件** —— 推翻本项目上一版遗留的错误结论「5.2 不能给节点 socket 挂驱动」
+
 > (**① 必须挂 `node_tree` 不能挂材质ID**:`mat.driver_add('nodes[...]')` ✗ / `nt.driver_add(...)` ✓ · **② 用索引不用插槽名字**:`inputs["From Max"]` 名字形式在刚建的节点上 ✗ · **③ 索引要查着写**:`SeparateXYZ` **只有 `[0] Vector`**,`inputs[1]` 必然 not found · **真实原因**:`ShaderNodeMapRange` 在 5.2 有 **11 个 input**(0–5 标量版 / 6–11 是**同名的 Vector 版**)⇒ 名字解析歧义;11 个索引逐个 `driver_add` **全部成功** ⇒ 「挂不上」几乎从不是版本不支持,而是**挂错 ID / 用了重名 / 猜错索引** ⇒ 先 `enumerate(node.inputs)` 打出真实索引再抄;误判的代价是整轮改造都在给旧驱动加变量,而不是新建一条干净的驱动)
+
 > 前序 v1.37.3(本地未提交) —— #39「星芒散射光效系统」**再增补:复杂模型安全包裹 + 空对象位置布点 + 位置星芒专用控制器**
+
 > (**★★★ 百万级网格 Remesh/Decimate 绝不许走桥 —— 120 s 硬超时 → 主线程僵死 → 后续 Blender 连 `--factory-startup` 都卡在 UI 初始化,只能重启电脑 · ★ **安全顺序** 手动减面 → 复制+烘焙变换 → Voxel Remesh(把多块薄壳变封闭流形) → **迭代 Decimate**(每轮先读面数再算 ratio) → recalc 法线 + 外扩,实测 5.2 万面源 12264→1926→994、全程 **<3 s** · ★ **非凸壳判据** 半空间 `n·p−d` 只对凸包成立,用 `obj.closest_point_on_mesh` 的最近点法线方向 · ★ **Empty 不能挂修改器 ⇒ 子对象布点**:父级负责位置、对象 `scale` 驱动负责闪烁、`DAMPED_TRACK` 负责朝向;复制源对象会继承 `hide_render=True` 与旧驱动,必须显式清))
 
+
+
 > 前序 v1.37.1(本地未提交) —— #39「星芒散射光效系统」**增补:数量驱动 + 表面法线包裹模式**:星芒可沿宿主表面法线朝外贴壳、并可正负推离表面(`法线距离`),数量由控制器驱动
+
 > (**★★ `Mesh to Points` 输出的点云**没有 `normal` 属性**(属性表只有 `position`/`.edge_verts`/`.corner_vert`/`.corner_edge`) ⇒ `输入法线`/`命名属性('normal')`/`捕获属性→点域` 三条读法**全读 0**;判据 = 法线距离 0 改 ±2 m 包围盒**逐位不变** · ★★ **正解 = `Distribute Points on Faces`(RANDOM)**,它的 `Normal` 是**节点显式输出**、不是点云属性,直接接 `对齐欧拉至矢量.Vector` 与 `VectorMath(SCALE)` · ★★ **数量驱动搬进节点组内部**:`ShaderNodeValue` → `DIVIDE(数量/表面积)` → `Density`,驱动挂 `nodes["生成数量_N"].outputs[0].default_value`(与 4 个形状参数同套路);**搬完必须删掉 interface 里同名 socket**,否则面板留假控件 · ★ **RANDOM 模式只有 `Density`**,`Density Max` 只在 POISSON 存在(按名取 `KeyError`) · ★ 偏移仍是 `设置位置` = 随机抖动 + `Normal × 法线距离`,在实例化前 · 实测 220→224 颗 / 500→483 颗、距离 −0.5/0/+0.5 包围盒 4.205/4.900/5.709 单调扩张 · ★ 脚本坑:`ng.links.remove(l)` 后读 `l.from_node` 抛 `ReferenceError`(先存名字);按名找节点**不能 `cands[0]` 兜底**(会让两个 VectorMath 复用同一节点并自环))
 
+
+
 > 前序 v1.36.0(commit `8017fa1`) —— #53「合成器后期辉光(Glare)」**新增主题**:给**已经渲染出来的画面**加眩光,节点组「渲染层 → 眩光(Glare) → 合成输出」挂到 `scene.compositing_node_group`,6 个中文滑块(开关/强度/阈值/尺寸/饱和度/最大亮度)长在**空对象「辉光控制」**上,`类型`/`质量`/`染色`/`阈值过渡柔度` 留在节点上**不设驱动**给用户手调
+
 > (**★★★ 头号坑:终结节点必须是 `NodeGroupOutput`,而且必须先用 `tree.interface.new_socket(name="Image", in_out='OUTPUT', socket_type='NodeSocketColor')` 声明组输出插座** —— 少了这步**整条合成被静默旁路**:不报错、画面完全不变、**连导出的 PNG 文件字节数都一模一样**(实测 5 个变体全是 **220,159** 字节,这是唯一能抓住它的信号) · ★★ **比 md5 / 比文件大小都不足以判"两张图一样"**(PNG 含时间戳块 ⇒ md5 不同而字节数相同;最早用 md5 判"变体生效",5 个变体全报"生效"而每个文件都是 78,341 字节)⇒ **必须比像素** · ★★ **`CompositorNodeConvertToDisplay` 不能当终结节点**(色彩管理套两遍:旁路档 `max=0.4039`、90944/129600 分量被改);`眩光 → 合成输出` 直连时"强度=0"与"不加合成器"**逐位相同**(180×180 隔离实验 `max=0.00000000`、`0/129600`) · ★ **5.2 事实**:树在 `scene.compositing_node_group`;**`scene.node_tree` 5.0 已移除**;`scene.use_nodes` 恒 True **设了没用**;总闸是 **`render.use_compositing`**;**视口要另设 `space.shading.use_compositor='ALWAYS'`**(默认 `DISABLED`,且 `shading.type` 要是 `RENDERED`);5.0 起上 CPU 实时合成器、**5.2 移除旧 CPU 合成器 ⇒ 老教程不能直接套** · ★ **Glare 插座实测 22 输入 / 3 输出**(`Image`/`Glare`/`Highlights`);**`Type`/`Quality` 是 MENU 插座且取值是「标题式字符串」**(`'Fog Glow'`、`Quality` 是 `'Low'`/`'Medium'`/`'High'`),全大写会 `TypeError`,**`NodeSocketMenu` 没有 `.enum_items` 只能试写**;**`Size`/`Strength`/`Saturation`/`Smoothness` 的 subtype 是 `FloatFactor` ⇒ 0–1**(旧配方 `Size=12` 已死),而 `Threshold`/`Maximum` 是普通 `Float` **不受限** · ★★ **大尺寸 + 低采样 = 噪点放大器**(`尺寸=1.0` 在 12 samples 不降噪时整幅炸成雪花;24 samples + 降噪才干净)⇒ **先把渲染弄干净再调大尺寸** · ★★ **驱动挂「合成器节点树」上**:脚本读插座值**必须手工 `ctrl.update_tag()`+`ng.update_tag()`+依赖图更新**,否则读到**陈旧值**(实测属性 1.0→3.5 而插座**停在 1.0**);**但渲染路径会自己求值** —— 全程不 tag,只改 `辉光开关` 1→0,两次渲染相差 **120817/230400** 个分量(`max=0.89019614`)⇒ **"脚本读到旧值" ≠ "用户在界面上改了没用"**(据此误判过一次用户报告) · ★★ `AnimData.drivers.new()` **追加到末尾**、`remove()` 让后续元素前移 ⇒「第 i 条驱动」索引**永远不稳定**,**一律按 `data_path` 匹配**;**`DriverVariable` 没有 `.data_path`/`.id`** —— 在 **`v.targets[0]`** 上(读错 ⇒ 永远判"规格不符"、**每跑必重建**,数值仍对但幂等报告失效);改**变量**必须**原子重建**整条驱动 · ★ **紫色/拖不动的插座 = 被驱动不是锁死**(用户原话"框是紫色拖不动";Blender 每次求值都把它重算回驱动结果 ⇒ 手输立刻被覆盖,要改的是**驱动源**);顺手做了**非破坏**指路:节点 `label`(`参数在空对象「辉光控制」上`,**只改 label 不动 `node.name`** ⇒ 驱动地址 `nodes["眩光"]` 安全)+ 被驱动插座 `description`(`被驱动 →「辉光控制」的<旋钮名>`),★ **`NodeSocket.description` 硬上限实测 63 字节**(中文 3 字节/字 ≈ 21 字,超了**静默截断**)、**`NodeSocket.label` 只读** · ★ 自定义属性要**像滑块**必须写**硬 `min`/`max`**(只写 `soft_*` 仍是 ±3.4e38 的普通数值框)+ `step=0.01`(`step` 默认 1.0 太粗);判"属性是否被锁"**别看** `ID.is_property_readonly/hidden/set`(**本项目版本上调用签名对不上,一律 TypeError**),看 `id.animation_data` · ★ **`辉光开关` 不单独占插座**,乘进 `Strength`(一条驱动两变量 `(sw * st)`)⇒ `开关=0` 时强度归零 ⇒ **真旁路**;驱动全 `SCRIPTED`+`SINGLE_PROP`(**不引命名空间函数** ⇒ 重开文件不变红) · ★ **脚本层"报告串位"陷阱**:分支里复用了**上一个循环的残留变量** ⇒ 打印的"旧规格"其实是**隔壁那条驱动**,看着像 6 个旋钮整体串了一位,**数据一直是对的、只有报告错了** ⇒ **报告异常时先确认在读对象本身** · ★★ **判据陷阱:本类工程(对象上万、大量高光)的 Cycles 不是逐位确定的** —— `A1 vs A2` 差异**恰好 1 个 8bit 量化步(`1/255`)、只有 1 个分量**,且**两侧中点正好是 `x.5/255`**(`126.5` / `139.5`),**再跑一次抖动的像素换成了另一个** ⇒ 真实浮点值压在**量化台阶中点**,是**度量比介质更严**,不是辉光坏了;本包据此**把判据分层**:`[0]` **工具自检保持严格 + 失败时自动打印差异诊断**(差异像素坐标 / 8bit 台阶数 / 两侧中点),`[1]` **物理结论给 1 个量化步容差**(真不等价会让**成千上万**个分量一起变);要硬结论就**改渲 32 位浮点 EXR 再比** ⇒ **先怀疑度量,再怀疑被测对象** · 脚本 `probe_glow.py`(只读 + **旧配方判定**:终结节点是 `ConvertToDisplay` / 还留着「转显示」节点就报"需要 build")/ `build_glow.py`(幂等:interface 插座守卫 + 3 节点 2 连线 + 5 驱动 + 滑块 UI + 指路提示 + **结构/行为双验收**)/ `verify_glow_render.py`(**8 项**可证伪读数:`[0]` 自证 / `[1]` `开关=0` ≡ 不加合成器 / `[2]` 只加不减 / `[3]` **光晕物理签名:暗部占总增益 27.8%** / `[4]` **三条单调性**) / `maintain_glow.py`(**非破坏**:只动驱动与旋钮 UI,**绝不碰节点/连线/Type**,复跑 `CHANGED=0`) · 实测:探针 22 输入/3 输出、5 条驱动全 `is_valid=True`;`build` 复跑 `跳过重接(幂等)`+`驱动总数 = 5(5 条未改动)`+`6 个旋钮全部 min/max/step 就位`+`插座提示 9 条`;`maintain` = `CHANGED=0` + 行为验收 `FAIL=0`;总增益 **828.403**、增益>0.02 的像素 **12,919/90,000(14.35%)**、最大变暗 **−0.00028**、暗部占总增益 **27.8%**、最亮 1% 增益 41.083;尺寸 0.5→1.0 总增益 **828→4,093**(暗部 **230→2,500**)、阈值 1→5 → **213**、强度 1→0.5 → **462**;渲染 400×225 @12 samples ≈ **7–9 s/张**、320×180 @8 samples ≈ **2.57 s/张** · ★ 顺带修掉 `skills/README.md` **断链校验脚本的假阳性**(它"扫全文里所有像路径的串" ⇒ 把反引号里的**显示文本**也算进来,而显示文本恰好少了 `../` 一级 ⇒ **健康仓库被假报 9 处断链**,让判据"断链=0"形同虚设)⇒ 改为**只取 markdown 链接目标 `](...)`**:重测 **20** 个目标、**断链 = 0** ⇒ 挂在"待确认"上的「9 处相对引用要不要修」**本来就不存在**,又是**度量写错制造出的假故障**)
+
 > 前序 v1.35.1(commit `3efa951`) —— #51「渐变扫过材质 · UV 方向角」**订正:坐标源从 `Generated` 换成 `坐标_纹理.UV`**(用户指出"这个节点没有接 UV")
+
 > (**★ 改动就一行**:`分离_XY.Vector` 的来源插座换成 `UV`,下游一个字不改;节点 / 连线 / 驱动仍 **21 / 23 / 6**,θ 语义不变 · ★ **`坐标_纹理.UV` 给的是「渲染活动 UV 层」**(不是"名字叫 `UVMap` 的那层"),网格体**没有 UV 层时它返回全 0 ⇒ 图案静默塌成一种颜色**;故 `build_sweep_angle.py` 新增 **UV 层守卫**(报错里直接给两条出路:先展 UV / 改回 `Generated`)+ 验收断言"另一路坐标源未连" · ★★★ **第三个自证陷阱:渲染分不出坐标源换没换** —— 这块网格体平整、UV 恰好 0–1 正投影,于是 `UV = (x/W, y/H)` 与 `Generated` **数值上就是同一个东西**:两版渲染逐像素最大差 **0.00392157 恰好 = 1/255**(一个 8bit 量化步)、差异分量 **1~3 / 262144**、平均 **≈1e-8**,四角度 `gradX/gradY` 改前改后**逐位相同** ⇒ **结构断言只能证明"线接在 UV 插座上",证明不了"求值真的走了 UV";渲染/影像/肉眼全看不出来** · ★★ **唯一能证伪的做法 = 扰动 UV**(`Generated` 完全不看 UV,UV 怎么改都纹丝不动):把 UV 每个点的 `(u,v)` 互换,真由 UV 驱动的图案在 0° 必须翻转,实测 **8.969(竖条)→ 0.106(横条)→ 还原 8.969**,**翻转 85 倍**,且还原**断言逐点最大偏差恰好 = 0**、`finally` 兜底再还原一次 · 新增 `verify_uv_source.py`;`build` 加顶部 `COORD_SOURCE`("UV"/"Generated")与 UV 层守卫;`verify_sweep_angle.py` 改为期望 `坐标_纹理.UV` + 否证 `Generated 未连`,预览 HTML 发现 `baseline_generated_<角度>.png` 时并列显示改前/改后;文档新增 **§2.8 / §3.12 / §4.2**,Skill 新增 **§1.4 / §5 判据 6 / §6 陷阱 C / §7.2**(铁律扩到 8 条) + 顺带订正 `skills/README.md` **安装注释里残留的技能数「17 → 20」**(上一版只改了正文的"二十个",同一份文件里的注释漏了))
+
 > 前序 v1.35.0(commit `bd76545`) —— #51「渐变扫过材质 · UV 方向角」**新增主题**:平面上的**黑白渐变宽带横扫**,扫过方向 = **0–360° 的 UV 平面角度**(0° 沿 +U、90° 沿 +V、180° 反向),另叠一层**固定不动的水平渐变**与之**相乘**合成
+
 > (**★★ 方向 = 二维投影** `t = (u·cosθ + v·sinθ)/(|cosθ| + |sinθ|)` —— **分母是必须的**:`u·cosθ+v·sinθ` 的值域宽度就是 `|cosθ|+|sinθ|`(45° 时 √2),不除则角度一拨条纹**凭空多出 1.41 倍** · **★ θ=0° ⇒ `t ≡ u` 与原版逐点相同**(不是近似) · **★ 乘性合成逐像素实测**:水平层全白 vs `Factor=0` 最大差 **0.00392** / 平均 **0.000000** ⇒ **全白 = 等于没接**;★★ MULTIPLY 下 **`Factor=0` 不是纯相乘**(退化成只取 A) · **★ 5 个中文滑块全挂空对象**、ColorRamp 零驱动留给手调;★ 交付**必须设 `view_layer.objects.active`**(属性面板只显示活动对象) · **★★ 改完自定义属性,只 `view_layer.update()` 读不到新值** ⇒ 必须 `ctrl.update_tag()` + `nt.update_tag()` + `evaluated_depsgraph_get().update()`(本项目曾因此误判"`cos`/`radians` 不在白名单""驱动坏了",白写一圈探针) · **★★ 拿"临时材质"探驱动器 = 无效实验**(未被使用的材质不在依赖图 ⇒ 驱动**根本不求值**,实测 13 个表达式全 `is_valid=True` 而求值全 `0.0`,连 `pi` 都返回 0) · **★ `AVERAGE` 型的 `driver.expression` 是自动生成的显示串**(别拿它判对错,要比求值后的插座值) · **★ 改变量必须原子重建驱动 / `SINGLE_PROP` 先 `id_type` 后 `id` / 补充变量循环 `for prop, var_name in SPEC` 顺序反了 ⇒ 悬空变量被当 0 平均 ⇒ 数值减半** · **★★ 核验两个"自证陷阱"**:沿 t 的剖面**要先按 1.0 取模再分箱**(θ>90° 时 t 是负数,180° 就是 `t = −u`;不取模 ⇒ 条数塌成 1、相关系数变 0)、**别拿 t 剖面验镜像**(采样方向跟着 t 一起翻,0°/180° 天生重合,再 `[::-1]` = 翻了两次 ⇒ 反相关)⇒ **直接比像素** · **★ 安全闸的门槛 = "本次是否真会重建"**(结构已正确 ⇒ 跳过分支 ⇒ 不该拦,否则幂等复跑被误伤) · 脚本 `probe_sweep.py`(只读 + 角度版/旧一维版判定)/ `build_sweep_angle.py`(幂等 + 色标指纹闸)/ `verify_sweep_angle.py`(结构 + 驱动行为 + 四角度渲染)/ `maintain_ctrl.py`(非破坏) · 实测节点 **21** / 连线 **23** / 驱动 **6**、8 个角度**逐点吻合**、`gradX/gradY` = **10.51 / 1.000 / 0.096 / 10.50**、沿 t 条数 **`[4,4,4,4]`**、180° 镜像差 **0.001884** ≪ 同向差 **0.273658**(小 145 倍))
+
 > 同批修索引文件历史缺陷:快速索引表被**空行截断**(#48~#50 掉出表外、滚筒行更掉到 `## Agent Skills` 标题之下)+ 滚筒行编号与 #39 **重号** ⇒ 重编为 **#52**;`skills/README.md` 技能总数写"十六个"而实际 **19** 个、且**漏列三个** ⇒ 数准为 **二十个**并补齐(清单 20 ↔ 目录 20 零差集)
+
 > 前序 v1.34.0(commit `4ef2055`) —— #50「覆盖区框选批量删除对象(俯视 Z 轴)」**新增主题**:用户放好带关键字(如「Z轴覆盖范围」)的网格体当"区域标记",**俯视 Z 轴 = 忽略 Z** 删掉被它们**完全覆盖**的所有对象(退化成世界 XY 二维矩形包含)
+
 > (**★ 判定 = 并集格网分解** 逐格求交 `area(R∩U)==area(R)`,**不能拆成「在 R1 或 R2」** · **★★ 零尺寸对象(EMPTY/CAMERA/LIGHT)面积判据恒真 ⇒ 必须走四角点分流**(否则删光全工程空物体与相机) · **★★ 父级在内、子级在外 ⇒ 删父级会带走子级,必须先冻结 keep-transform** · **★ 删除成本 ~20 ms/对象**且与 API/视图层/集合大小**无关**,`bpy.data.batch_remove` 最快(23 ms vs 逐个 `remove` 124 / `unlink` 26.6 / `ops.delete` 44.2) · **★ 干跑/执行/复核三处判据必须同源**(共享几何核 `region_geom.py`,否则算 143,318 删 143,317) · **★ 循环内禁用 `bpy.data.objects.get(name)`**(32 万对象规模病态慢) · **★ 另存会丢弃 `users==0` 数据块**(内存 177,156 → 重开 177,155)⇒ 硬判据用业务不变量「区内残留 = 0」 · **★ `batch_remove` 后旧引用失效** ⇒ 删完重新遍历 · `orphans_purge(do_recursive=False)` 跑 2 遍 ≈ 0.6 s · 脚本 `region_geom.py` / `analyze_region.py`(干跑)/ `delete_region.py`(三重闸)/ `verify_region.py`(重开复核)/ `progress_dashboard/` · 实测 **320,474 → 删 143,318 → 另存 177,155**(2,401.6 s,≈50 个/秒)、**重开复核 `region_objects_left: 0`**)
+
 > 前序 v1.33.0(commit `4f508fd`) —— #49「空间雷达扫描材质」**新增主题**:把 Canvas 雷达扫描动画复刻成 Blender **空间材质**(不用 UV,**沿世界 Y 轴投射**)
+
 > (**★ 极坐标角度场** `u=(atan2(Z,X)+π)/2π` **只取两个分量 ⇒ 天然沿第三轴投射** + **多扫描头相位** `D=frac(条数×时刻−方向×条数×u)` · **★★ 方向只准进「角项」** —— 写成 `frac(方向×条数×(时刻−u))` 时 `frac(−x)` 头位置集合与正向**完全相同 ⇒ 方向旋钮按了不反向**(纯结构断言看不出来、**渲染量像素才抓到**) · **★ 必须 `FLOORED_MODULO`**(普通 `MODULO` 负值裁剪 ⇒ 跨 0° 拖尾断头) · **★ 波形走 Math 域**(`MapRange`+`POWER`,**ColorRamp 只关颜色不兼职**) · **★ 半径** `CombineXYZ` 填 Y=0 再 `LENGTH`(直接取 Object 坐标会带上被投射分量) · **★ 5.2 无 `ShaderNodeSceneTime`** ⇒ `ShaderNodeValue` 输出 + 驱动 · **★ 可证伪核验**:正交正视渲染 + 按 `u=i/N` 反演采样剖面测转角/反向/数峰,**沿轴平移 2m 比 md5** 证投射;别用 `fcurve.evaluate(frame)` 读驱动真值(读到帧号) · 脚本 `probe_plane.py` / `build_radar_material.py` / `verify_radar_material.py` · 实测节点 **33** / 连线 **39** / 驱动 **13**、转角 **+109° vs 期望 +110°**、反向 **−110°**、**5 峰**、md5 **`5a72afe178`**)
+
 > 前序 v1.32.2(commit `0b62b63`) —— #36「径向内收多脉冲材质」**增补「出场（出生门）」:黑场起步 → 第一圈从圆心诞生 → 后续圈依次跟上 → 无缝循环**
+
 > (**★ 错法 = 改「亮面半径」= 整体缩放**:`FRACT(r/间距+相位)` 是无限延伸的周期图案、**没有"开始"**,裁切边缘张开 0.0335/帧 比环外走 0.0080/帧 快 **4.2 倍** ⇒ 一眼看穿 · **★ 正解 = 出生门**:`k = 相位叠加 − 周期取模 = floor(x)`(SUBTRACT) → `(k < 0.5)`(LESS_THAN) → `掩码裁切 × gate`(MULTIPLY),**门只乘掩码、不碰亮面半径** · **外扩 = 循环周期取负**,环 k 左边缘 `=(k−相位)×间距`,降到 0 即"在圆心诞生"、此刻**宽度恰为 0** ⇒ 硬开不跳变 · **★ 阈值必须 0.5 不能 0**(严格小于,填 0 会漏掉宽度 0 的首圈 ⇒ **晚一帧**) · **★ 相位偏移 = 占空比 + 1/|循环周期|**(实测 0.9599 ⇒ f=1 纯黑),不设就是"一开始就在循环" · **★ 核验别读 Math 输出**(已连线 ⇒ 读回恒 0),读驱动直接写入的 **Value 节点** · 脚本 `set_firework_birth_gate.py` / `verify_firework_birth_gate.py` · 实测节点 39→42、连线 49→53、**驱动仍 11 条**、**亮面半径逐帧恒 0.8378**)
+
 > 前序 v1.32.1(commit `b49835a`) —— #48「参数化摆动驱动系统」**增补摆幅倍率总控 + 改摆幅三法**
+
 > (**可选总控** 一个全局「摆幅倍率」把全部目标的表达式整体乘上 ⇒ 倍率 5 = 每个对象各自的角度 ×5;挂载二选一:`('SCENE','摆幅倍率')` / `('OBJECT','控制空物体','摆幅倍率')` · **★ 跨主题交互**:控制空物体**没有子级**,会被 #34 空物体收敛清理当"无用 EMPTY"删掉 ⇒ 场景以后还要跑清理就用 **SCENE** · **★★ 倍率的括号是承重的**:必须 `mul*((amin+amax)/2.0 - (amax-amin)/2.0*cos(...))`,写成 `mul*(amin+amax)/2.0 - ...` 会被运算符优先级解析成 **mul 只乘中心项** ⇒ **对称角度(amin+amax=0)时中心项恒为 0 ⇒ 倍率完全失效且不报错**(首轮自测抓到) · **★ 被 K 帧的自定义属性读值必须走 `evaluated_get`**(动画值只写在 evaluated 副本,直读原始 datablock 得静态旧值) · **★ 倍率被 K 帧后「周期一致性」判据不再成立**(f 与 f+dur 本就不同),脚本自动跳过 · **★ 红线:别 K `rotation_euler`** —— 驱动优先级高于动画通道,K 上去被直接覆盖、完全不生效 · **★ K 幅度要 K 一对**,只 K 一条会让摆动中心漂(实测 5→12 中心漂到 +3.5) · 实测 5 钟表相位 0/20/40/60/80 错开 + 倍率 1→5 涨落,逐帧与手算期望值全吻合)
+
 > 前序 v1.32.0(commit `e010c1a`) —— #48「参数化摆动驱动系统(单物体自包含版)」**新增主题**,与 #46 **公式同源、适用场景不同**
+
 > (**公式代数恒等**:`amin+(amax−amin)(0.5−0.5cosθ)` 展开 ≡ `(amin+amax)/2−(amax−amin)/2·cosθ` · **★ 三处差异决定选型** ① **参数归属**(挂**对象自身**自定义属性 vs #46 挂 **Scene** 的 `bloom_*` 全局一套) ② **错位机制**(固定 `相位偏移` vs #46 的 `spread`/`sync` **拍频** ⇒ #46 会「时而错开时而整齐」,本篇只固定错开) ③ **几何前置**(直接驱动**对象自身某一轴**、无需铰链层 vs #46 必须插**铰链层**把灯锁在径向平面内,XYZ 欧拉「X 轴水平 ⇒ Z 轴必竖直」不能一步到位) ⇒ **群体节奏用 #46,个体各摆各的 / 参数要随对象走用 #48,要烘进时间轴且不依赖 Python 执行权限用 #40 关键帧版** · **★ 驱动只写 evaluated 数据**,核验必须 `obj.evaluated_get(depsgraph)`(直读原始 datablock 读不到) · **★ 表达式必须返回弧度** · **★ 只用内置 `frame` + `SINGLE_PROP`、不引命名空间函数** ⇒ 重开文件驱动不变红(对比 #20 的 `spin_speed()` 需 Register 文本块) · **★ 自定义属性带 `min`/`max` 才是滑块**,键名即显示名 · **★ 挂驱动前基准角必须复位 0** · **★ 替关键帧时摘 action 别删数据块**(改名 + `use_fake_user` 留孤儿) · **★ 订正 #46 旧注**:`radians()` 在 5.2 驱动表达式里实测**可用**(#46 文档主张 `pi/180`,两者都行) · **★ 顺带修正:关键帧 + `CYCLES` 修饰器的重复周期 = 键跨度**(1→100 实为 **99** 帧、循环接缝重复一帧),驱动版按 `dur` 计无此问题)
+
 > 前序 v1.31.0(commit `54a3a5c`) —— #47「体积光柱羽化系统」**补充轴向收尾**:射灯光柱在真空里**看不见**,用闭合锥体 + 局部体积当假体积
+
 > (**★ 决定性发现 1 `Principled Volume` 的 Emission 不受 `Density` 控制** —— `Density` 接 `Value=0` 画面**依然亮**且比 0.8 浓度**更亮** ⇒ **只接 Density 是白费的**,必须**同时接 `Emission Strength`**(过渡宽度 6px→18px) · **★ 决定性发现 2 轴向衰减的端点必须精确到 0** —— 线性斜坡底值留 `0.05` ⇒ 端面圆盘带残余亮度被几何**一刀切** ⇒ 远端是一条**平切水平硬边**;必须用 `SMOOTHSTEP` 平滑且到 0 · **★ 要调「渐变终点」别用 `ColorRamp` 节点** —— 色标位置 `elements[1].position` **没有输入插槽**,连不上 `Value` 节点;`MapRange` 的 **`From Max` 是 socket**、可直接驱动 · **★ 5.2 `nodes.remove()` 后旧节点引用失效**(`out.name` 读乱码 / `out.inputs["Volume"]` KeyError / **链接静默丢失**)⇒ 删完重新遍历取输出节点 · **★ 改自定义属性后依赖图不重算**,脚本要 `update_tag()`,且驱动器求值**有延迟**(同脚本内读到旧值)⇒ **跨事件验证** · **★ 材质烘焙 R/L** ⇒ 只有 `spot_size`/`cutoff_distance` 一致的灯才能共用一份材质 · **★★★ 换文件级 operator(`read_factory_settings`/`read_homefile`/`wm.open_mainfile`)绝不许通过桥送进用户会话** —— 实测卡死崩溃、未存盘改动全丢)
+
 > 前序 v1.30.0(commit `a4ae155`) —— #47「体积光柱羽化系统」初版
+
 > 前序 v1.29.0(commit `a4c3caa`) —— #46「射灯阵列径向摆动绽放系统」:一圈射灯各自**锁在自己的竖直径向平面**内摆动,像花开合
+
 > (**★ 拍频公式** `θ_i = 2π(t·f_i − sync·(f_i−1))/period`、`f_i = 1 + spread·i/7` ⇒ **sync 帧精确同步**,同步时展开角由 **`sync/period` 的小数部分**决定(2.0→全闭合 / 2.5→全开),对齐周期 `7×period/spread` · **★ XYZ 欧拉下「X 轴水平 ⇒ Z 轴必竖直」** ⇒ 让灯锁在径向平面内摆动**不能一步到位**,必须插**铰链空物体**(`定位 → 铰链(α,0,rz) → 灯(π/2+elev,0,0)`),按 `基=[t̂,ẑ,r̂]` 造矩阵直接赋 `rotation_euler` 会**静默歪掉** · **★ 5.2 `DriverTarget.id` 必须先 `tg.id_type='SCENE'`** 否则只接受 Object · **★ 批量改造脚本中途失败会留半改造状态**(实测 8 盏只改了 1 盏) · **★ 桥 exec 整段代码,异常让前面所有 print 全丢** ⇒ 先探 API · **★ 定位空对象常无旋转,朝向必须问用户** · `ActionSlot.name` / `UnitSettings.length_system` / `Light.power` **均不存在**,`Light.show_cone` **默认 False**)
+
 > 前序 v1.28.0(commit `8784455`) —— #45「分体翻页牌驱动翻页系统」+ **几何节点版(首选)**:不烘焙也能随复制/存盘带走,且免 Python 权限
+
 > (**★ GN 修改器输入在 `mod.properties.inputs[identifier]` 且是 Group IDProperty**:`ins['Socket_2']['value'] = 4.0`,直接 `ins[id]=4.0` 报 TypeError;**★ 改完必须 `obj.update_tag()` + `view_layer.update()`** 否则读到缓存网格(表现为"参数写了读回也对但画面不动/全部同步");旧的 `mod["Socket_2"]` 已彻底失效)
+
 > 前序 v1.27.2(commit `632b0e5`) —— #45 增补**整体搬运**(总控 Empty + 单一集合,**先 parent 后设补偿**)+ **烘焙成关键帧**
+
 > (**★ 运行时处理器既不写进 .blend 也不随跨实例复制** —— 复制到另一个 Blender 后动画全没;只有 **fcurve 是纯数据**,复制/存盘/重开/Append 全带走且不依赖 Python 执行权限 ⇒ **跨工程复用必须烘焙**;5.x 写曲线用 `action.fcurve_ensure_for_datablock(obj, path, index=i)`,键值**弧度**;实测 35 轴 × 0~311 帧 = 3430 关键帧)
+
 > (**★ 挂父级必须先 `p.parent = x` 再设 `matrix_parent_inverse`** —— 顺序反了补偿被 Blender 重置成单位矩阵,整组多叠一个 `+父级位置` 位移,实测 35 张卡平移 `(-59.44,-15.90,+2.08)`;总控 `rotation` 必须保持 0,否则轴的本地 Y ≠ 世界 Y、翻页轴会歪;链完整性最强判据 = **卡片中心严格等于其轴的世界位置**)
+
 > (**★ 非受信任打开的 .blend 里 SCRIPTED 驱动静默不求值**,运行时开 `use_scripts_auto_execute` 也救不活 ⇒ 改走 `frame_change_post` 处理器 · **★ 驱动表达式必须返回 `radians()`**,`rotation_euler` 是弧度,写度数 1080 → 61879° 卡片全歪 · **★ 处理器不写进 .blend,存盘前必须停静止帧**否则重开僵在半翻姿态 · **总转角必须是 360 的整数倍**(半圈停在背面看不到字) · **keep-transform 只补偿一次**,两处都乘 `T⁻¹` 会把物体平移到 `T(-center)@orig` · **新建/刚改父级的对象别回读 `matrix_world`** · 波浪相位 `((列+行)%8)×2`)
+
 > 前序 2026-10-02 v1.26.0(commit `94e6a5ee`) —— 新增 Skill `blender-blend-append-merge`「追加合并两个工程」(#44)
+
 > (**append 耗时 ≈ 15 ms × 被追加对象数,与几何/贴图量无关 ⇒ 以对象少的一边为底实测差 80 倍** · **重名去重按最后一个 `.NNN` 续号链式挪号、3.4% 对象被改名(链接/变换/几何全对,只是名字不可靠)** · **挂在场景根下、不属任何集合的游离对象会整批漏掉** · **世界/场景设置不随集合追加** · **对账口径用多重集而非名字** · **存盘必须先于对账**)
+
 > 前序 v1.25.0(commit `5dfd3112`) 新增 #43「按材质合并为单个网格体」(文档 + 脚本包 + Skill `blender-headless-batch`)+ 后续「大组」加固
+
 > 前序 v1.24.12(commit `17374d2`) 关联效果互相索引 + 修「贴到别的对象没动态」两大真因
+
 > (**波形放 Math 域,别让 ColorRamp 兼职** · 「斜角」经 `RADIANS→TANGENT→K×(柱高/周长)÷tanθ` 反算 N · 端盖按法线分纯黑槽 · 11 条坑含 5 条渲染管线级 · **方向以实测标定,纸面推导曾推反**)
+
 > 前序 v1.24.5(commit `2f21fea`) 作业循环补「跑带还原逻辑的技能脚本前先用隔离探针验它」
+
 > (**技能脚本头部的「与基线逐字节等价」是声明不是事实** · 先建 2 槽 mesh 探针(面索引交替 0/1)记状态 → 跑脚本 → 读探针确认原封未动 + 核对对象/材质总数 · 原第 5~7 步顺延为 6~8)
+
 > 前序 v1.24.4(commit `ab6a919`) self_test 还原逻辑修两处真缺陷
+
 > (**`restore()` 须删自建的 `ctrl` 空物体,否则每次试跑留 1 个无主 EMPTY** · `me.materials.clear()` 会把该 mesh 所有面的 `material_index` 归零,须「槽位未变就 `continue`」——实测 141 个 mesh 中招,单个最多 140 万面用槽 1 · 失败报告只输出差异,别打全量材质表(实测 44 万字节噪声,且把方向带向「材质没删净」而真残留是对象))
+
 > 前序 v1.24.3(commit `5bba3cd`) 修复技能安装链路断链 + 订正环境事实
+
 > (**只拷 `skills/` 会断链,须三件套一起拷 `skills`+`scripts`+`docs`** · 从 `skills/<名>/` 出发是**一级** `../`,写两级会落到安装根之外 · 删除「bash 已损坏」错误条目(bash 实测可用) · 新增「heredoc 吃成对反斜杠致 `replace` 静默失败,须 `chr(92)`」)
+
 > 前序 v1.24.2(commit `bec7ef47`) 双径向 Skill 铁律统一补「三平面下做效果才对 + 便于检验」
+
 > (**内收多脉冲 Skill 补铁律 #6;四段脉冲 Skill #7 补「三面同场交线连续、一眼可验」**)
+
 > 前序 v1.24.1(commit `b12db2b1`) Skill blender-radial-pulse-material 铁律补充「部署目标非三平面须提示补齐」
+
 > 前序 v1.24.0(commit `20f98649`) 新增主题 #41「雪花下落系统」(EMPty 宿主几何节点下雪 + FLOORED_MODULO 触地回卷)
+
 > (**宿主必须 loc=0/rot=0/scale=1 否则雪埋地** · `FLOORED_MODULO` 触地回卷不加贴地淡出 · RandomValue 显式接 Index+独立种子防堆积 · `'%s' % (tuple)` 单%s×三元组报 not all arguments)
+
 > 前序 v1.22.0(commit `80c1e8b`) 新增主题 #39「星芒散射光效系统」(隐藏源 + ObjectInfo RELATIVE)
+
 > (**源隐藏渲染、散布实例照常** · `ObjectInfo` 必须 **RELATIVE** 才继承源缩放/动画,ORIGINAL 会忽略 · 位置偏移经 `设置位置` 施加在实例化前 · `mod.properties.inputs` 不可迭代 · EMPTY 属性驱动几何 socket 不稳)
+
 > 同批 v1.23.0 新增 Skill `blender-loop-keyframe-anim`(循环三角波关键帧;Slotted Action 写入路径)
+
 > 前序 v1.21.0(commit `bad5a70`) 新增主题 #38「驱动参数化材质维护」(引用体检 / 关键帧收敛 / 改名换轴)
+
 > 前序 v1.20.0(commit `9cf12e5`) 新增主题 #37「径向材质多位置部署与播放时差」
+
 > 前序 v1.19.0(commit `bcc96c6`) 新增主题 #36「径向内收多脉冲材质」+ Skill `blender-inward-pulse-material`
+
 > 前序 v1.18.0(commit `e08b05b`) 新增 Skill `blender-radial-pulse-material` + 双勘误(驱动内建 `frame` 可用 / UI tag 未隔离实测)
+
 > **更新文档/代码后,请更新此行**(日期 + 新 commit hash),并在 CHANGELOG 追加版本
+
+
 
 ## 技术栈
 
+
+
 - Blender 5.2(Windows)+ Python API(bpy),脚本在 Blender Scripting 工作区运行
+
 - 远程控制:本地 Socket 桥(`127.0.0.1:9877`),主线程执行,零插件依赖
+
 - 多 Blender 并存:桥端口可改(如 9878),send.py 第二参数指定端口
+
 - **★ 另有一条不走桥的通道:`blender.exe --background --factory-startup <blend> --python <脚本>.py -- <参数>`**
+
   (**无头批处理**)。什么时候用它而不用桥:改动>120s(桥会超时)、目标工程大到 GUI 打不开、
+
   或压根不想开 GUI。详见 `skills/blender-headless-batch/` 与 `docs/按材质合并为单个网格体.md`
+
+
 
 ## 关键坑(代码里看不出的)
 
+- **★★★ 取灯必须走 `obj.data`**：本工程**数据块名与对象名错位**（对象 `面光.002` 的数据块叫 `面光.004`；而数据块 `面光.002` 属于另一个对象的灯）⇒ `bpy.data.lights["面光.002"]` 改的是别人，表现为「怎么调画面都不变」；`L.users > 1` 说明被多盏灯共用
+- **★★★ 面积光的 `自发光` 必须接 `灯光输出.Surface`**：漏接则灯静默全黑、属性面板一切正常；开节点后亮度看 `自发光.Strength`，`light.energy` 失效
+- **★★ 翻转型渐变不能用全幅均值验证**：左黑→右白 与 左白→右黑 总光通量相同 ⇒ 全幅均值差恒为 `0.000000`，判据只能看**左右半互换**或**单灯隔离**
+- **★★ `blocker_collection` 是「挡光体」不是「不收光」**：想排除某物件用 `receiver_collection` 白名单；误用 blocker 会让画面变亮（实测车身 **+5.6%**）
+
+
 - `bpy.context` 只能**主线程**访问 → 远程执行必须用 `bpy.app.timers` 调度
+
 - **Blender 5.2 Slotted Action**:`action.fcurves` 不存在!读/建曲线用 `action.fcurve_ensure_for_datablock(obj, path, index=i)`(index 必须关键字传参);**读取已存在曲线**:`action.layers → layer.strips → strip.channelbags → cb.fcurves → fc.keyframe_points`(channelbag 有 slot_handle 区分 OB对象/CA相机数据)
+
 - **同一次 exec 内改完立即验证会读到未刷新缓存值** → 修改与验证必须分两次请求,以新请求为准
+
 - **探查脚本禁止 `round(kp.co[0])` 统计帧号**(banker's rounding 掩盖 .5 帧,如 361.5→362);用精确值 + `abs(f-round(f))>1e-6` 筛小数帧
+
 - **Blender 没有"反转关键帧"菜单**!反转 = 关键帧菜单 → 镜像(`Ctrl-M`)→ 沿时间轴关于当前帧(播放头放中间帧)或沿时间轴关于时间 0
+
 - **send.py 大任务(全量遍历 5 万+ 对象)>120s 会报超时,但桥实际执行完** → 超时后重跑同脚本验证(幂等脚本);写操作先备份
+
 - **bash heredoc 会吃掉成对反斜杠**:`python - <<'PY'` 里写 `'C:\\path\\to'`,Python 实际收到 `C:\path<TAB>o`(因为 `\t` 被解释成制表符)→ 字符串 `in` / `replace` **静默失败**(返回 False 而不是报错)。构造含反斜杠的路径一律用 `chr(92)` 拼接,或用 `split(chr(10))` 这类不依赖反斜杠字面的写法。**判据:替换后必须回读并打印结果核对,别信 `replace` 的返回值**
+
 - **重复网格合并指纹必须含材质+UV**(几何相同≠可合并);合并前抽检真实顶点坐标;合并后同组对象共享数据,编辑一个全部同步
+
 - **parent 赋值后手动设 mpi**:`child.parent = empty` 在 5.x 不自动更新 matrix_parent_inverse → 世界位置 = 父位置+局部(翻倍)!必须 `child.matrix_parent_inverse = empty.matrix_world.inverted()`;空对象先定位到目标位置再挂载;设置 location 后 view_layer.update() 刷新
+
 - **★ keep-transform 只能补偿一次**:`world = parent.mw @ parent_inverse @ basis`,保持世界不变 = `parent_inverse = T⁻¹` **且** `basis` 保持原世界矩阵;两处都乘 `T⁻¹` ⇒ 净效果 `T(-center) @ orig`,物体被平移到世界原点附近(实测 bbox `-57.9783` → `±0.005`)
+
 - **★ 非受信任打开的 .blend 里 SCRIPTED 驱动静默不求值**:不报错、不动。判据 `preferences.filepaths.use_scripts_auto_execute`(属性名不是 `use_auto_scripts`);**运行时临时置 True 无效**(信任标记在加载时确定)⇒ 用 `bpy.app.handlers.frame_change_post` 处理器按公式写属性;判活读 `obj.evaluated_get(depsgraph).matrix_world`(驱动只写 evaluated 数据,读 `obj.matrix_world` 永远 0)
+
 - **★ 驱动表达式必须返回弧度**:`rotation_euler` 单位是弧度,写 `1080.0` 会存成 1080 弧度 = **61879°**(实测 35 个轴全歪)。用 `radians(1080.0)`;`%` 格式化写 `%%`、`.format()` 写 `%`,混用把 `%%` 留在表达式里是语法错误且被屏蔽不报错
+
 - **★ `bpy.app.handlers` 不写进 .blend**:处理器是运行时注册,存盘会把"当时那一帧"的值冻结进文件,重开即僵在中间态 ⇒ 保存前先停到静止帧或把属性归零(见 `scripts/flip-card/reset_flip_rest.py`)
+
 - **新建 / 刚改父级的对象别回读 `matrix_world`**:可能拿到 basis 或过期值(实测根级轴 location 设为 `(-57.97,-16.17,2.22)` 却读回 `(-0.005,0.445,0.445)`);根级对象用 `Matrix.Translation(center)` 解析构造,只有加载后从未动过的对象读才可信
+
 - **循环渐变 ColorRamp**:等分数=颜色数×4;同色连标=平台,删过渡中点=线性过渡,首尾同色=无缝循环;插值必须 LINEAR(EASE 会抖);滚动用 Mapping Location 关键帧,勿移动空对象
+
 - **Object 坐标只跟随平移,不跟随旋转**:转空物体不会让纹理旋转!旋转类动画用材质节点内偏移(ADD + driver);循环取模用 FLOORED_MODULO(负数正确,普通 MODULO 负值裁剪);材质节点 driver/keyframe 路径必须 inputs[N] 数字索引(名称形式报 not found)
+
 - 直接改 IDProperty(如 `obj['vis']=[0]`)后驱动不重算 → 必须 `obj.update_tag()` + `bpy.context.view_layer.update()`
+
 - **材质节点驱动引用自定义属性,改属性值不自动重算**;实时刷新落地:UI 面板(Panel.draw)里检测属性变化后 `ctl.update_tag()` + `view_layer.update()`;面板/函数注册用 Register 文本块(use_module=True)+ Auto Run 随 .blend 自愈(见 docs/材质参数统一控制器与实时面板.md,脚本 scripts/ring-control-panel/;`frame` 在 5.2 SCRIPTED 驱动表达式里可用)`
+
 - **5.2 给 Value 节点输出打关键帧不生效**:对 `outputs[0].default_value` `keyframe_insert` 后 fcurve 求值对,但 Slotted Action 下评估值恒定(原始/评估都=默认)→ UI 看开关一直是 1。**时间开关参数要用驱动**:命名空间函数读 `scene.frame_current`,SCRIPTED 驱动 `grad_window(fr)`,函数写 Register 文本块持久化;验证必须 `deps.id_eval_get(mat)` 读评估值;读关键帧走 `action.layers[].strips[].channelbag.fcurves`(见 docs/帧窗口驱动时间开关.md,脚本 scripts/frame-window-time-switch/)`
+
 - 关键帧**末帧插值不影响任何可见段**(段由段首帧决定);要"结尾直线"改**倒数第二帧**为 LINEAR
+
 - C4D 式"中间平滑+两头线性":**两头 Free handle 手动对齐线段**,中间保持平滑;改 LINEAR 会产生折角
+
 - **5.2 合成器**:`scene.node_tree` → `scene.compositing_node_group`;**Composite 节点已移除**(渲染结果不自动显示,用 Viewer 或移除节点组);File Output 的 Media Type 默认 Multi-Layer EXR(要 PNG 必须改 Image 或槽勾 Override Node Format)
+
 - **use_nodes 在 5.x 恒 True 无法关闭**;"关合成器"= 移除 compositing_node_group(空节点组=幽灵状态,渲染不输出)
+
 - ★★★ **5.x 场景合成器的终结节点必须是 `NodeGroupOutput`,而且必须先用 `tree.interface.new_socket(name="Image", in_out='OUTPUT', socket_type='NodeSocketColor')` 声明组输出插座**:少了这一步**整条合成被静默旁路** —— 不报错、画面完全不变、**连导出的 PNG 文件字节数都一模一样**(2026-10-16 实测 5 个不同参数的变体全是 220,159 字节,这是唯一能抓住它的信号)。⇒ **每次写完合成器都要断言** `终结节点.bl_idname=='NodeGroupOutput'` **且** 组里存在 `OUTPUT` 插座;**判"两张图一样"也必须比像素**(md5 不同 ≠ 不一样,PNG 有时间戳块;md5 相同才等价于字节相同)。另:**别用 `CompositorNodeConvertToDisplay` 当终结节点**(色彩管理套两遍:旁路档 `max=0.4039`、90944/129600 分量被改)
+
 - ★ **Glare 节点事实(5.2 实测 22 输入 / 3 输出)**:输出 `Image`/`Glare`/`Highlights`;**`Type`/`Quality`/`Kernel Data Type` 是 MENU 插座且取值是「标题式字符串」**(`'Fog Glow'`/`'Bloom'`/`'Streaks'`/`'Ghosts'`/`'Simple Star'`/`'Kernel'`,`Quality` 是 `'Low'`/`'Medium'`/`'High'`),写成全大写会 `TypeError`,且 **`NodeSocketMenu` 没有 `.enum_items` ⇒ 枚举只能试写**;**subtype 决定量程** —— `Size`/`Strength`/`Saturation`/`Smoothness`/`Fade`/`Color Modulation`/`Jitter` 是 `FloatFactor` ⇒ **0–1**(旧配方的 `Size=12` 是 2.x–3.x 整数 API,已失效),而 `Threshold`/`Maximum` 是普通 `NodeSocketFloat` **不受 0–1 限制**;**大尺寸 + 低采样 = 噪点放大器**(`尺寸=1.0` 在 12 samples 不降噪时整幅炸成雪花,24 samples + 降噪才干净)
+
 - ★★ **驱动挂在「合成器节点树」上时,脚本里读插座值必须手工 `ctrl.update_tag()` + `ng.update_tag()` + `evaluated_depsgraph_get().update()`**,否则读到**陈旧值**(实测:属性 1.0→3.5,插座**停在 1.0**)。**但渲染路径会自己求值** —— 全程不 tag,只改 `辉光开关` 1→0,两次渲染相差 **120817/230400** 个分量 ⇒ **"脚本读到旧值" ≠ "用户在界面上改了没用"**(别据此误判用户报告)。另:**节点输入框是紫色/拖不动 = 该插座被驱动,不是锁死**;`NodeSocket.description` 硬上限实测 **63 字节**(超了静默截断)、**`NodeSocket.label` 只读**,能改的只有 `Node.label`(改 label **不动 `node.name`** ⇒ 驱动地址安全)
+
 - **远程脚本不要动合成器节点树的这两类操作**:新建/删除 **File Output 节点**、**槽(socket slot)操作** —— 会触发 5.x 已知崩溃 bug ⇒ 这两类一律 GUI 手动。★ **边界(2026-10-16 实测)**:除此之外的合成器写操作**远程是安全的** —— 通过桥新建 `CompositorNodeRLayers`/`CompositorNodeGlare`/`NodeGroupOutput`、连线、写 `interface` 插座、挂/修驱动器、改自定义属性 UI、渲染,数十次全部稳定(主题 #53 `scripts/post-glare-glow/`)
+
 - **3ds Max 导入对象改轴心必须"先 Apply 再设原点"**:导入对象全带非单位缩放/旋转(部分负缩放),直接 `origin_set` 位置跳变 → 先 `bpy.ops.object.transform_apply(rotation=True, scale=True)` 再 `origin_set`;multi-user 网格(data.users>1)先 `obj.data = obj.data.copy()`;有动画对象跳过(详见 docs/3dsmax导入场景清理与轴心修复.md §3)
+
 - **5.2 API 变化**:`obj.apply_transform()` 不存在(用 ops `transform_apply`);`action.fcurve_find`/`ActionSlot.fcurves` 不存在(用 `fcurve_ensure_for_datablock` 判空);`bpy.context.undo` 移除;`obj.lock_get()` 不存在(用 `hide_select`);`bpy.data.user_map()` 返回 set 不可切片
+
 - **清动画先静态化**:`animation_data_clear()` 是 API 不进 undo 栈、action remove 不可撤回 → 清前先记录 matrix_world 恢复 matrix_basis,相机动画(对象级 + camera data 级)先确认保留名单
+
 - **Blender 5.2 驱动变量无 `SELF` 类型**:旧写法 `vf.type='SELF'` 报非法类型 → 用 `d.use_self=True`,表达式里 `self` 即可引用当前物体(用于读 `self['bob_base_z']` 等自身属性)
+
 - **自定义属性显示名就是键名**:想中文 UI 直接把键设成中文(`obj['最大上移']=1.0`);`id_properties_ui(k).update(name=...)` **不接受** `name` 参数,改显示名只能改键本身(逻辑读键也得同步改)
+
 - **改名控制物体 / 替换驱动函数后旧驱动"陈旧"**:depsgraph 不把旧驱动标记为需重算,求值直接返回基准值(看似不动);给每个 Z 驱动调一次 `d.update()` 刷新(不动 seed/基准,花样保留)
+
 - **驱动引用的命名空间函数:源码存于文本块、随 .blend 保存;但运行期的 `bpy.app.driver_namespace` 映射不落盘**(API 只存"把哪些文本块标 Register",运行后再把函数填进 namespace)→ 重开文件若没人重新注册,驱动变红、物体掉 Z=0。**正解(官方机制,5.2 实测)**:文本块勾 Register(=`use_module=True`, UI 的 Register 复选框;`use_register` 是 5.2 已不用的旧 API 名)+ 偏好设置开 Auto Run Python Scripts → 载入时该文本块**自动执行**把函数重新填进 namespace,无需手动恢复。判断依据:Blender 手册 Scripting & Security("Registered Text-Blocks ... will load on start",受 Auto Run / Trusted Source 控制)
+
 - **基准位置要保留**:给物体挂驱动时只在首次记录 `bob_base_z`(当前静止 Z),重建若已存在则跳过,避免把"被驱动当前值"误当基准导致跳原点
+
 - **驱动里读帧:内置 `frame` 在 5.2 是【可用】的**(2026-09-14 五组对照实测:节点插槽驱动与对象级驱动都精确通过)。它是驱动求值器注入的**内建变量**,**与 `bpy.app.driver_namespace` 无关** —— 旧笔记"5.x 驱动命名空间默认无 `frame` 键"是**范畴错误**。`SINGLE_PROP → scene.frame_current` 同样可用,价值在于**显式声明依赖边**。**真正的坑是 `frame * <某个未注册的命名空间函数>()`**:整条驱动 `is_valid=False`、值恒为默认 0、画面零变化(曾据此误判"frame 无效")。**分辨判据:读 `driver.is_valid`,变红就是表达式里有东西解析不了,与 `frame` 无关**
+
 - **Z 轴旋转驱动用 `rotation_euler[2]`,不是 `rotation`/`rotation_quaternion`**:直接给四元数 `rotation` 挂驱动路径会被当四元数读,结果错乱;务必 `driver_add('rotation_euler', 2)`;构建时把基准角 `rotation_euler.z` 复位为 0,否则会从被污染角度(如残留 100°)累加
+
 - **Blender 5.2 视口录制(opengl/FFMPEG)输出配置顺序**:必须先 `image_settings.media_type='VIDEO'`,**再** `image_settings.file_format='FFMPEG'`;顺序反了直接报 `'FFMPEG' not found in enum`(VIDEO 之前该枚举项未就绪)
+
 - **驱动命名空间函数持久化(spin 同 bob)**:运行期 `driver_namespace` 映射不落盘,靠 **Register 文本块(源码随文件保存)载入时自动重注册**自愈;或 `scripts/driver-restore/restore_drivers.py` 一键恢复(内置强制重编译),避免重开文件驱动变红
+
 - **Register 自动恢复已实测 100% 生效**:light_off/scroll_speed 文本块勾 Register + Auto Run → 重启后函数自动进命名空间、**全部驱动 is_valid=True 自动恢复**(843 驱动实测 INVALID 0),无需手动操作。文本块模板见 scripts/driver-lights/light_driver.py 与 scripts/glow-scroll-material/scroll_driver.py
+
 - **`Math` 节点的第 3 个输入只有 `MULTIPLY_ADD` 会读** → 想加三路必须**串两个 ADD**,否则第三路被静默丢弃(实测周期算成 174 而非 200);且**未连接的输入默认 0.5 而不是 0**,建完节点要把用不到的口显式清零
+
 - **`image.pixels` 的第 0 行是图的【最底部】** → 拼接触表按行号递增写会**整张上下颠倒**(本项目据此差点下错结论);且 `foreach_set` 每像素 **16 字节**(4 float × 4B),写成 `4*W*H` 报 TypeError
+
 - **视口「材质预览」与 F12 渲染是两套光照** → 判断"用户看不看得见"必须**抓视口**(`bpy.ops.render.opengl(write_still=True, view_context=True)` + `temp_override`);材质预览会用内置 HDRI 而不是场景 world,同一参数实测 **F12 只变 5/255、视口变 86/255**,用 F12 数据会得出"不可见"的错误结论。另:判可见性用 **maxDiff**,别用"变化像素占比"(单边移动的参数 maxDiff 223 而面积仅 0.6%)
+
 - **循环时间轴:时长类参数必须进【相位】** → 只进"周期"不出现在 `u − 参数` 里的参数,在 `f < 周期` 时是**数学恒等变换**,画面逐像素相同(实测 diff 0.0/255),用户拖它整段没反应 = 误报"坏了";详见 skills/blender-radial-pulse-material/SKILL.md §4.2
+
 - **参数只准有一个入口,别做"假控件"** → 把参数再镜像一份到别的 data-block(另一空物体的自定义属性等),它会**能拖、有范围、有说明,但没有任何连线读它** —— 这是"改了参数没效果"最常见的误报来源
+
 - **`driver_add()` 会把表达式自动填成"当时的数值"** → 装完不覆盖 `d.expression` 就等于装了个**常量驱动**,改属性当然纹丝不动(本项目被骗了一整轮)
+
 - **恢复命名空间函数后必须强制驱动重新编译**:只 exec 文本块注册函数**不够**——depsgraph 仍缓存旧失败状态(`driver.is_valid=False`,求值失败返回 0 → 物体全部掉到 Z=0 错位)。必须对引用该函数的每条 SCRIPTED 驱动**重新赋值同值表达式**(`d.expression = d.expression`)强制重算。restore_drivers.py 已内置此步骤(注: 正常重启路径 Register 自动执行会连驱动一起恢复,无需手动重编译;此坑仅出现在"运行中 exec 注册"场景)
+
 - **桥接 exec 时 `__name__` 是 `builtins` 不是 `__main__`**:远程执行的脚本若写 `if __name__=='__main__': main()` 会**静默不执行**(桥端只回 `OK` 无输出);脚本应直接调用 `main()`(Scripting 工作区 Run Script 同样如此)。仓库所有经桥执行的脚本(build_bob_drivers/build_spin_drivers/restore_drivers)均已去掉守卫
+
 - **场景相机按帧切换通常靠时间轴标记绑定(Bind Camera to Markers),不是 action 动画**:playblast/录屏脚本**不要写死 `s.camera=某相机`**,否则覆盖标记绑定、丢机位切换;直接 `render.opengl(view_context=False)` 即跟随标记自动换机位(详见 docs/视口预览录制录屏式.md)
+
 - **5.2 天空纹理(TEX_SKY)的太阳参数是节点属性,不是输入 socket**:inputs 里只有 Vector,`sun_elevation`/`sun_rotation`/`sun_intensity`/`sun_size` 全是节点属性,`sky.sun_elevation` 直接访问;挂驱动用 `sky.driver_add('sun_elevation')`
+
 - **节点驱动存在 node_tree.animation_data 上,不是节点上**:`ShaderNodeTexSky` 无 animation_data 属性,驱动挂在 `sky.id_data`(节点树),路径 `nodes["天空纹理"].sun_elevation`;移除/排查驱动遍历 `nt.animation_data.drivers`(详见 docs/天空太阳高度驱动.md)
+
 - **判断数据块共享用 `users > 1`,别只看数据块名**:`Mesh.537` 等序号名不代表独立,可能被多对象同时引用;遍历 `col.objects` 只处理目标集合内对象,集合外共享同数据块的对象不受影响(详见 docs/集合内对象数据独立化.md)
+
 - **新建空物体后必须 `view_layer.update()` 再读 `matrix_world`**:否则读到单位矩阵 → `matrix_parent_inverse` 设成 identity → 子对象世界坐标 = 父位置+自身位置(翻倍偏移跑出集合)。任何"parent + 手动 matrix_parent_inverse"的脚本都要先 update
+
 - **5.2 `DriverTarget` 无 `array_index` 属性**:SINGLE_PROP 读数组分量(如 location[0])用 `data_path='location[0]'` 带下标,不是设 `target.array_index`(会报 AttributeError)
+
 - **驱动单向,不能 A↔B 互指**:循环依赖直接报错。旋转/位置联动只能"一主一从":主灯自由,从灯挂驱动读主灯 + 固定差(如向上灯为主,向下灯 = 向上 + (−π,0,0))(详见 docs/运动网格灯光方案.md)
+
 - **SINGLE_PROP 读自定义属性"脚本内改值不重算"(可能读到 0),且旧脚本会写回常量覆盖 sun 驱动 → 用命名空间函数实时读 bpy**(`sky_sun_angle()` / `sky_sun_elev()` 读 天空控制["太阳角度"/"太阳高度"]);别再用旧 `build_sky_sun_driver.py`(详见 docs/天空太阳高度驱动.md,推荐脚本 `scripts/driver-sky/sky_driver.py`)
+
 - **重启后天空驱动断开,多半是 .blend 内嵌的 sky_driver.py 文本块是旧版**(只含 `sky_sun_angle`,缺 `sky_sun_elev`)→ Auto Run 正常但高度驱动仍红:用仓库权威版覆盖该文本块,保持 Register,重注册并强刷驱动后 Ctrl+S(`d.expression=d.expression` 强制 Sun 驱动重编,Scripted 5.2 无 `d.update()` 需 try/except 兜底)
+
 - **★ 独立化必须「先快照、后动手」**:把共享网格数据逐对象 `ob.data = ob.data.copy()` 时,
+
   **不能一边遍历一边判 `users > 1`** —— 复制一个,那份数据的 users 就掉 1,
+
   轮到共用同份数据的兄弟对象时 `users == 1` ⇒ 被跳过,实测 118 个对象漏了 28 个。
+
   正解:先按数据块分组做快照,被共享组里的每个对象都**无条件**复制
+
   (详见 docs/径向材质多位置部署与时差.md §2.3,脚本 scripts/radial-inward-pulse/make_effect_independent.py)
+
 - **★ 匹配关键词要向用户要全**:本例空对象叫「发射灯效果」「收缩灯效果」,还有一组叫「收缩**射**灯效果」——
+
   只匹配 发射灯/收缩灯 就会**整组漏掉**(「收缩灯」不是「收缩射灯」的连续子串)。
+
   按名字圈对象之前,先把实际名字清单打印出来给用户确认
+
 - **★ 带关键帧的材质复制后,action 必须【重建】而不是 copy**:
+
   `material.copy()` 会带上 `nt.animation_data.action` 且**与原件共用**;
+
   `action.copy()` + 按名字重绑 `action_slot` **不生效** —— fcurve 在、`fc.evaluate(f)` 也对,
+
   但节点**评估值冻结**在复制那一刻的帧值。
+
   正解:`ad.action = None` 丢掉带过来的,再原地 `keyframe_insert` 重建(驱动在 animation_data.drivers,不受影响)
+
 - **★ 播放时差 ≡ 相位偏移(循环周期相同时严格等价)**:
+
   `相位 = 帧号÷循环周期 + 相位偏移`,令 `相位偏移 = 错位帧数×k ÷ 循环周期` 即等价于用 `帧号+错位×k`。
+
   内收类**零节点改动**(改控制器属性,注意 UI 上限 1.0 要取 mod 1);
+
   四段循环类改 TVAL 两个关键帧的【值】(`值 = 帧 + 错位`,斜率不变)。
+
   ⚠ 相位偏移存的是【圈数】不是【帧数】—— 改循环周期,等效帧错位会跟着变;
+
   要帧数语义就加 `帧偏移` 参数(相位改成 `(帧号+帧偏移)÷循环周期`)
+
 - **★ 材质 `users==0` 且无 fake user ⇒ 存盘被 Blender 当孤儿清掉**;且**没被任何对象使用的材质
+
   不进依赖图** ⇒ 读关键帧/驱动的评估值拿到的是**原始存值**。
+
   「材质没了」「材质不动了」先查这两条,别急着重建;要保留的材质上 `use_fake_user=True`
+
 - **输出序列帧路径规范**:路径用相对 `//`(=工程文件目录)+ `output/<批次>/` + 文件名 `#` 帧占位(如 `260821x01####` → `260821x010001.png`,帧号插扩展名前);设图像格式**先 `media_type='IMAGE'` 再 `file_format='PNG'`**(镜像本表"5.2 视口录制 VIDEO 顺序",media_type 决定枚举域,顺序反了报 `PNG not found in enum`);用 `bpy.path.abspath()` 复核落盘路径;F12 不写盘先查合成器空节点组 ghost 状态(详见 docs/输出路径与序列帧输出规范.md)
 
+
+
 - **应用缩放(scale归1)前先核实"几何本体自然尺寸"**:顶点已被放大而 scale 仍大(如局部±0.39 但 scale=37.9)→ 世界=几何×scale 双重叠加,应用后"越改越大"(实测 C-DT 569 应 15)。识别:对比同装置件量级、`dims≈几何范围×scale` 自洽性;批量前重梳理清单(仅静态 MESH)并排除可疑巨件再动手
+
 - **应用缩放附加坑**:多用户网格(`data.users>1`)先 `copy()` 独立;负缩放(镜像)法向由 depsgraph 自动重算(5.2 已移除 `mesh.calc_normals`);对 scale≈40 的对象应用后局部坐标同倍数放大、局部空间操作精度下降;改/验分两次请求,先备份(记录原 scale 可逆还原)
+
 - **⚠️ `obj.parent` 赋值会静默重置 `matrix_parent_inverse` 为单位矩阵**:必须**先设 `parent`、后设 `matrix_parent_inverse`**,写反了 MPI 被清成 identity(症状: 对象飞到别处、MPI 平移回读 `(0,0,0)`)。隔离实验逐项验证: `parent_type` 赋值 / `animation_data_clear()` / 写 loc·rot·scale / `frame_set()` 都**不**重置,**只有 parent 赋值重置**(详见 docs/动画转移到父级空对象.md §坑1,脚本 scripts/anim-transfer-to-empty/)
+
 - **动画转移到父级空对象(动态转移)的通用解是 `MPI = B(F)⁻¹`(局部 basis 的逆),不是 `M(F)⁻¹`(世界矩阵的逆)**:只有参考帧处"局部==世界"(`mpi_old @ parent.world(F) == I`,如 F 帧父级 Z 旋转为 0)时两者才相等;自测构造 `M(F)` 与 `B(F)` 相差 6.35 单位的场景,用 `B(F)⁻¹` 得 0 偏差、用 `M(F)⁻¹` 会挪偏 6.35 单位。**推荐做法是再插一个无动画基点空对象、三段全用单位 MPI+单位 basis** → `M'(t) = D.world(t) @ I @ I`,乘单位矩阵精确,实测对原始基线偏差 **0.000e+00**,且本体本地变换彻底归零(打开 N 面板一眼可见动态全在上游,不会再误 K 本体)
+
 - **验收角度偏差别用 `2*acos(qa.dot(qb))`**:`dot≈1` 时 acos 病态放大,实测把 **3.8e-06** 的矩阵差虚报成 **0.0396°**(放大 100+ 倍),会误判成"有真实漂移"。改用旋转矩阵**元素最大差**,或良态式 `2*asin(sqrt(x²+y²+z²))`;注意 `mathutils.Quaternion` **没有 `.vector` 属性**(用 `.x/.y/.z`)。验证量级参考: float32 eps = 1.19e-07,场景坐标量级 ~25 单位时位置偏差应在 ~1e-6
+
 - **`location` 的坐标系是「父空间基底」(`parent.matrix_world @ matrix_parent_inverse`),既不是世界空间也不是对象自身空间**:`matrix_basis = T(location) @ R @ S` 平移在最左端 ⇒ 对象自身 `rotation` / `delta_rotation` 都**改变不了**位移方向。实测(父级绕 X 转 90°、子级自转 90°)K `location[2]` 的位移方向与自身 Z 偏 **90.0000°**。**`delta_location` 与 `location` 同坐标系**(不是"对象局部位移"),`delta_rotation` 也不把 `location` 带转(详见 docs/轴向位移-自身轴与世界轴.md,脚本 scripts/axis-space-motion/)
+
 - **让位移沿【自身轴】/【世界轴】的统一心法**:想让位移沿哪个坐标系,就把"承载位移那一层"的**父空间**做成那个坐标系 —— 沿自身轴: `朝向层(放旋转) → 位移层(自身旋转恒 0,只 K location[2])`;沿世界轴: 中间插一层"抵消旋转"的**世界对齐层**。两种都**只需 K `location`,不做换算**;上层旋转即使是动画也逐帧精确(实测 0.000000°)
+
 - **父级/上层朝向是动画时,"换算 + 只 K 两端"会走偏**(实测偏 **7.07 单位**,两帧之间只做父空间直线插值)⇒ 必须**逐帧 bake**,或用**世界空间约束**: 新建无父级空对象(世界空间)K 好动画 + 目标挂 `Copy Location`(`owner_space='WORLD'`,`target_space='WORLD'`,`use_offset=True`)—— 实测父级单轴/复合旋转均 **0.000000**,最通用
+
 - **⚠️ 存 `matrix_world` 必须 `.copy()`**:`evaluated_get(dg).matrix_world` 返回的是**活引用**,不拷贝直接存进列表,循环结束后**所有样本都会变成最后一帧的值**(实测三帧采样全打印末帧,导致诊断脚本输出"自身Z vs 世界Z = 0.0000°"的**假结论**);`to_3x3()` / `to_translation()` 返回新对象,天然安全
+
 - **验收"沿轴"别用"逐帧步进方向 vs 轴方向"**:目标轴随时间旋转时(如"沿自身轴"而自身轴在公转),位移向量本身就在转、基准轨迹也在动,该指标**必然误报**(实测真实偏差仅 8.1e-06 单位却报出 **112° / 163.86°**、被判失败)→ 正确判据是把位移向量分解为"沿轴分量 + **垂轴分量**",垂轴分量必须 ≈ 0
+
 - **`Copy Rotation` 的 `owner_space` 只有 `WORLD`/`CUSTOM`/`LOCAL`(没有 `LOCAL_WITH_PARENT`)**:用来"抵消父级旋转"必须 `owner_space='LOCAL'` + `target_space='WORLD'` + `invert_x/y/z=True`(实测 `WORLD`/`CUSTOM` 均无效、仍偏 90°);且**逐分量 invert ≠ 矩阵求逆**,单轴成立、**复合旋转不成立**(实测偏 3.83 单位 / 45°),复合旋转改用 bake 或 `Copy Location`
+
 - **判 `bpy.ops` 算子存在性必须用 `get_rna_type()` 包 `try`,不能信 `hasattr`**:实测 `hasattr(bpy.ops.mesh, "separate_by_material")` 返回 **`True`(假阳性)**,但 `get_rna_type()` 直接 `KeyError` —— 这个算子**根本不存在**,执行 `bpy.ops.mesh.separate_by_material()` 会失败。`bpy.ops` 上同类假阳性普遍存在
+
 - **按材质拆分 = `bpy.ops.mesh.separate(type='MATERIAL')`(唯一真实算子)**:语义是"按**材质槽**、对**整个网格**生效、**与选择无关**"(官方手册原文)。**原对象保留「面序中首次出现最晚」的那一组**材质的几何(名字不变,故**名字与材质常对不上**;规则由源码 `mesh_separate_material` 与 7 用例判别实验双向确认,旧文档写的「最后一个材质槽」是错的),其余各组各生成 `原名.001/.002/.003`,**每个新网格只留自己那一个材质槽**;所有部件沿用原对象的局部变换与 `matrix_parent_inverse` ⇒ 世界位姿逐位重合(实测 4 部件 `max|Δworld| = 0.000e+00`)
+
 - **空材质槽(有材质但零面)不产生对象,且其材质会被「存盘」丢弃**:源码只遍历**面的** `mat_nr`
+
   ⇒ 空槽不产生对象、也不被保留;`mesh_separate_material_assign_mat_nr` 把数据块 resize 到 1 个槽 ⇒ 空槽被清除。
+
   ⇒ **部件数 = 「有面的」材质槽数**(不是槽总数);只有 1 个槽有面时**完全不拆分**。
+
   ⚠️ **风险**:空槽材质在拆分后 users=0;**拆分算子不删它,是 Blender 落盘时按孤儿清理删的** ——
+
   实测三级分辨:拆分前 `users=1` → 拆分后未存盘**数据块仍在**、`users=0` → 存盘后同进程仍 `users=0`
+
   → **重新打开文件后已不存在**。若该材质只被本对象引用,**「拆分 + Ctrl+S」= 永久丢失**。
+
   要保住:拆分前 `mat.use_fake_user = True`(脚本包 `KEEP_EMPTY_SLOT_MATERIALS = True` 已内建,
+
   实测材质存活 `fake=True`、验证 24 项全绿),或先手工清空/移走这些槽。
+
   判定要看 **users 是否归零**,不能只看"是否下降":真实场景 `对象9287` 两个空槽材质另有使用者(3→2),**不受影响**
+
 - **拆分后属性层"消失"≠ 数据丢失,但必须靠基线判定**:Blender 会丢弃结果网格上**全为默认值**的属性层。某部件 `sharp_edge` 层不见了,只有知道"**该材质组原本锐边数**"才能定性 —— 基线里必须记录 `sharp_by_mat`(逐组锐边数):该组为 `0` ⇒ 无信息损失,`> 0` ⇒ 真数据丢失。真实案例:材质3组 = **0**(属性层消失,无损失),其余三组 = 68142 / 2461210 / 80886,与拆分后部件逐组精确吻合
+
 - **拆分后顶点数可能增加,属正常**:材质边界处**共享顶点**会被各组各复制一份(合成自测 52 → 64);只有各组拓扑独立时顶点数才精确守恒(真实案例 2,020,266 → 精确相等,说明跨材质边界共享边 = 0)。`material_index` 与 `.select_*` 掩码的消失也属正常(前者在每部件只剩 1 槽时无意义)。验证器把这类按**提示(ℹ️)**报出而非失败(❌)
+
 - **⚠️ 判几何守恒别用「世界包围盒」——两侧口径不等价,必然误报**:基线侧是`obj.bound_box`(局部 AABB)× `matrix_world`(**松上界**,AABB 经旋转必膨胀);
+
   拆分后侧是各部件局部 AABB 变换后的**并集**(每部件跨度更小 ⇒ 上界更紧),并集几何上必然 ⊂ 原上界。
+
   实测反例:`对象9287` 真实世界范围 Y `0.14~7.31`,旧口径给出 `-11.28~16.31`(差一个数量级),旧判据报 `1.557e-03` 漂移,
+
   而几何实际逐位未变。**正确判据 = 两侧都取「逐顶点局部坐标 min/max」**(算法一致、与帧无关,应精确相等):
+
   实测 `对象9287` `4.551e-07`、`对象9041` `4.141e-07`,而该量级 float32 可表示间隔约 `3.05e-05` ⇒ 差值**小于一个浮点台阶**
+
 - **⚠️ 桥的 `_env()` 命名空间里没有 `__name__`** ⇒ 经桥执行的脚本结尾**禁止**写 `if __name__ == "__main__"`(直接 `NameError`),必须**无条件**调用 `main()`。同源问题:Blender 执行 `scripts/startup/*.py` 时 `__name__` 是**模块名**而非 `"__main__"`
+
 - **长耗时算子必须"状态逐阶段写盘"**:桥 `exec` 在**主线程**跑,客户端 **120s 超时**后结果即丢;且主线程忙时新请求**只排队不执行** ⇒ 算子运行期间**无法轮询进度**。做法:每阶段 `json.dump` 一次状态文件,超时后读磁盘回捞结论(真实案例 350 万面拆分 10.5s)
+
 - **`Material.use_nodes` 已弃用**:Blender 5.2 起抛 `DeprecationWarning`(预计 6.0 移除)。判"材质有无节点"用 `mat.node_tree is not None`
+
 - **Empty 不支持修改器**:`empty.modifiers.new(...)` 返回 `None`,随后赋值/读取属性会 `AttributeError`。需要挂修改器做引用测试时必须用**网格对象**
+
 - **文档相对链接必须相对「本文件所在目录」**:`docs/` 下的文档写成 `[x](docs/x.md)`,GitHub 会解析为 `docs/docs/x.md` → **404**(实测 HTTP 状态码);同目录写 `x.md`,指向仓库根写 `../scripts/x/`。**改完必须跑可及性扫描复验**(相对路径 + 锚点)
+
 - **GitHub 锚点生成规则(实测)**:小写 → 移除标点 → **每个空白字符各转一个连字符(不合并)**。`## 16. 循环渐变色(ColorRamp 三色自然循环)` ⇒ `#16-循环渐变色colorramp-三色自然循环`;`## 2. 自定义属性 + 驱动控制显隐` ⇒ `#2-自定义属性--驱动控制显隐`(`+` 被移除后留两个空格 ⇒ 两个连字符)。**权威核验法**:抓线上页面 HTML 里的 `id="user-content-..."`(GitHub 的 `/markdown` API 返回的 HTML **不含** heading id,别用它验)
+
 - **删除文档必须连带清理全部引用与副本**:教训 —— 2026-08-28 删 `docs/应用缩放Scale归1.md` 时只删了本体 + 索引行,**正文整节 / 锚点 / 重复副本**全部残留,长期无人察觉。删文档检查单:① 本体 ② README 索引 ③ 技巧速查索引 ④ 技巧速查正文整节 ⑤ 其他文档引用 ⑥ CHANGELOG 补「后续变更」注记(不改写历史)
+
 - **⚠️ 验证器的判据必须「取差集 + 精确到本次操作的对象集合」,不能用全场景绝对值**(v1.17.1,同一处病根的两个实例都在验证器第 11 节):
+
   - **实例①绝对判无**:原先"存在 `users=0` 的 mesh 就 ❌"。真实工程里常已存在历史遗留孤儿(早期删对象留下的数据块) ⇒ **干净操作也必然误报**。实测:某对象 4 槽拆分后 35 项真通过,却被 10 个**拆分前既有**的孤儿(每个仅 26~78 面)判成"❌ 不通过",极具误导。正解:基线记 `orphan_mesh_before` 名单,只把 `orphan_now - orphan_before`(**新增**)判 ❌,交集降级 ℹ️ 提示(存盘时 Blender 本就会丢弃)
+
   - **实例②全场景口径**:`新增对象数 == 材质槽数-1` 的 `new_objs` 取的是 `set(D.objects) - before_objs`(**全场景**差集)。同一场景**连着拆多个对象**时必然串扰 —— 实测先拆 `水晶走廊_纵向灯`、再拆 `水晶走廊_竖向灯`,回头复验前者看到"新增对象数 **4** != 材质槽数-1 (1)"(把后者新增的 3 个也数进去了)。正解:只数「以 `TARGET + "."` 为前缀」的**本组**新增对象,全场景多出的部分仅作附注(`TARGET + "."` 对"名字互为前缀"的对象安全:`纵向灯` 是 `纵向灯2` 的前缀,但 `纵向灯2.001` 不匹配 `纵向灯.`)
+
   - **通用心法:凡"存在性 / 计数"检查(`users==0` 孤儿 / 空集合 / 缺贴图 / 新增对象数 / 游离引用),判据都要取差集、且精确到本次操作的对象集合 —— 真实工程状态往往不是干净的初始态,而且操作是连着做的**
+
 - **不支撑几何的 EMPTY 必须用「引用图 + 不动点」清**:只删"当前无子级"的会漏掉级联(实测 5006 → 7467 —— 中转容器 `Group-*`/`Arc*` 删完自己变叶子)。引用判定**必须排除** `Scene.objects`/`Collection.objects`/`ViewLayer.objects`/`Collection.all_objects`(成员关系)与 `ID.original`,否则全场景对象都会被标成"被引用"
+
 - **禁止 `bl_rna.properties` 全属性遍历上万对象**(22315 对象 ≈ 7 分钟,必超 120s)⇒ 改**打靶式**:约束 `c.target` / 修改器指针 / 节点 OBJECT·COLLECTION socket / 驱动 `variable.targets[*].id` / `scene.camera` / 相机 `dof.focus_object` / 粒子 `dupli_object`(全场景 12~20s)。也别在循环里用 `ob.children`(每次 O(n) 重算),自建 `parent.name -> [child]` 映射
+
 - **⚠️ 删除后旧引用立即失效**:`bpy.data.objects.remove()` 之后连 `o.name` 都抛 `ReferenceError: StructRNA of type Object has been removed` ⇒ 要用的字段**删除前冻结成纯值**、「被删名单」**先落盘再删**、核验**重新取引用**(本机连踩两次)
+
 - **空集合 ≠ 空对象**:`objects=0` 且 `children=0` 的集合用 `bpy.data.collections.remove(col, do_unlink=True)`(实测 `Export` 集合 `users=1`、挂在场景根),要**单独问用户**
+
 - **判贴图缺失必须带 `not img.packed_file`**:否则会把"路径失效但已打包"的贴图误报为缺失(真实工程 105 个);同一判据散落在体检/核验/文档多处时要交叉核对口径
+
 - **孤儿数据块清理顺序:先材质再图像**;删前逐个判"磁盘有同名副本或已打包"(磁盘无副本的打包数据一旦变孤儿,存盘即永久丢失)
+
 - **"配了发光材质渲染还是黑的"先查 `view_layer.material_override`,别去材质树里翻**:它是 **View Layer 级属性、不在材质里** ⇒ 材质节点树里永远查不到;非 None 时该视图层下**全部对象**材质被替换,此时改任何材质都不生效。第二查**引擎**(`BLENDER_WORKBENCH` **完全不读材质节点树**,发光永不生效,必须 `CYCLES`/`BLENDER_EEVEE_NEXT`),第三查 `ob.is_holdout`·`ob.visible_camera`·视图层 Exclude(症状都极像"材质没用"),最后才怀疑数值
+
 - **一个材质可以有多个 BSDF,只有「接到 `OUTPUT_MATERIAL.Surface`」的那个生效**:实测 `Material #18526fds.001` 里 `原理化 BSDF`(`Emission Strength=100`)**未接输出**、真正生效的 `原理化 BSDF.001` 只有 **10** ⇒ 用户看到的 100 是假的。排查必须**打印"输出连的是谁"**并列出"发光>0 但未接输出"的**孤儿节点**;多个 `OUTPUT_MATERIAL` 时只有 `is_active_output=True` 那个生效
+
 - **`view_transform` 默认 AgX(4.x/5.x)会压暗高亮**:同强度发光在 Filmic/Standard 下亮、AgX 下像哑光 ⇒ 它只解释"**不够亮**",**不解释"纯黑"**(纯黑往覆盖/Holdout/未连线找);`mat.diffuse_color` 是视口颜色,与节点树结果无关,不能当判断依据
+
 - **送给桥的脚本文件绝不能带 BOM**:桥端 `exec` 直接 `SyntaxError: invalid non-printable character U+FEFF`。**Windows PowerShell 5.1 的 `Set-Content -Encoding UTF8` / `Out-File -Encoding UTF8` 会写 BOM** ⇒ 用它生成送桥脚本必炸(实测踩过一次);改用 `[System.IO.File]::WriteAllText($p,$s,(New-Object System.Text.UTF8Encoding($false)))` 或 Python `open(...,encoding='utf-8',newline='\n')`
 
+
+
 - **★「恰好 N 条」不能用近似式算**:常数量的判据必须把**每一项**都显式写进公式 —— 径向环数 = `L + 占空比 − 软边占比 − 2×最小可见宽度`(`L = 基准半径/间距`)。只写 `L + 占空比 ≤ N` 会多出第 N+1 条;补了「− 软边」没扣 `2×最小可见宽度` 则仍有约 2% 的相位少一条。**写完必须扫描验证「最小 / 最大 / 恰为 N 的占比」,只看最大值会漏**(详见 docs/径向内收多脉冲材质.md,脚本 scripts/radial-inward-pulse/)
+
 - **★「数几个」必须先问清「在哪条半径上数」**:非圆网格(正方形板)上**内切圆半径**与**角点半径**相差 **√2 ≈ 1.414** —— 按角点定 3 条,圆上只剩 1.55 个周期 ⇒ 只看到 2 条(实测返工)。基准要做成开关并**同时报告两处**的分布
+
 - **★ 驱动只能挂在【Value 节点】的输出上,挂在计算节点(Math/MapRange)的输出插槽上等于没写**:计算节点的输出由它自己的运算决定,驱动会被覆盖 ⇒ 该项恒 0 ⇒ 相位不变 ⇒ **拖时间轴画面完全静止**。**守卫**:逐条驱动检查 `data_path` 目标节点 `type == 'VALUE'`,挂错直接点名;再加一条「帧号响应自检」(`frame_set` 到几帧、读回帧号节点须精确相等)
+
 - **★「亮面面积缩小」与「黑边变粗」是两个【正交】旋钮**:想收紧发光范围要用**径向裁切**(`MapRange(r − 亮面半径, 0..淡出宽度, 1..0)` 乘进掩码),**不是**加宽黑边 —— 混成一个(占空比 0.88→0.60)会把黑边从 24% 涨到 52%,用户下一句必然是「黑边太粗了」
+
 - **★ 读「另一个材质的颜色」不能读 `default_value`**:插槽若**已连线**,`default_value` 只是残留存值(实测读到 `(1,1,1,1)`,而真实配色是一条 ColorRamp 的 6 个色标,全丢)⇒ 必须**顺连线找到真正的来源节点**(ColorRamp 等)再把色标**逐项复制**;色标若铺在 `r∈[0,1]` 而新网格半宽不同,还要按 `r / 色相半径` 归一化,否则超出 1 的部分全被钳到最后一个色标 ⇒ 整面糊成暗红
+
 - **★ 已连线的「计算输出」插槽,Python 读 `default_value` 恒为 0**:只有被**关键帧或驱动器直接写入**的插槽才有可读值(Value 节点输出读得到,`Math`/`MapRange` 的输出读不到)⇒ 核验中间量要改成「**验基准 + 验驱动输入 + 解析式复算**」,别去读中间节点真值
+
 - **★★ 查「谁在读这个参数」必须扫到 `物体数据 → node_tree` 层,否则会双向出事**(2026-09-16 实测):
+
   驱动器的宿主不止控制物体与材质 —— **Blender 5.x 的灯光/网格数据块自带节点树**,面光灯的同构接入驱动
+
   全在 `o.data.node_tree.animation_data.drivers`。只扫 `o.animation_data` / `o.data.animation_data` /
+
   材质节点树会整层漏掉:`面光统一强度` 明明被 7 盏灯的 `发光强度.001` 读着(`expr='st * k'`),
+
   却被判成"全库零引用 ⇒ 假控件"(**结论完全相反**);更糟的是把 `Z向速度` 改名为 `X向速度` 后,
+
   漏扫的 7 条驱动全变 **`is_valid=False` 静默失效**(面光灯噪波滚动停摆,UI 上毫无异常)。
+
   **完整清单**:`o.animation_data` / `o.data.animation_data` / **`o.data.node_tree.animation_data`** /
+
   `o.modifiers[i].node_group.animation_data` / `materials(+.node_tree)` / `node_groups` / `scenes` /
+
   `worlds(+.node_tree)`。经验法则:`hasattr(x, "node_tree")` 为真的 data-block 都要往下再扫一层
+
   (详见 docs/驱动参数化材质维护.md,脚本 scripts/driver-param-maintenance/param_ref_scan.py)
+
 - **★★ 改名/删键之后必须跑「失效体检」,判据是 0 条**:① 全库 `dr.driver.is_valid == False` 计数;
+
   ② 变量 `data_path` 形如 `["X"]` 但该 ID 已无 `X` 键(正则 `^\["(.+)"\]$` 比对 `id.keys()` ⇒ 悬空引用)。
+
   两类都是**静默**问题(画面上只表现为"某处不动了"),只有体检能提前抓到
+
 - **删除驱动 / 换轴的顺序铁律**:先 `driver_remove(path, 旧分量)` → 再 `driver_add(path, 新分量)`
+
   → 重建变量(`id_type` 先于 `id`)→ **★ 显式覆盖 `d.expression`**(`driver_add()` 会把表达式**自动填成
+
   当时的数值** = 装了个常量驱动)→ 旧分量归零 → **全部驱动重建完之后才删旧属性键**
+
   (反了会留下指向已删属性的悬空驱动)
+
 - **「关键帧 → 常量」的存档纪律**:删曲线前先打印 `(帧, 值)` 全表 + `interpolation` + `extrapolation`
+
   + **`fc.evaluate(当前帧)`**(这是唯一回滚依据);**只删目标 `data_path`+`array_index` 那一条 fcurve**
+
   (同 action 其它曲线必须原样保留);常量取「当前帧所见值」可保证画面不跳变,用户指定值则要回报实际结果值;
+
   删完打印"动作剩余 fcurves"作证据,并在**另一次请求**里复核
+
 - **三个「index」别混**:① 驱动 FCurve 的**分量索引**(`drivers.find(path, index=2)` /
+
   `driver_remove(path, 2)` / `driver_add(path, 2)`,向量的 X/Y/Z;`find()` 的 index **必须关键字传参**,
+
   位置传参报 `TypeError`)② `DriverTarget` 的数组分量(**5.2 无 `.array_index`**,写进 `data_path='location[0]'`)
+
   ③ `ActionSlot` 的标识(**`.identifier` / `.name_display`** —— 既没有 `.name`,也没有 `.display_name`)
+
 - **`id_properties_ui(k).update(...)` 可全量复制/改写属性 UI**:`as_dict()` 抄下
+
   `min/max/soft_min/soft_max/default/step/precision/description` 再 `update()` 写进新键 ——
+
   **给参数改名时描述文案里的轴向要同步改**(如"沿世界 Z"→"沿世界 X");`update()` **不接受 `name`**,
+
   自定义属性的显示名就是键名本身(逻辑读键处 —— 驱动变量 `targets[0].data_path` —— 必须同步改)
+
 - **同名参数常被多处【同构接入】,换轴必须全搬**:主材质 + 若干面光灯节点树都读同一个速度属性时,
+
   只搬主材质的分量 ⇒ 两边噪波滚动方向不一致、且漏搬的那批直接失效。判据:
+
   「主材质与全部灯在同帧的下游插槽读数**逐位相等**」(实测 8 个插槽同时 5.0 / 50.0)
+
 - **几何散布"源隐藏渲染、实例照常"**:想藏掉生成形状的源对象(如星芒的单面源平面),把节点里的 `物体信息(ObjectInfo)` 设 **RELATIVE** 读源 + `源.hide_render=True` / `visible_camera=False`(保留 `hide_viewport=False` 便于调试)。`ObjectInfo` 换 **ORIGINAL 会忽略源的 scale/动画**(控制器参数驱动形同虚设);散布读的是源**评估几何**(depsgraph),藏的是"相机直接渲染"、不拦"被节点组当实例源引用"
+
 - **位置偏移要经 `设置位置` 施加在实例化之前的点上**:先对点 `设置位置(SET_POSITION)` 偏移、再进 `实例化于点上`;直接改 IOP 的 Position/Scale 会被实例基缩放放大、方向错乱
+
 - **★ 点云没有 `normal` ⇒ 贴表面朝向/推离必须换 `Distribute Points on Faces`**:`Mesh to Points(FACES)` 的输出点云属性只有 `position`/`.edge_verts`/`.corner_vert`/`.corner_edge`,**没有 `normal`** ⇒ `输入法线`、`命名属性('normal')`、`捕获属性(domain='FACE')` 三条读法**全读 0**(实测法线距离从 0 改 ±2 m,评估包围盒**逐位不变**)。正解:用 `DistributePointsOnFaces(RANDOM)` 的 **`Normal` 显式输出**(直接接 `对齐欧拉至矢量.Vector` + `VectorMath(SCALE)`);密度接 **`Density`**(RANDOM 下没有 `Density Max`,Poisson 才有),`密度 = 数量 / 表面积`
+
 - **★ 数量/距离这类参数驱动节点组内部的 `Value` 节点,不驱动修改器 socket**:`ShaderNodeValue` → 运算 → 节点输入,驱动挂 `nodes["X"].outputs[0].default_value`,`SINGLE_PROP → 控制器属性`;搬完**必须 `ng.interface.remove` 掉同名 socket**,否则修改器面板留能拖但没人读的假控件。改值后 `ng.update_tag()` + `ctl.update_tag()` + `view_layer.update()`,颗数/包围盒走 `evaluated_get(dg)` 读
+
 - **★★★ 百万级网格的 Remesh/Decimate 绝不许走桥**:实测 1000 万面 Voxel Remesh **超过 120 s 硬超时**并把主线程拖死 → 进程僵死(`Responding=False`、内存停在 ~350 MB、CPU 不再增长),此后**新进程连 `--factory-startup` 都卡在 UI 初始化**,只能重启电脑(未存盘改动全丢)。先手动减面到 5 万面级,或走 `blender.exe --background`
+
 - **★ 复杂宿主的低模包裹安全顺序**:减面 → 复制 + 烘焙变换 → **Voxel Remesh**(`voxel_size=0.06`,把多块薄壳变**封闭流形**) → **迭代 Decimate**(每轮先读当前面数再算 `ratio`) → `recalc_face_normals` + 外扩。实测 5.2 万面源 12264→1926→994、全程 **<3 s**;Decimate 在非流形网格上会卡在 14k 不再下降
+
 - **★ 非凸壳「是否包住」不能用半空间判据**:`n·p − d ≤ 0`(所有面)只对**凸包**成立,shrinkwrap/remesh 的内凹壳会误报"全部越界";用 `obj.closest_point_on_mesh(p)` 取最近点法线,`dot(p − loc, normal) > 0` 才算在壳外
+
 - **★ Empty 不能挂修改器 ⇒ 布点用子对象**:`empty.modifiers.new(...)` 返回 `None`;`star.parent = empty` + `matrix_parent_inverse = Identity` + `star.location = (0,0,0)`,位置由父级负责、闪烁由对象 `scale` 驱动、朝向由 `DAMPED_TRACK` 负责;复制源对象会继承 `hide_render=True` 与旧驱动,必须显式清掉
+
 - **★ 布点控制器必须放在用户操作的集合里**:复用远处的 `星芒_控制器` 会让用户"找不到控制器";正解是建**专用控制器**(如 `位置星芒_控制器`)放进目标集合,参数 `基础大小`/`闪烁幅度`/`闪烁速度` 三变量驱动 `base * (1 + amp * sin(frame * spd + 相位))`,相位按索引 `i × 0.7` 错开;判活 = 把幅度设 0 后跨帧 scale 恒定、改回立即恢复
+
 - **SCRIPTED 驱动"声明了变量却没用进表达式"= 参数静默失效**:求值只看表达式文本,变量表装了不用没用。例:源 scale 只写 `a/1000`、`b` 没进式 ⇒ 控制器 `动态缩放` 循环动画对整体大小毫无作用;完整式应 `a/1000 + b/1000`
+
 - **Blender 5.2 `mod.properties.inputs` 不可迭代**:返回 `GeometryNodesInterfaceInputs`,`enumerate(...)` 抛 `TypeError`;读单 socket 用 `.get(名)` / 属性访问
+
 - **不要用 EMPTY 自定义属性驱动几何节点 socket —— 改驱动节点组内部的 `ShaderNodeValue`**:5.2 里直接驱动修改器 socket 会读缓存值(如 288.0)且评估不刷新;把参数搬进节点组内部的 `ShaderNodeValue` 再进运算,驱动挂 `nodes["X"].outputs[0].default_value`(做法见上一条),并把 interface 里同名 socket 删掉
+
 - **循环三角波关键帧动画**(Slotted Action):一个完整周期进 fcurve + `CYCLES` 循环修饰器铺满帧范围;写路径 `action.layers[0].strips[0].channelbags[0].fcurves`,`FModifierCycles` **无 mode 属性**(默认即正向循环);被驱动属性再用 fcurve 补关键帧时**关键帧值显式覆盖**( `kp.co=(fr,val)`)绕开当前值被驱动干扰,读被驱动值走 depsgraph
 
+
+
 - **★ 连续自然降水(下雪/飘落)的统一心法 = `SceneTime → ×1/CYCLE → +随机相位 → FLOORED_MODULO 1 → prog`,位置由 `GROUND + (1-prog)*FALL_SPAN` 线性映射**:`prog∈[0,1)` 均匀铺满整条高度列,**触地瞬间(prog→1)取模回卷到天空** ⇒ 每片循环下落、均匀铺满、无半空消失、无顶部堆积;**别加贴地淡出**(否则雪花半空消失)。相位随机会话 = 初始就铺满全高,不需要"先等落到场"。(详见 docs/雪花下落系统.md §5,脚本 scripts/snowfall-scatter/)
+
 - **★ 几何怪散布宿主变换必须清零**:落雪区高度是相对宿主锚定的(`GROUND` 取地平面世界包围盒底部 Z),宿主若被移动(如实测 Z=-1.47)整个雪区整体移位、**雪埋进地面/顶部够不到天空**;构建脚本强制清零 loc/rot/scale。凡"点阵按世界包围盒算位置再挂到宿主实例化"的模式,宿主必须留在原点
+
 - **★ 随机值共用默认 ID ⇒ 坐标/相位相关(共线/同时落)**:多个 `RandomValue` 想各自独立(相位+X+Y+朝向),必须每个都**显式接 `Index` 作 ID 输入**并给**不同 Seed**(下雪: 29/7/13/401/509);只接 Index 不给独立 seed 仍会相关。同批实例要"各自不同"必须 每域独立随机源
+
 - **★ 无头批处理(`--background`)五大坑**(巨型工程改动的默认通道,详见 docs/按材质合并为单个网格体.md):
+
   ① **join 前必须烘焙世界变换** —— 对象最终位置含**父级矩阵贡献**,而 `join()` 只取自己的 `matrix_world`
+
      ⇒ 不烘焙**模型就以组件为单位散架**。写法 `parent_clear(type="CLEAR_KEEP_TRANSFORM")`
+
      (**不能用默认 `CLEAR`**,对象会跳回局部原点;也别用 `transform_apply()` 替代,多层父级下同样算错)
+
   ② **join 开销看「对象个数」不看几何量** —— 实测 24,137 个对象的组耗时 321.8s(占 98%),
+
      而 3,326,200 顶点仅 20 个对象的组只用 0.1s。**估时别用平均速率外推**(会误报几十分钟)
+
   ③ **`bpy.data` 非线程安全 ⇒ join/append 硬性单线程** —— 开了 32 线程但 3 秒 CPU 增量仅 2.95s;
+
      `--threads` 只管渲染/物理。**这类批处理没法并行加速**,别去尝试
+
   ④ **前台跑会被 SIGTERM 掐断**(日志空、无半成品、难归因)⇒ 必须**后台跑 + 独立日志**;
+
      判「在干活还是卡死」看 **3 秒 CPU 增量 > 0.5s**,**不要看日志刷新频率**(慢的大组几分钟零输出)
+
   ⑤ **进程内 `CHECK_VERTS 一致` 只证明内存里的数据对得上**,不证明存出去的文件还能打开
+
      ⇒ **必须另开一次 Blender 做重开复核**
+
 - **★ 多实例是「按材质合并」的红线**:`mesh.users > 1` 不为 0 时,合并会把同一份几何复制 N 份、
+
   **文件反而变大**(与瘦身目的南辕北辙)。动手前必跑 `analyze_materials.py` 查这项
+
 - **★ 「重名」不等于「重复」**:两个工程的顶层集合名(`Collection` / `SKP Imported Data`)与对象名
+
   大面积撞车,是 SketchUp 导入器按序号生成(`G-物体.00001`、`.00002`…)造成的。
+
   **别凭名字去重** —— 用**几何指纹**(世界位置 + 顶点数 + 面数 + 尺寸)比对;
+
   实测 22,550 个同名对象中 22,549 个指纹不同 ⇒ 合并应走**全量并集**不去重。
+
 - **★ 追加合并两个工程（`bpy.ops.wm.append` 与 `bpy.data.libraries.load` 两条路由实测语义等价；
+
   详见 `skills/blender-blend-append-merge/` 与 `docs/追加合并两个工程.md`）**：
+
   ① **耗时 ≈ 15 ms × 被追加的对象数**，与几何/贴图量几乎无关 —— 实测 29,914 对象被追加耗时
+
      **457.9 s**，而 154 对象被追加只用 **7.0 s**（几何量只差 1.8 倍，耗时差 **80 倍**）
+
      ⇒ **以对象少的一边为底**不是「省一半」，是省**两个数量级**；估时只看「被追加侧有多少个对象」
+
   ② **重名去重是「按最后一个 `.NNN` 数字后缀续号」** —— `G-物体.010` 的基名是 `G-物体`、序号 10，
+
      与底文件同族撞车后被分到该组第一个空闲号 ⇒ **链式挪号**，实测 **1,026 / 29,914（3.4%）对象被改名**。
+
      链接 / 变换 / 几何**全对**（世界矩阵多重集**位级一致**），只是名字不可靠；
+
      量化**不能用「名字集合差集」**（挪号是置换，只差 3 个新最大值 ⇒ 1,026 个**全漏报**），
+
      要用「除名字外全属性结构键」配对。对账口径一律**多重集（Counter）而非名字**
+
   ③ **游离对象会整批漏掉** —— 直接挂在 Scene Collection 根下、不属任何 `bpy.data.collections` 的对象，
+
      只追集合**一个都进不来**（实测 3 个，都是位置正常的可见件）⇒ 必须显式补 `scene.collection.objects`
+
   ④ **世界 / 场景设置不随集合追加** —— 底文件 `scene.world` 引用**从不变**；同名但节点树不同的 `World`
+
      **不冲突**；14 项场景设置全部保持底文件 ⇒ 想带世界得手工赋值。同名材质**内容完全相同也会复制成
+
      `.001`**（`do_reuse_local_id=True` 实测无效）；`Render Result` / `Viewer Node` 不随 append 过来
+
   ⑤ **存盘必须排在对账之前** —— 对账脚本自身的一个格式化 bug 就让 8 分钟 append 白跑过
+
 - **★ `'%s' % (tuple)` 陷阱**:单个 `%s` 的右操作数是**三元组**时,Python 把元组当作**多参数解包**,若左边只有一个占位符 ⇒ `TypeError: not all arguments converted during string formatting`。要打印一个坐标元组,必须写成 `% (tuple(...), )`(包成单元素元组)或先 `str()`。`%s` 单占位符对 str 安全、对长度≥2 的 tuple/list 报错
+
 - **★ 批量改造脚本中途抛异常会留下「半改造状态」**:8 盏灯的循环跑到第 1 盏就炸,结果**只有那一盏**被改成铰链架构(水平朝外 180°),其余 7 盏仍是朝上 90° —— 用户预览直接看到"有一盏不对";且 driver 已 `new` 出来但**变量没挂上**(表达式引用未定义变量)。**对策**:API 先用最小 demo 验证过再写批量脚本;跑完必须看核验脚本的 PASS/FAIL。详见 `docs/射灯阵列径向摆动绽放系统.md` 坑 #1 / 脚本 `scripts/spot-bloom-swing/`
+
 - **★ 5.2 `DriverTarget.id` 只接受 Object**:`tg.id = scene` 直接 `TypeError: DriverTarget.id expected a Object type, not Scene`。必须**先 `tg.id_type = 'SCENE'` 再赋值**(枚举含 `SCENE`/`WORLD`/`ACTION` 等);读自定义属性用 `data_path = '["键名"]'`
+
 - **★ 5.2 又一批属性被删改**(与主题 4 的 Slotted Action 同类):`ActionSlot.name` **不存在**(用 `name_display`/`identifier`)、`UnitSettings.length_system` **不存在**(用 `system`/`length_unit`/`scale_length`)、`Light.power` **不存在**(用 `energy`,新建 Spot 默认仅 **10 W**,基本看不见)、`Light.show_cone` **默认 False**(视口要显示照射锥必须显式打开)
+
 - **★ 桥 exec 整段代码,任何一行抛异常会让前面所有 print 全部丢失**:stdout 被 `redirect_stdout` 接管,只有整体成功才回包 ⇒ 报错时只有 traceback、看不到任何中间输出,排查成本极高。**写批量脚本前先探 API**(打印 `hasattr` / `bl_rna.properties` 枚举),别指望靠报错定位
+
 - **★ 空对象常常没有旋转,朝向信息是缺失的**:实测 8 个 `射灯*` 全是 `rotation=(0,0,0)`,而聚光灯默认朝 `−Z`(向下)⇒ **方向必须问用户**,不能默认朝下。同理「灯到中轴线的连线」有**垂足(水平)**与**对象点(倾斜)**两种理解,中轴被移动后两者差出仰角(实测 18.8°)
+
 - **★ 多物体「各在自己平面内摆动」要插一层铰链空物体**:XYZ 欧拉下 `R = Rz·Ry·Rx`,**X 轴水平 ⇒ Z 轴必竖直**,无法一步把灯摆到位 —— 按 `基=[t̂, ẑ, r̂]` 造矩阵赋给 `rotation_euler` 会**静默歪掉**。正解是 `定位空物体(位置)` → `铰链(rotation_euler=(α_driver, 0, rz))` → `灯(π/2 + 起始线仰角, 0, 0)`(推导见 `docs/射灯阵列径向摆动绽放系统.md` §二)
 
+
+
 - **★★★ 换文件级 operator 绝对不许通过桥送进用户正在用的会话**:`bpy.ops.wm.read_factory_settings` / `read_homefile` / `wm.open_mainfile` 会**重置/卸载当前文件**。实测在用户会话里连调两次 `read_factory_settings` ⇒ **Blender 卡死 → 桥无响应 → 崩溃,未存盘改动全部丢失**(本次丢了两次羽化改造,幸好用户 10 分钟前存过盘)。需要空场景做实验**一律另开独立后台进程**:`blender.exe -b --factory-startup --python 实验.py`;桥**只跑读写当前 .blend 内存**的脚本。**识别信号**:桥开始 `ERR / timeout after 120s`,同时 `tasklist` 里 blender.exe **内存长时间不变** ⇒ 是模态框/主线程卡死,不是"在忙"
+
 - **★★★ `Principled Volume` 的 Emission 不受 `Density` 控制**:实测把 `Density` 接到常量 `Value=0.0`(零浓度),画面**依然亮**(峰值 **19.74**),而且比 0.8 浓度(17.32)**更亮**(浓度低 ⇒ 吸收少 ⇒ 自发光累积更多)。`Density` 只控**吸收/散射**,自发光是**独立通道** ⇒ **只把渐变接 `Density` 是白费的**,想羽化边缘必须**同时接到 `Emission Strength`**(实测 50%→10% 过渡宽度 **6px → 18px**)。详见 `docs/体积光柱羽化系统.md` 坑 #2 / 脚本 `scripts/volume-beam-feather/`
+
 - **★★★ 体积光锥的轴向衰减「端点必须精确到 0」,否则远端是一条平切硬边**:体积锥**端面就是几何边界**,若轴向渐变在几何末端还留残余值(第一版写到 `0.05`),那片端面圆盘就带 5% 亮度被网格边界**一刀切掉** ⇒ 画面上是**一条水平硬边**,不是渐渐消失。必须让轴向渐变**精确到 0** 且在远端**极平缓**(`MapRange` 的 `interpolation_type='SMOOTHSTEP'`)。**判断方法**:正交侧视(整根入画)沿轴向取样,末端应**单调趋 0、无台阶**
+
 - **★ 要让「渐变终点可调」,别用 `ColorRamp` 节点**:`ColorRamp` 的色标位置 `color_ramp.elements[1].position` **没有输入插槽**,连不上 `Value` 节点,想做成滑块只能另挂驱动器(路径绕)。**`MapRange` 的 `From Max` 本身就是 socket**,可直接接 `Value` 节点 ⇒ 天然可驱动。两者是同一族平滑曲线。实测档位(远端 80% 处亮度,越小越实):`1.0→0.533 / 0.70→0.645 / 0.40→0.825`
+
 - **★★ 5.2 里对 `node_tree.nodes` 做 `remove()` 之后,之前持有的节点引用会失效**:`out.name` 读出**乱码**直接抛 `UnicodeDecodeError`,`out.inputs["Volume"]` 抛 `KeyError: key "Volume" not found`;更阴的是**链接静默丢失**(不报错,但节点根本没接上 —— 本次因此误判过一整轮"密度衰减接上了其实没生效")。**正解:删完节点后重新遍历 `nt.nodes` 取输出节点,绝不跨删除持有引用**
+
 - **★★ 改自定义属性后依赖图不会自动重算,且驱动器求值有延迟**:脚本里 `sc["X"] = v` 之后必须 `sc.update_tag()`,否则驱动器读到**旧值**;**GUI 拖滑块 Blender 会自动打 tag** ⇒ 用户手上是即时的。驱动器求值**有延迟**:同一次脚本内"改属性 → 立刻读插槽"读到的是**旧值**,要**下一个独立事件**(下一次远程调用)才读到新值 ⇒ **跨事件验证**才是有效核验
+
 - **★ `NodeSocketFloat` 没有 `.is_driven` 属性**:查某个插槽有没有被驱动,要翻动画数据 `nt.animation_data.drivers` 的 `data_path`(形如 `nodes["羽化指数"].outputs[0].default_value`);`FCURVE.evaluate()` 对驱动器**不返回驱动值**,也不能用来验证
+
 - **★ 按名字筛对象时别用 `endswith` 拼中文名**:实测 `o.name.endswith("_光锥")` **漏掉**了 `射灯_光_锥`(它结尾是 `光_锥` 不是 `_光锥`)⇒ 我据此向用户**误报"那个对象已不存在"**。中文名里的下划线位置极易踩坑,宁可放宽成 `"锥" in o.name` 或用正则可选组
+
 - **★ 材质里烘焙了常量 ⇒ 多个物体能否共用一份材质要先验证**:体积光锥的材质把 `R`(`L·tan(spot_size/2)`)与 `L`(`cutoff_distance`)**写死在节点常量里** ⇒ 只有 `spot_size` 与 `cutoff_distance` **完全一致**的灯才能共用一份材质(实测 8 盏射灯全是 10.0°/10.0 ⇒ 共用 1 份 = **同一组驱动器**,改一个数全变,`mat.users` = 8)。不一致就一灯一材质,别硬共用
+
 - **★★ 世界空间材质里「方向」旋钮必须只进角项,进时间项会静默失效**(雷达扫描材质实测):让扫描头反向的相位写成 `D = frac(条数×时刻 − 方向×条数×u)`。写成 `frac(方向×条数×(时刻−u))` 时,`frac(−x)` 与 `frac(x)` 的**头位置集合完全相同**(值域只差一个补数)⇒ **方向旋钮按了不反向**,只有拖尾换边 —— **纯结构断言完全看不出来,只有渲染出来量像素才抓得到**。配套红线:**别用连线把「有向条数」接进「时间项」**(连线会**盖过** socket 上的驱动值,方向又退回只进时间项 ⇒ 复现症状)
+
 - **★ 世界空间材质的"投射" = 悬空一个坐标分量,但半径不能直接取 `LENGTH`**:图案沿世界某轴投射就是坐标只取**另两个分量**(沿 Y 投射就只连 `X`/`Z`,`Y` 输出悬空);此时半径若直接对 Object 坐标取 `VectorMath(LENGTH)` 会**带上被丢弃的分量 ⇒ 半径错**,必须 `CombineXYZ` 把该分量填 0 再取长度
+
 - **★ Blender 5.2 没有 `ShaderNodeSceneTime`**:`bpy.types` 全量探查,5.2 无任何 `ShaderNode*Time*`(只有 `CompositorNodeSceneTime` / `GeometryNodeInputSceneTime`)⇒ 材质里的"当前时刻"要用 **`ShaderNodeValue` 输出 + 驱动**(如 `frame / fps * 速度 / 360.0`),不是场景时间节点
+
 - **★ `nt.driver_add(path)` 对非数组属性不能传 index**:`driver_add('nodes["X"].outputs[0].default_value', 0)` 报 `index 0 was given while property ... is not an array`;标量属性**不传 index**。另 **`MapRange` 有两套同名插槽(VALUE / VECTOR)** ⇒ 按名字取值会撞,一律用**索引**取 VALUE 的 6 个口(`0..5` = Value / From Min / From Max / To Min / To Max / Steps)
+
 - **★ 测"图案是否沿某轴投射"用 md5 比像素**:沿该轴平移物体、沿法线正交正视渲染,两张 PNG **逐像素一致**(md5 同值)即证明"图案与该轴无关",比肉眼硬。前提:`view_transform='Standard'`(**AgX 会压平对比**)、测前把发光强度调低(**默认高发光会过曝到全 1.0 ⇒ 亮度剖面的 argmax 随机**)
+
 - **★ `Object.bound_box` 是「对象/局部空间」,判世界区域必须先过 `matrix_world`**:直接拿 `bound_box` 的 min/max 当世界坐标,只在对象**位于原点且未旋转缩放**时才碰巧对;正解 `[obj.matrix_world @ Vector(c) for c in obj.bound_box]` 再取 min/max。**判据**:把对象挪远/旋转 45° 后判定结果若不变 ⇒ 判定根本没走世界矩阵
+
 - **★★ 零尺寸对象(EMPTY/CAMERA/LIGHT/点数据)的「面积包含」判据恒真,会误删全工程**:它们 `bound_box` 零尺寸(`w*h == 0`),任何 `area(R∩U) == area(R)` 写法都算出 `0 == 0` ⇒ 恒真 ⇒ 被当成"在覆盖区内"。**必须为退化矩形单开分支**,改用**四角点是否全落在并集内**(`point in union`),而不是比面积
+
 - **★★ 「落在 R1 或 R2 的并集内」不能拆成 `(在R1) or (在R2)`**:两块标记框重叠时,`or` 会漏判/误判跨缝矩形。正解 = **并集格网分解**:按所有边界 x/y 切格、逐格求交面积求和 `area(R∩U) == area(R)`(两块时等价容斥 `A∩R1 + A∩R2 − A∩R1∩R2`,n 块仍用格网);容差用相对量 `1e-6 × max(1, w*h)`
+
 - **★ 删除对象成本 ≈ 20 ms/个,且与 API / 视图层 / 集合大小无关**:实测 `bpy.data.objects.remove()` **123.6 ms**、`collection.objects.unlink()` **26.6 ms**、`bpy.ops.object.delete()` **44.2 ms**、**`bpy.data.batch_remove(list)` 最快 23.0 ms**、`remove(do_id_user=False, do_ui_user=False)` **135.6 ms(零收益)** ⇒ 成本在数据块本身,**换 API 省不出量级**;大批量一律 `bpy.data.batch_remove` + 分块(32 万对象工程删 14.3 万个 ≈ 50 个/秒)
+
 - **★ 循环内绝不用 `bpy.data.objects.get(name)`**:在 **32 万对象**规模下病态慢(曾挂死 **>10 分钟**);批量处理一律**直接遍历 `bpy.data.objects` + `set` 判定**,或先建 `{name: obj}` 字典查
+
 - **★ 干跑 / 执行 / 复核三处判据必须同源**:各写一套"谁在覆盖区内"的判定,会算出「**干跑 143,318、执行删 143,317**」这类**最难查的一对一偏差**;正解 = 抽一个**共享几何核**(如 `region_geom.py` 的 `make_judge`),三处都 import 它
+
 - **★ 存盘会丢弃 `users==0` 且无 fake user 的数据块 ⇒ 另存后对象数可能少 1**:实测内存 177,156 → 重开 177,155(另丢若干无用 mesh/image);复核对象数要**带容差**,硬判据改成**业务不变量**(如「覆盖区内残留 = 0」)。收尾 `orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=False)` 跑 2 遍 ≈ **0.6 s**;**`do_recursive=True` 全量要 42.7 s**,别用
+
 - **★ 删除后旧引用失效**:`batch_remove` 之后碰被删对象的 `name` / `.data` / 属主关系会抛异常或读乱码(与 5.2 `nodes.remove()` 后旧节点引用失效同源);**正解:删完重新遍历 `bpy.data.*` 取新集合,不跨删除持有引用**
+
 - **★ 删父级会带走子级 ⇒ 区外子级必须先冻结 keep-transform**:父级在覆盖区内、子级在区外时直接删父级,子级会**连带消失或瞬移**;删前对每个"区外子级"执行 `mw=child.matrix_world.copy(); child.parent=None; child.matrix_parent_inverse.identity(); child.matrix_world=mw`。**判据:冻结后世界矩阵逐位不变**
+
+
 
 ## 约定
 
+
+
 - 文档用中文;技巧按“场景 → 做法 → 坑”组织;一坑一篇进 DEVELOPMENT.md
+
 - `skills/` 放**给 AI 助手用的作业规范**(`SKILL.md` + 附件脚本);`scripts/` 放**给人用的脚本包**(README + 脚本);**同一套脚本若两边都有,必须两处同步** —— 目前只有 `blender-scene-cleanup`(→ `scripts/scene-cleanup/`)与 `blender-render-blackout-diagnose`(→ `scripts/blackout-diagnose/`)是两边都有,其余 skill 的脚本只随 skill 自带
+
 - 文档内链接用**相对本文件**的路径;结构改动后跑一次「链接可及性 + 锚点存在性」检查(本地模拟 GitHub 解析)
+
+
 
 ## 常用命令
 
+
+
 - 远程执行:`python send.py <code.py>`(桥脚本在 `scripts/blender-remote-control/`,跨机器可复用;README 含完整说明)
+
 - 验证桥:`netstat -ano | grep 9877`
+
 - 手动改 handle:Graph Editor 选中关键帧按 V
+
+
 
 ## 详细规则(按需 @引用)
 
+
+
 - @docs/技巧速查.md
+
