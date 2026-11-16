@@ -29,7 +29,7 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r requirements.txt
       - name: Invariants (knowledge)
-        run: python tools/repo-kit/check_repo.py --root . --baseline schema/check-baseline.json
+        run: python tools/repo-kit/check_repo.py --root .
       - name: Generated artifacts up to date
         run: python tools/repo-kit/generate.py --root . --check
       - name: Kit lock

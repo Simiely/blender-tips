@@ -1,5 +1,18 @@
 # CHANGELOG.md
 
+## v1.40.1 · 2026-11-16（文档维护）
+
+升级到 **repo-kit 2.5.2 / 单项目规范 2.1.1**。不改任何主题内容。
+
+- 重装 kit：`tools/repo-kit/{check_repo,generate}.py` 换代，`schema/kit.lock.json` 写入 `v2.5.2 / spec 2.1.1`。
+- `schema/taxonomy.json` 首次把 `DEVELOPMENT.md` 与 `CHANGELOG.md` 纳入扫描：
+  这两份属于四件套，此前一直不在 `include` 里，等于从未被检查过。
+- 删除 `schema/check-baseline.json`：其中 **170 条全是 `LINK_DIR`**（指向存在的目录）。
+  该规则已按噪音处理不再告警，baseline 成了压制已消失问题的死配置。
+  CI 同步去掉 `--baseline` 参数。
+- 验收：`REPO CHECK: PASS`（ERROR=0、**WARN 170 → 0**、pages=43）、`GENERATE CHECK: PASS`、
+  `KIT LOCK: PASS (v2.5.2, spec=2.1.1)`。
+
 ## v1.40.0 · 2026-11-13
 
 - **新增主题 #57「面光渐变发光面：用 Parametric 画光带」** —— 面光要做出「面上有明暗分布」

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""repo-kit v2.0 仓库不变量校验器。
+"""repo-kit v2.5 仓库不变量校验器。
 
 设计目标：
 - 内容契约用 JSON Schema 表达，不用手写正则解析 YAML；
@@ -47,7 +47,7 @@ LINK_SCHEMES = ("http://", "https://", "mailto:", "tel:", "javascript:", "data:"
 ADR_RE = re.compile(r"ADR-(\d{4})-[a-z0-9-]+\.md$")
 ID_RE = re.compile(r"^[a-z0-9]+(\.[a-z0-9-]+)+$")
 PITFALL_FIELDS = ("summary", "symptom", "cause", "detect", "avoid", "recover", "applies_to", "severity")
-SPEC_VERSION = "2.0.0"
+SPEC_VERSION = "2.1.1"
 
 
 # ---------------------------------------------------------------------------
@@ -471,7 +471,7 @@ def check_spec(root: Path, report: Report) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="repo-kit v2.4 不变量校验器")
+    ap = argparse.ArgumentParser(description="repo-kit v2.5 不变量校验器")
     ap.add_argument("--root", default=".", help="仓库根目录")
     ap.add_argument("--json", action="store_true", help="JSON 输出（等价于 --format json）")
     ap.add_argument("--format", choices=["text", "json", "sarif", "github"], default="text", help="输出格式")
@@ -839,7 +839,10 @@ def main() -> int:
                 report.add("LINK_BROKEN", "ERROR", rel, f"本地链接目标不存在：{raw}", line)
                 continue
             if dest.is_dir():
-                report.add("LINK_DIR", "WARN", rel, f"本地链接指向目录（GitHub 可渲染，确认不是误链）：{raw}", line)
+                # 指向一个**存在**的目录是合法写法：GitHub 会渲染目录列表，
+                # README/DEVELOPMENT 索引源码目录时常用。真断链已由上面的
+                # LINK_BROKEN 覆盖，所以这里不产出告警 —— v2.5.0 之前报
+                # LINK_DIR(WARN)，实测单仓常驻上百条，把整条 WARN 通道淹了。
                 continue
             try:
                 dest_rel = dest.relative_to(root).as_posix()
