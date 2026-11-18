@@ -6,7 +6,8 @@
     "AGENTS.md",
     "docs/**",
     "DEVELOPMENT.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "rules/**"
   ],
   "frontmatter_exempt": {
     "names": [
@@ -15,7 +16,9 @@
       "DEVELOPMENT.md",
       "README.md"
     ],
-    "paths": []
+    "paths": [
+      "rules/**"
+    ]
   },
   "types": [
     "tutorial",

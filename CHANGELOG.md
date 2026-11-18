@@ -1,5 +1,16 @@
 # CHANGELOG.md
 
+## v1.40.2 · 2026-11-18（文档维护）
+
+按**单项目规范 2.1.4**（`AGENTS.md` ≤ 150 行）拆分 `AGENTS.md`：707 → 72 行。不改任何主题内容。
+
+- **165 条坑原样迁入** `rules/坑库.md`（文字与顺序未改，新增坑直接加在那里）；
+  `AGENTS.md` 只留 8 条最高频 ★★★ 摘要 + `@rules/坑库.md`
+- 2026-11-18 之前的基线 / 订正记录（v1.18～v1.39 的 ★★★ 结论）迁入 `rules/订正日志.md`
+- `schema/taxonomy.json` 把 `rules/**` 纳入扫描并豁免 frontmatter（规则文件的链接照常检查）
+- 验收：`REPO CHECK: PASS`（ERROR=0、WARN=0、pages=43）、`GENERATE CHECK: PASS`；
+  拆分前后逐条比对 182 个 bullet，**零丢失**
+
 ## v1.40.1 · 2026-11-16（文档维护）
 
 升级到 **repo-kit 2.5.2 / 单项目规范 2.1.1**。不改任何主题内容。
