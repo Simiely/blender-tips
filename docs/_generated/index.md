@@ -34,6 +34,7 @@ related: []
 | [发光遮罩选轴：世界轴 vs UV](../发光遮罩选轴-世界轴与UV.md) | note | active | @simiely | normal | `docs/发光遮罩选轴-世界轴与UV.md` |
 | [分体翻页牌驱动翻页系统(Split-flap)](../分体翻页牌驱动翻页系统.md) | note | active | @simiely | normal | `docs/分体翻页牌驱动翻页系统.md` |
 | [覆盖区框选批量删除对象（俯视 Z 轴）](../覆盖区框选批量删除对象.md) | note | active | @simiely | normal | `docs/覆盖区框选批量删除对象.md` |
+| [几何节点泡泡发射系统（发射口喷射 + 圆形范围约束 + 出生门控 + 消散 + 慢速倍率）](../几何节点泡泡发射系统.md) | note | active | @simiely | normal | `docs/几何节点泡泡发射系统.md` |
 | [滚筒斜纹材质](../滚筒斜纹材质.md) | note | active | @simiely | normal | `docs/滚筒斜纹材质.md` |
 | [合成器后期辉光(Glare)](../合成器后期辉光-Glare.md) | note | active | @simiely | normal | `docs/合成器后期辉光-Glare.md` |
 | [集合内对象数据独立化 · Blender 5.2](../集合内对象数据独立化.md) | note | active | @simiely | normal | `docs/集合内对象数据独立化.md` |
@@ -46,6 +47,7 @@ related: []
 | [空物体收敛清理（EMPTY 不动点算法）](../空物体收敛清理.md) | note | active | @simiely | normal | `docs/空物体收敛清理.md` |
 | [粒子系统礼花喷射方案（金纸礼花/Confetti Cannon）](../粒子系统礼花喷射方案.md) | note | active | @simiely | normal | `docs/粒子系统礼花喷射方案.md` |
 | [面光渐变发光面：用 Parametric 画光带](../面光渐变发光面.md) | note | active | @simiely | normal | `docs/面光渐变发光面.md` |
+| [参数化弹出门与角色控制系统（单控制器驱动多子树、门旋转 + 角色位移）](../参数化弹出门与角色控制系统.md) | note | active | @simiely | normal | `docs/参数化弹出门与角色控制系统.md` |
 | [驱动参数化材质维护:引用体检 · 改写收敛 · 改名换轴](../驱动参数化材质维护.md) | note | active | @simiely | normal | `docs/驱动参数化材质维护.md` |
 | [驱动式上下浮动噪声系统(Blender 5.2)](../驱动式上下浮动噪声系统.md) | note | active | @simiely | normal | `docs/驱动式上下浮动噪声系统.md` |
 | [驱动式 Z 轴匀速旋转系统(Blender 5.2)](../驱动式Z轴匀速旋转系统.md) | note | active | @simiely | normal | `docs/驱动式Z轴匀速旋转系统.md` |
@@ -87,6 +89,7 @@ related: []
 | `docs.fa-guang-zhe-zhao-xuan-zhou-shi-jie-zhou-yu-uv` | [发光遮罩选轴：世界轴 vs UV](../发光遮罩选轴-世界轴与UV.md) | how-to | note | active |
 | `docs.fen-ti-fan-ye-pai-qu-dong-fan-ye-xi-tong` | [分体翻页牌驱动翻页系统(Split-flap)](../分体翻页牌驱动翻页系统.md) | how-to | note | active |
 | `docs.fu-gai-qu-kuang-xuan-pi-liang-shan-chu-dui-xiang` | [覆盖区框选批量删除对象（俯视 Z 轴）](../覆盖区框选批量删除对象.md) | how-to | note | active |
+| `docs.geometry-node-bubble-emitter` | [几何节点泡泡发射系统（发射口喷射 + 圆形范围约束 + 出生门控 + 消散 + 慢速倍率）](../几何节点泡泡发射系统.md) | how-to | note | active |
 | `docs.gun-tong-xie-wen-cai-zhi` | [滚筒斜纹材质](../滚筒斜纹材质.md) | how-to | note | active |
 | `docs.he-cheng-qi-hou-qi-hui-guang-glare` | [合成器后期辉光(Glare)](../合成器后期辉光-Glare.md) | how-to | note | active |
 | `docs.ji-he-nei-dui-xiang-shu-ju-du-li-hua` | [集合内对象数据独立化 · Blender 5.2](../集合内对象数据独立化.md) | how-to | note | active |
@@ -100,6 +103,7 @@ related: []
 | `docs.kong-wu-ti-shou-lian-qing-li` | [空物体收敛清理（EMPTY 不动点算法）](../空物体收敛清理.md) | how-to | note | active |
 | `docs.li-zi-xi-tong-li-hua-pen-she-fang-an` | [粒子系统礼花喷射方案（金纸礼花/Confetti Cannon）](../粒子系统礼花喷射方案.md) | how-to | note | active |
 | `docs.mian-guang-jian-bian-fa-guang-mian` | [面光渐变发光面：用 Parametric 画光带](../面光渐变发光面.md) | how-to | note | active |
+| `docs.parameter-popup-door-system` | [参数化弹出门与角色控制系统（单控制器驱动多子树、门旋转 + 角色位移）](../参数化弹出门与角色控制系统.md) | how-to | note | active |
 | `docs.qu-dong-can-shu-hua-cai-zhi-wei-hu` | [驱动参数化材质维护:引用体检 · 改写收敛 · 改名换轴](../驱动参数化材质维护.md) | how-to | note | active |
 | `docs.qu-dong-shi-shang-xia-fu-dong-zao-sheng-xi-tong` | [驱动式上下浮动噪声系统(Blender 5.2)](../驱动式上下浮动噪声系统.md) | how-to | note | active |
 | `docs.qu-dong-shi-z-zhou-yun-su-xuan-zhuan-xi-tong` | [驱动式 Z 轴匀速旋转系统(Blender 5.2)](../驱动式Z轴匀速旋转系统.md) | how-to | note | active |

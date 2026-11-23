@@ -1,5 +1,19 @@
 # CHANGELOG.md
 
+## v1.41.0 · 2026-11-23
+
+- **新增主题 #60「几何节点泡泡发射系统」** —— 从空对象发射球体泡泡，贴合网格圆形范围
+  - 文档：`docs/几何节点泡泡发射系统.md`；脚本包：`scripts/geometry-node-bubble-emitter/`；Skill：`skills/blender-gn-bubble-emitter/`
+  - 核心：`Scene Time + FLOORED_MODULO` 循环、出生帧门控、目标圆心混合、淡入淡出、下落随机消散、`生命周期 × 慢速倍率`
+  - 坑：`Instance on Points` 无 `Position` ⇒ 先 `Set Position`；同 exec 改属性后必须 `update_tag()`；生命周期回卷会造成地面满尺寸突跳 ⇒ 两端淡隐
+  - 实测：帧 20 在 `慢速倍率=2.5` 时 50 个、`1.0` 时 123 个；帧 300 稳态 548 个；越界 0、地面突跳 0
+- **新增主题 #61「参数化弹出门与角色控制系统」** —— 单控制器 0–10 同步驱动 3点钟/10点钟两组门与角色
+  - 文档：`docs/参数化弹出门与角色控制系统.md`；脚本包：`scripts/parameter-popup-door/`；Skill：`skills/blender-parameter-popup-door/`
+  - 核心：先抓基线再写端点，6 条 `SINGLE_PROP` 驱动复用同一控制器；弧度常量直接进表达式，不套 `radians()`
+  - 坑：角色只改 Y；10点钟角色 Y 递减要按实测方向核验；控制器是无子级 EMPTY，清理时必须保留
+- **坑库新增 6 条**：GN `Set Position` / `update_tag()` / `FLOORED_MODULO` 出生门控 / 生命周期回卷淡隐 / 圆形范围圆心偏移 / 弧度常量不套 `radians()`；坑库 165 → 171 条
+- 索引同步：README 主题表与 Agent Skills 表、`docs/技巧速查.md`、`skills/README.md`；生成物经 `generate.py --write` 更新
+
 ## v1.40.2 · 2026-11-18（文档维护）
 
 按**单项目规范 2.1.4**（`AGENTS.md` ≤ 150 行）拆分 `AGENTS.md`：707 → 72 行。不改任何主题内容。
