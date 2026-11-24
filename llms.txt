@@ -59,3 +59,73 @@
 ### reference
 
 - [Blender 技巧速查手册](./docs/技巧速查.md) — 记录日常踩坑与可复用技巧,按主题索引,方便日后查阅。更新:2026-11-12(新增 #56 发光遮罩选轴;本表 51–53 见 README 索引)
+- [问题记录索引（一坑一篇）](./docs/问题记录/索引.md) — 按编号索引仓库内 65 条 Blender 实战问题记录，每条独立成篇。
+
+### explanation
+
+- [架构说明：Blender 技巧仓库与远程控制桥](./docs/架构.md) — 仓库的文档结构、远程控制桥调用链与两代桥实现差异。
+- [两端分叉后版本号/主题号撞车,入库前如何统一](./docs/问题记录/001-两端分叉后版本号-主题号撞车-入库前如何统一.md) — 仓库曾出现「本地另起一条版本线(v1.18~v1.19/主题#36)」与远端主线(已到 v1.21/#38)分叉,两处 v1.18.0/v1.19.0/主题#36 全部撞号。入库前**不要机械 rebase 或贪图少动**——先把本地独有成果按远端当前最大值顺延重编(星芒→v1.22.0/#39,loop-keyframe→v1.23.0/无主题号),再基于 `origin/main` 重建干净基线、把共享索引按最新文本重排,避免合并冲突噪音与版本号重复。
+- [几何散布想让"源对象隐藏但实例照常渲染"](./docs/问题记录/002-几何散布想让-源对象隐藏但实例照常渲染.md) — 源只用于节点组生成几何,设 `hide_render=True` 后散布实例仍渲染。
+- [SCRIPTED 驱动"变量声明了但没进表达式"导致参数失效](./docs/问题记录/003-SCRIPTED-驱动-变量声明了但没进表达式-导致参数失效.md) — 问题:控制器 `动态缩放` 循环三角波动画不改变星芒大小
+- [5.2 修改器输入端 `mod.properties.inputs` 不可迭代](./docs/问题记录/004-5.2-修改器输入端-mod.properties.inputs-不可迭代.md) — `enumerate(mod.properties.inputs)` 抛 `TypeError`,用 `.get(名)` / 属性访问。
+- [`bpy.context` 在后台线程不可访问](./docs/问题记录/005-bpy.context-在后台线程不可访问.md) — 远程 exec 放后台线程会报 `'Context' object has no attribute 'active_object'`,必须主线程。
+- [Blender 5.2 没有 `action.fcurves`(Slotted Action)](./docs/问题记录/006-Blender-5.2-没有-action.fcurves-Slotted-Action.md) — 新版动画用 slotted action,曲线要经 `fcurve_ensure_for_datablock` 访问。
+- [改 IDProperty 后驱动不重算](./docs/问题记录/007-改-IDProperty-后驱动不重算.md) — `obj['vis']=[0]` 后驱动值不变,需 `update_tag()` 强制刷新。
+- [关键帧"结尾不是线性"(插值机制)](./docs/问题记录/008-关键帧-结尾不是线性-插值机制.md) — 插值模式=从该帧到下一帧的段;末帧插值不影响任何可见段。
+- [interpolation=LINEAR 有折角,C4D 式"中间平滑两头线性"怎么做](./docs/问题记录/009-interpolation=LINEAR-有折角-C4D-式-中间平滑两头线性-怎么做.md) — 两头关键帧 handle 改 FREE,手动对齐线段方向;中间保持平滑。
+- [远程脚本修改合成器节点树导致 Blender 崩溃](./docs/问题记录/010-远程脚本修改合成器节点树导致-Blender-崩溃.md) — Blender 5.x 的 File Output 节点有已知崩溃 bug,远程脚本(主线程 timer)新建/操作该节点会直接崩溃(无崩溃日志)。
+- [Blender 5.2 渲染后查看器不显示结果(透明/需手动切)](./docs/问题记录/011-Blender-5.2-渲染后查看器不显示结果-透明-需手动切.md) — 5.2 移除 `CompositorNodeComposite`,合成器开启时渲染结果不再自动显示在图像查看器。
+- [File Output 输出是 EXR 而不是 PNG](./docs/问题记录/012-File-Output-输出是-EXR-而不是-PNG.md) — 节点 Media Type 默认 Multi-Layer EXR,槽需勾 Override Node Format 才能用 PNG。
+- [F12 渲染后输出文件夹是空的](./docs/问题记录/013-F12-渲染后输出文件夹是空的.md) — F12 单帧渲染不写序列;File Output 只写当前帧,完整序列要 Ctrl+F12。
+- [输出的 PNG 打开是透明的](./docs/问题记录/014-输出的-PNG-打开是透明的.md) — PNG 带 alpha 且 alpha=0(透明背景),查看器按 RGBA 显示棋盘格。
+- [空的合成器节点组导致"无法渲染/不输出"](./docs/问题记录/015-空的合成器节点组导致-无法渲染-不输出.md) — 5.2 的 use_nodes 恒 True;compositing_node_group 存在但树空 = "幽灵状态",渲染结果不保存。
+- [File Output 与渲染属性双份输出(文件名/大小不同)](./docs/问题记录/016-File-Output-与渲染属性双份输出-文件名-大小不同.md) — File Output 节点与 render.filepath 同目录时各输出一份;位深不同导致大小差约 2.7 倍。
+- [0 灯光场景渲染白膜平淡/无轮廓](./docs/问题记录/017-0-灯光场景渲染白膜平淡-无轮廓.md) — CAD 导入场景通常没有灯光对象,白膜渲染全靠世界光;World 节点树里 Sky Texture 未连接 Background 时,世界只是默认灰。
+- [探查脚本 round() 掩盖小数帧(361.5 显示成 362)](./docs/问题记录/018-探查脚本-round-掩盖小数帧-361.5-显示成-362.md) — 统计关键帧帧号用 `int(round(kp.co[0]))`,banker's rounding 把 .5 帧显示成整数,导致误判"数据没变"。
+- [同一次 exec 内修改后立即验证读到旧缓存值](./docs/问题记录/019-同一次-exec-内修改后立即验证读到旧缓存值.md) — 桥脚本改关键帧后在同一请求里马上重读,拿到的是未刷新值(数值错误但数据实际正确)。
+- [Blender 没有"反转关键帧"菜单(Reverse Keyframes 不存在)](./docs/问题记录/020-Blender-没有-反转关键帧-菜单-Reverse-Keyframes-不存在.md) — 反转关键帧的正确操作是「关键帧 → 镜像」;官方文档/API 均无 Reverse Keyframes 操作。
+- [时间轴整体平移产生负帧关键帧](./docs/问题记录/021-时间轴整体平移产生负帧关键帧.md) — 整体前移时若直接 `kp.co[0] -= delta`,原本在帧 1 的关键帧会变负帧。
+- [send.py 发送大任务报超时,但桥实际执行完了](./docs/问题记录/022-send.py-发送大任务报超时-但桥实际执行完了.md) — 桥内任务耗时 >120s 时 send.py 的 socket 先超时抛错(误报失败),但桥的 timer 线程会继续把任务执行完。
+- [重复网格合并的指纹陷阱(材质/UV)](./docs/问题记录/023-重复网格合并的指纹陷阱-材质-UV.md) — 仅按"同基础名+顶点数+面数"合并会误伤;必须用完整指纹(顶点坐标+面拓扑+材质+UV),且抽检真实几何。
+- [Blender 5.x parent 赋值后子对象世界位置翻倍](./docs/问题记录/024-Blender-5.x-parent-赋值后子对象世界位置翻倍.md) — `child.parent = empty` 后 matrix_parent_inverse 不自动设置(保持单位矩阵),空对象不在原点时子对象世界位置 = 空对象位置 + 局部坐标(如 743+743=1486)。
+- [ColorRamp 渐变"抖"(EASE 插值 + 过渡区多余色标)](./docs/问题记录/025-ColorRamp-渐变-抖-EASE-插值-+-过渡区多余色标.md) — 循环渐变色显示不平滑 = 两个原因叠加:插值类型被改成 EASE(非线性)+ 过渡区中间残留色标(打断线性)。
+- [Object 坐标不跟随空物体旋转 + 材质节点 driver 路径](./docs/问题记录/026-Object-坐标不跟随空物体旋转-+-材质节点-driver-路径.md) — Texture Coordinate 的 Object 输出只跟随平移;材质节点 driver/keyframe 路径必须用 inputs[N] 数字索引。
+- [理发店滚筒条纹底部"裁剪"](./docs/问题记录/027-理发店滚筒条纹底部-裁剪.md) — 问题:圆柱底部条纹被截断/扭曲——v 归一化后圆柱底部超出 0~1 为负值,普通 MODULO 负结果被钳制
+- [Blender 5.2 驱动变量类型无 SELF(use_self 替代)](./docs/问题记录/028-Blender-5.2-驱动变量类型无-SELF-use_self-替代.md) — 给物体挂驱动想引用"自身属性"时,旧教程 `vf.type='SELF'` 报非法变量类型;正确做法是 `driver.use_self=True`,表达式里 `self` 即可用。
+- [自定义属性显示名就是键名(update(name=) 无效)](./docs/问题记录/029-自定义属性显示名就是键名-update-name=-无效.md) — 想让控制面板滑块显示中文,没有"改显示名"的 API;显示名 = 键名,直接把键设成中文即可。
+- [改名控制物体 / 替换驱动函数后,旧驱动"陈旧"返回基准值](./docs/问题记录/030-改名控制物体-替换驱动函数后-旧驱动-陈旧-返回基准值.md) — 重构后旧驱动在依赖图里没被标记为需重算,求值直接返回基准 Z(看似不动);给每个驱动 `driver.update()` 刷新即可,不动 seed/基准。
+- [驱动依赖的命名空间函数(bob)不随 .blend 保存](./docs/问题记录/031-驱动依赖的命名空间函数-bob-不随-.blend-保存.md) — `bpy.app.driver_namespace['bob']` 是运行期全局,关闭重开 .blend 后函数丢失 → 驱动表达式报错变红。
+- [重建驱动时基准位置(bob_base_z)被误覆盖导致跳原点](./docs/问题记录/032-重建驱动时基准位置-bob_base_z-被误覆盖导致跳原点.md) — 挂驱动时要记录物体静止 Z 作基准,但重建时若覆盖了被驱动"当前值",物体会跳到原点附近;只在首次记录、已存在则跳过。
+- [Blender 5.2 视口录制(opengl + FFMPEG)输出配置顺序](./docs/问题记录/033-Blender-5.2-视口录制-opengl-+-FFMPEG-输出配置顺序.md) — 配置视频输出必须先 `image_settings.media_type='VIDEO'`,再 `file_format='FFMPEG'`;顺序反了报枚举找不到。
+- [Z 轴匀速旋转驱动用 rotation_euler 而非 rotation / 基准角被污染](./docs/问题记录/034-Z-轴匀速旋转驱动用-rotation_euler-而非-rotation-基准角被污染.md) — 想让物体绕 Z 轴匀速转,驱动必须挂在 `rotation_euler[2]`;挂之前把基准角复位为 0,否则从被污染角度累加。
+- [桥接 exec 时 __name__ 是 builtins,__main__ 守卫导致脚本静默不执行](./docs/问题记录/035-桥接-exec-时-__name__-是-builtins-__main__-守卫导致脚本静默不执行.md) — 经控制桥远程执行的脚本,`__name__` 为 `builtins` 而非 `__main__`,写 `if __name__=='__main__': main()` 会静默跳过,桥端只回 `OK` 无任何输出。
+- [linked duplicate 共享网格数据块导致复制出去联动](./docs/问题记录/036-linked-duplicate-共享网格数据块导致复制出去联动.md) — 外部导入的对象常多个共用一个网格数据块(43 网格只 21 唯一块),复制/导出后改一个全跟着变;用 `users>1` 判断 + `data.copy()` 逐对象独立化。
+- [恢复驱动命名空间函数后,驱动仍 is_valid=False,物体停在 Z=0 错位](./docs/问题记录/037-恢复驱动命名空间函数后-驱动仍-is_valid=False-物体停在-Z=0-错位.md) — 重开 .blend 后 exec 文本块把 bob/spin_speed 重新注册进命名空间,但驱动仍不求值(物体掉 Z=0);必须对每条 SCRIPTED 驱动**重新赋值同值表达式**(`d.expression = d.expression`)强制重新编译才恢复。
+- [场景相机按帧切换是标记绑定(Bind Camera to Markers),写死 s.camera 会丢机位](./docs/问题记录/038-场景相机按帧切换是标记绑定-Bind-Camera-to-Markers-写死-s.camera-会丢机位.md) — 相机切换常用时间轴标记绑定实现(非 action 动画);录屏脚本若写死 `s.camera=某相机` 会覆盖标记绑定,整段锁死一个机位;直接 `render.opengl(view_context=False)` 即自动跟随标记切换。
+- [send.py 不支持端口参数,多 Blender 并存连不上](./docs/问题记录/039-send.py-不支持端口参数-多-Blender-并存连不上.md) — 仓库 send.py 硬编码 9877,AGENTS.md 却声称"第二参数指定端口";多 Blender 并存(如 9877+9897)时无法用仓库客户端连第二实例。
+- [5.2 天空纹理太阳参数是节点属性,且节点驱动挂在 node_tree.animation_data](./docs/问题记录/040-5.2-天空纹理太阳参数是节点属性-且节点驱动挂在-node_tree.animation_data.md) — TEX_SKY 的 sun_elevation 等是节点属性(非输入 socket),挂驱动用 `sky.driver_add('sun_elevation')`;但 ShaderNodeTexSky 没有 animation_data,驱动实际存在节点树 `sky.id_data` 上。
+- [新建轴心空物体后立即读 matrix_world 是单位矩阵,matrix_parent_inverse 变 identity](./docs/问题记录/041-新建轴心空物体后立即读-matrix_world-是单位矩阵-matrix_parent_inverse-变-identity.md) — 创建空物体后马上读 `matrix_world` 是单位矩阵 → `matrix_parent_inverse = matrix_world.inverted()` 变成 identity → 子对象世界坐标 = 父位置 + 自身位置(翻倍偏移);必须先 `view_layer.update()` 再读。
+- [Blender 5.2 DriverTarget 没有 array_index 属性](./docs/问题记录/042-Blender-5.2-DriverTarget-没有-array_index-属性.md) — SINGLE_PROP 驱动变量要读数组的某个分量(如 location 的 X),不能设 `target.array_index`(5.2 无此属性,报 AttributeError);改在 `data_path` 里带下标 `'location[0]'`。
+- [驱动循环依赖——两个物体不能互指跟随](./docs/问题记录/043-驱动循环依赖——两个物体不能互指跟随.md) — A 跟随 B 和 B 跟随 A 的驱动互指会形成循环依赖,Blender 直接报错;联动只能"一主一从"。
+- [`obj.parent` 赋值会静默重置 `matrix_parent_inverse`(挂父级顺序陷阱)](./docs/问题记录/044-obj.parent-赋值会静默重置-matrix_parent_inverse-挂父级顺序陷阱.md) — `obj.parent = p` 会把 `matrix_parent_inverse` 重置为单位矩阵 → 必须**先设 parent、后设 MPI**;写反了对象会飞走,且 MPI 平移回读 `(0,0,0)`。
+- [动态转移的目标 MPI 通用解是 B(F)⁻¹ 而非 M(F)⁻¹ + 角度验收指标病态](./docs/问题记录/045-动态转移的目标-MPI-通用解是-B-F-⁻¹-而非-M-F-⁻¹-+-角度验收指标病态.md) — 把对象动画搬到新父级后冻结本体,`MPI` 要取 **局部 basis 的逆 `B(F)⁻¹`**;`M(F)⁻¹`(世界矩阵的逆)只在"参考帧局部==世界"时才对。另外算角度差别用 `2*acos(dot)`,会虚报 100 倍。
+- [位移想沿"自己的轴"或"世界轴",K 出来的 `location` 却哪个都不是](./docs/问题记录/046-位移想沿-自己的轴-或-世界轴-K-出来的-location-却哪个都不是.md) — `location` 的坐标系是**父空间基底**(`parent.matrix_world @ matrix_parent_inverse`),`matrix_basis = T(location) @ R @ S` 里**平移在最左端**,所以对象自身怎么转都不影响位移方向。想沿自身轴 ⇒ 让"承载位移的那一层"自身旋转为 0;想沿世界轴 ⇒ 让那一层的父空间与世界对齐。
+- [循环采样时 `matrix_world` 没 `.copy()`,所有样本都变成最后一帧的值](./docs/问题记录/047-循环采样时-matrix_world-没-.copy-所有样本都变成最后一帧的值.md) — `evaluated_get(dg).matrix_world` 返回的是**活引用**,存进列表前必须 `.copy()`,否则遍历结束后读到的全是末帧值;`to_3x3()` / `to_translation()` 返回新对象,天然安全。
+- [验收"沿某个轴运动"用"逐帧步进方向"会必然误报](./docs/问题记录/048-验收-沿某个轴运动-用-逐帧步进方向-会必然误报.md) — 目标轴随时间旋转时(如"沿自身轴"而自身轴在公转),位移向量本身就在转,逐帧步进方向**不可能**等于轴方向 —— 实测真实偏差只有 8.1e-06 单位,该指标却报出 **112° / 163.86°** 的假失败。正确判据是"**垂轴分量 ≈ 0**"。
+- [`hasattr(bpy.ops.xxx, "yyy")` 会假阳性,判算子存在性必须用 `get_rna_type()`](./docs/问题记录/049-hasattr-bpy.ops.xxx-yyy-会假阳性-判算子存在性必须用-get_rna_type.md) — `hasattr(bpy.ops.mesh, "separate_by_material")` 返回 **`True`**,但这个算子**根本不存在**;真调 `get_rna_type()` 直接 `KeyError`。判 `bpy.ops` 算子是否存在,一律用 `get_rna_type()` 包 `try`。
+- [拆分后属性层"消失",不靠逐组基线就分不清"无损失"还是"真丢数据"](./docs/问题记录/050-拆分后属性层-消失-不靠逐组基线就分不清-无损失-还是-真丢数据.md) — Blender 会丢弃结果网格上**全为默认值**的属性层 —— 按材质拆分后某部件的 `sharp_edge` 层会不见。判定必须是"**该材质组原本的锐边数**":基线为 `0` ⇒ 无信息损失,`> 0` ⇒ 真数据丢失。所以拆分前**必须**把逐组锐边数写进基线。
+- [桥在主线程执行 + 120s 超时 ⇒ 长耗时算子必须"状态逐阶段写盘"](./docs/问题记录/051-桥在主线程执行-+-120s-超时-⇒-长耗时算子必须-状态逐阶段写盘.md) — 桥的 `exec` 跑在 Blender **主线程**,客户端 **120s** 超时后结果即丢;且主线程忙时新请求**只排队不执行** —— 算子运行期间**无法轮询**。做法:每阶段 `json.dump` 一次状态文件,超时后从磁盘回捞结论。
+- [文档相对链接与锚点"本地看不出问题,在 GitHub 上却全部点不开"](./docs/问题记录/052-文档相对链接与锚点-本地看不出问题-在-GitHub-上却全部点不开.md) — GitHub 按**当前文件所在目录**解析相对链接 —— `docs/技巧速查.md` 里长期写作 `[x](docs/x.md)`,被解析成 `docs/docs/x.md`,**17 处链接全部 404**(实测 HTTP 状态码)。锚点同理:规则是"**每个空白字符各转一个连字符,不合并**",少一个连字符就打不开。这类问题本地编辑器与 Markdown 预览**都不会报错**,属"本地无感、线上全坏"。
+- [删除文档只删了"本体 + 索引",正文副本残留成了第二份内容](./docs/问题记录/053-删除文档只删了-本体-+-索引-正文副本残留成了第二份内容.md) — 2026-08-28 按用户要求删除 `docs/应用缩放Scale归1.md`,但只删了**文档本体**与**索引表行**,技巧速查里的**正文整节**(28 行,含死链)以及另一份**逐字重复的礼花节**(29 行)都留着,直到做可及性扫描才露出。结论:删文档是一张**检查单**,不是一个 `rm`。
+- [文档写死的规则是错的 —— 靠"判别实验 + 源码"双向确认才纠正过来](./docs/问题记录/054-文档写死的规则是错的-——-靠-判别实验-+-源码-双向确认才纠正过来.md) — v1.15.0 文档写的"按材质拆分后**原对象保留最后一个材质槽**"是**错的**,正确规则是
+- [验证器的"判据口径"两侧不等价 ⇒ 会稳定误报,而数据其实没变](./docs/问题记录/055-验证器的-判据口径-两侧不等价-⇒-会稳定误报-而数据其实没变.md) — 验证器用"世界包围盒并集"判几何守恒,但基线侧算的是"局部 AABB × `matrix_world`"(**松上界**),
+- [空槽材质「拆分后还在、Ctrl+S 后永久消失」—— 删它的不是拆分算子,是存盘孤儿清理](./docs/问题记录/056-空槽材质「拆分后还在、Ctrl+S-后永久消失」——-删它的不是拆分算子-是存盘孤儿清理.md) — `separate(type='MATERIAL')` 对**空材质槽**(有材质、零面)的对象拆分后,空槽里的材质数据块变成
+- [删除对象后"旧引用立即失效" —— 连 `o.name` 都会抛 `ReferenceError`](./docs/问题记录/057-删除对象后-旧引用立即失效-——-连-o.name-都会抛-ReferenceError.md) — `bpy.data.objects.remove(o)` 之后,`o` 这个 Python 包装器**当场变成死对象**,
+- [全属性遍历 2 万对象要 7 分钟(桥 120s 上限) —— 改"打靶式扫描"](./docs/问题记录/058-全属性遍历-2-万对象要-7-分钟-桥-120s-上限-——-改-打靶式扫描.md) — 用 `ob.bl_rna.properties` 逐属性找"谁引用了这个对象",在 22315 个对象上要跑约 **7 分钟**,
+- ["缺 105 个贴图"是误报 —— 判缺失必须带 `not img.packed_file`](./docs/问题记录/059-缺-105-个贴图-是误报-——-判缺失必须带-not-img.packed_file.md) — 清理后核验脚本报"真缺失贴图 105 个",虚惊一场 —— 它们**已打包在 .blend 里**,
+- ["只删无子级空物体"删不干净 —— 中转容器会迭代"长出"新的无子级](./docs/问题记录/060-只删无子级空物体-删不干净-——-中转容器会迭代-长出-新的无子级.md) — 空物体清理**不是一次性过滤**。删掉一批叶子后,原本挂着它们的中转容器自己变成了叶子,
+- ["配了发光材质渲染还是黑的" —— 两层原因叠加,只查一层必得出错误结论](./docs/问题记录/061-配了发光材质渲染还是黑的-——-两层原因叠加-只查一层必得出错误结论.md) — 这类问题 90% **不在材质节点里**。本次真凶是 **View Layer 材质覆盖**(视图层属性,
+- [PowerShell `Set-Content -Encoding UTF8` 会写 BOM —— 桥端 `exec` 直接 SyntaxError](./docs/问题记录/062-PowerShell-Set-Content-Encoding-UTF8-会写-BOM-——-桥端-exec-直接-SyntaxError.md) — Windows PowerShell 5.1 的 `Set-Content -Encoding UTF8` / `Out-File -Encoding UTF8`
+- [验证器判据用了「绝对值 / 全场景口径」⇒ 必然误报或串扰(两个同源实例)](./docs/问题记录/063-验证器判据用了「绝对值-全场景口径」⇒-必然误报或串扰-两个同源实例.md) — 验证器第 11 节两条判据都错在**口径**上 —— ①"存在 `users=0` 的 mesh 就 ❌"是**绝对判据**,
+- [改名一个参数,却把 7 盏灯的驱动改成了「静默失效」(漏扫 `data.node_tree` 层)](./docs/问题记录/064-改名一个参数-却把-7-盏灯的驱动改成了「静默失效」-漏扫-data.node_tree-层.md) — 查"谁在读这个自定义属性"时只扫了对象/数据块/材质,漏掉了**灯光数据块自带的节点树**
+- [连续下雪(几何节点)想做到真实雪速 + 贴地循环 + 无半空消失](./docs/问题记录/065-连续下雪-几何节点-想做到真实雪速-+-贴地循环-+-无半空消失.md) — `SceneTime → ×1/CYCLE → +随机相位 → FLOORED_MODULO 1 → prog`,位置 `GROUND+(1-prog)*FALL_SPAN`;触地取模回卷,放弃"真物理自由落体"与"贴地淡出"。

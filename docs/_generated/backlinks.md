@@ -19,3 +19,6 @@ related: []
 
 | 目标 id / 技能 | 来源 id | 关系 | 来源页面 |
 |---|---|---|---|
+| `docs.ji-qiao-su-cha` | [灯光链接排除某个物件：receiver 不是 blocker](../灯光链接排除地面.md) | see-also | `docs/灯光链接排除地面.md` |
+| `docs.ji-qiao-su-cha` | [渐变扫过材质 · UV 方向角](../渐变扫过材质-UV方向角.md) | see-also | `docs/渐变扫过材质-UV方向角.md` |
+| `docs.ji-qiao-su-cha` | [贴面细节光：小面光 + 渐变画高光](../贴面细节光.md) | see-also | `docs/贴面细节光.md` |

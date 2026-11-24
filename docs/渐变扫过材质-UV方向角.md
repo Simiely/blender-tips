@@ -10,7 +10,7 @@ topics: [materials]
 source_type: doc
 source: "docs/渐变扫过材质-UV方向角.md"
 last_reviewed: 2026-10-16
-related: []
+related: [docs.ji-qiao-su-cha:see-also]
 ---
 # 渐变扫过材质 · UV 方向角
 

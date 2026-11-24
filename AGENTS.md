@@ -62,11 +62,11 @@
 
 
 - @docs/技巧速查.md
-- **全量坑库（165 条）**：@rules/坑库.md
+- **全量坑库（171 条）**：@rules/坑库.md
 - **2026-11-18 之前的基线 / 订正记录**：@rules/订正日志.md
 
 ## 当前规模
 
-- 页面：45（critical=0）
-- 按 type：how-to=44, reference=1
+- 页面：112（critical=0）
+- 按 type：explanation=66, how-to=44, reference=2
 - 词表版本：2.7.0

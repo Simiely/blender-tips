@@ -1,5 +1,14 @@
 # CHANGELOG.md
 
+## v1.42.0 · 2026-11-24（文档维护）
+
+- **拆分 `DEVELOPMENT.md`**：799 → 35 行；65 条历史问题按「一坑一篇」迁入 `docs/问题记录/`，新增 `docs/问题记录/索引.md`；架构说明独立为 `docs/架构.md`，主文件只留项目概览、调用链与问题索引
+- **压缩 `README.md`**：231 → 149 行；主题表改为「编号 / 主题 / 入口」，长描述留在 `docs/技巧速查.md`；Agent Skills 表改为精简入口
+- **修复 `AGENTS.md` 内部坑数不一致**：顶部与详细规则统一为 171 条
+- **补 3 个孤立页的 `related` 入链**：渐变扫过材质、灯光链接排除地面、贴面细节光 → `docs.ji-qiao-su-cha`
+- **生成物同步**：`AGENTS.md`、`llms.txt`、`docs/_generated/` 由 `generate.py --write` 重建
+- 验收：`REPO CHECK` / `GENERATE CHECK` / `KIT LOCK` 通过；页面数 45 → 112
+
 ## v1.41.0 · 2026-11-23
 
 - **新增主题 #60「几何节点泡泡发射系统」** —— 从空对象发射球体泡泡，贴合网格圆形范围
