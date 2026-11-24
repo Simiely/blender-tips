@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## v1.43.0 · 2026-11-24（机器层升级）
+
+- **repo-kit 2.7.0 → 2.9.1，规范 2.1.3 → 2.1.5**：走安装器更新 `check_repo.py`、`generate.py`、`frontmatter.schema.json`、`update-repo-kit.ps1` 与 `schema/kit.lock.json`
+- **`schema/taxonomy.json` 同步 2.9.1**：仓自有配置，避免 `taxonomy.version` 与 lock 漂移
+- 生成物重建：`AGENTS.md` 词表版本更新到 2.9.1；`llms.txt` / `_generated` 保持一致
+- 验收：`REPO CHECK` PASS（112 页，ERROR=0 / WARN=0）、`GENERATE CHECK` PASS、`KIT LOCK` PASS（v2.9.1 / spec=2.1.5 / profile=knowledge）
+
 ## v1.42.0 · 2026-11-24（文档维护）
 
 - **拆分 `DEVELOPMENT.md`**：799 → 35 行；65 条历史问题按「一坑一篇」迁入 `docs/问题记录/`，新增 `docs/问题记录/索引.md`；架构说明独立为 `docs/架构.md`，主文件只留项目概览、调用链与问题索引

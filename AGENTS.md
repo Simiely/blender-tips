@@ -69,4 +69,4 @@
 
 - 页面：112（critical=0）
 - 按 type：explanation=66, how-to=44, reference=2
-- 词表版本：2.7.0
+- 词表版本：2.9.1
